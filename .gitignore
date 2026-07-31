@@ -4,3 +4,4 @@ data/cowrite.json*
 data/assets/
 data/generated/
 skills/image-studio/.labnana.env
+.codex/

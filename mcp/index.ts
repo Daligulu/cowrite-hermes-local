@@ -2,14 +2,43 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { pathToFileURL } from 'node:url'
 import { z } from 'zod'
+import { registerCowriteWidget } from './widget.js'
 
 const baseUrl = process.env.COWRITE_URL || 'http://127.0.0.1:4320'
+let sessionTokenPromise: Promise<string> | undefined
+
+async function sessionToken(): Promise<string> {
+  sessionTokenPromise ??= fetch(`${baseUrl}/api/session`)
+    .then(async (response) => {
+      const data = await response.json() as { token?: string; error?: string }
+      if (!response.ok || !data.token) {
+        throw new Error(data.error || 'Cowrite session is unavailable')
+      }
+      return data.token
+    })
+    .catch((error) => {
+      sessionTokenPromise = undefined
+      throw error
+    })
+  return sessionTokenPromise
+}
 
 async function api<T>(path: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`${baseUrl}${path}`, {
+  const isMutation = options?.method
+    && !['GET', 'HEAD', 'OPTIONS'].includes(options.method.toUpperCase())
+  const send = async () => fetch(`${baseUrl}${path}`, {
     ...options,
-    headers: { 'content-type': 'application/json', ...(options?.headers ?? {}) },
+    headers: {
+      'content-type': 'application/json',
+      ...(isMutation ? { 'X-Cowrite-Token': await sessionToken() } : {}),
+      ...(options?.headers ?? {}),
+    },
   })
+  let response = await send()
+  if (isMutation && response.status === 403) {
+    sessionTokenPromise = undefined
+    response = await send()
+  }
   const data = await response.json() as T & { error?: string }
   if (!response.ok) throw new Error(data.error || `Cowrite returned HTTP ${response.status}`)
   return data
@@ -23,7 +52,14 @@ function toolResult<T extends object>(value: T) {
 }
 
 export function createCowriteMcpServer() {
-  const server = new McpServer({ name: 'cowrite-mcp-server', version: '0.13.0' })
+  const server = new McpServer(
+    { name: 'cowrite-mcp-server', version: '0.13.0' },
+    {
+      instructions: 'Use cowrite_open_canvas when the user asks to open or start Cowrite in Codex. The native canvas can send confirmed follow-up tasks directly to the current conversation. Use the page tools for revision-safe reads and writes.',
+    },
+  )
+
+  registerCowriteWidget(server, baseUrl)
 
   server.registerTool(
     'cowrite_get_status',

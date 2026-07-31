@@ -1,17 +1,88 @@
 import express, { type ErrorRequestHandler } from 'express'
+import { randomBytes } from 'node:crypto'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { z } from 'zod'
 import { assetsDir, buildCreateCommand, CowriteService } from './service.js'
+import { LocalSkillLibrary } from './skilldeck.js'
 import { JsonStore } from './store.js'
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 
-export function createApp(service = new CowriteService(new JsonStore())) {
+export function createApp(
+  service = new CowriteService(new JsonStore()),
+  skillLibrary = new LocalSkillLibrary(),
+) {
   const app = express()
+  const sessionToken = randomBytes(32).toString('base64url')
+  const bridgeToken = randomBytes(32).toString('base64url')
   app.use(express.json({ limit: '2mb' }))
+  app.use('/api', (request, response, next) => {
+    const localHosts = new Set(['127.0.0.1', 'localhost', '::1'])
+    const parseHostname = (value: string, protocol = 'http:') => {
+      try {
+        return new URL(`${protocol}//${value}`).hostname.replace(/^\[|\]$/g, '')
+      } catch {
+        return ''
+      }
+    }
+    const host = parseHostname(request.headers.host ?? '')
+    const origin = request.headers.origin
+    const originUrl = origin ? (() => {
+      try { return new URL(origin) }
+      catch { return undefined }
+    })() : ''
+    const fetchSite = request.headers['sec-fetch-site']
+    if (!localHosts.has(host)
+      || (origin !== undefined && (
+        !originUrl
+        || !localHosts.has(originUrl.hostname)
+        || originUrl.host !== request.headers.host
+      ))
+      || fetchSite === 'cross-site') {
+      response.status(403).json({ error: 'Cowrite API only accepts requests from the local app.' })
+      return
+    }
+    next()
+  })
 
   app.get('/api/health', (_request, response) => response.json({ ok: true, service: 'cowrite' }))
+  app.get('/api/session', (_request, response) => response.json({ token: sessionToken }))
+  app.get('/api/bridge-session', (_request, response) => response.json({ token: bridgeToken }))
+  app.use('/api', (request, response, next) => {
+    if (['GET', 'HEAD', 'OPTIONS'].includes(request.method)) {
+      next()
+      return
+    }
+    const fetchSite = request.headers['sec-fetch-site']
+    if ((fetchSite !== undefined && fetchSite !== 'same-origin' && fetchSite !== 'none')
+      || request.headers['x-cowrite-token'] !== sessionToken) {
+      response.status(403).json({ error: 'This action requires the current Cowrite session.' })
+      return
+    }
+    next()
+  })
+  app.get('/api/skilldeck/config', async (_request, response) => response.json(await skillLibrary.getConfig()))
+  app.get('/api/skilldeck/catalog', async (request, response) => {
+    const directory = z.string().trim().min(1).max(2000).optional().parse(request.query.directory)
+    response.json(await skillLibrary.getCatalog(directory))
+  })
+  app.delete('/api/skilldeck/skills', async (request, response) => {
+    const input = z.object({
+      directory: z.string().trim().min(1).max(2000),
+      folder: z.string().min(1).max(255),
+      confirmation: z.literal('move-to-trash'),
+    }).strict().parse(request.body)
+    response.json(await skillLibrary.deleteSkill(input.directory, input.folder))
+  })
+  app.delete('/api/skilldeck/experts', async (request, response) => {
+    const input = z.object({
+      directory: z.string().trim().min(1).max(2000),
+      expertId: z.string().min(1).max(300),
+      confirmation: z.literal('delete-expert'),
+    }).strict().parse(request.body)
+    response.json(await skillLibrary.deleteExpert(input.directory, input.expertId))
+  })
   app.get('/api/pages', async (_request, response) => response.json(await service.listPages()))
   app.get('/api/pages/:id', async (request, response) => response.json(await service.getPage(request.params.id)))
   app.get('/api/pages/:id/command', async (request, response) => {

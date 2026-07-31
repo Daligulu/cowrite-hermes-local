@@ -20,9 +20,9 @@
     "category": "Productivity",
     "websiteURL": "https://github.com/SpaceZephyr/cowrite",
     "brandColor": "#2563EB",
-    "capabilities": ["Read", "Write", "Generate passage and full-article images", "Create HTML diagrams", "Create PPTX and HTML slides", "Create WeChat layouts", "Create Xiaohongshu image series", "Polish writing"],
+    "capabilities": ["Read", "Write", "Manage local Skills", "Generate passage and full-article images", "Create HTML diagrams", "Create PPTX and HTML slides", "Create WeChat layouts", "Create Xiaohongshu image series", "Polish writing"],
     "defaultPrompt": [
-      "启动 Cowrite 并告诉我本地画布地址",
+      "启动 Cowrite，并在 Codex 内打开画布",
       "在 cowrite 里创建一篇文章",
       "把当前 Cowrite 页面转换为 Slides",
       "把当前 Cowrite 页面排版成公众号 HTML",

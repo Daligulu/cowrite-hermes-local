@@ -3,12 +3,15 @@ import Vditor from 'vditor'
 import 'vditor/dist/index.css'
 import type { Page } from '../shared/types'
 import { articleIllustrationCommand, conversationCommand, explainerCommand, illustrateCommand, larkSendCommand, pageCreationCommand, polishCommand, slideHtmlCommand, slidePptxCommand, wechatLayoutCommand, xhsLayoutCommand } from './agentCommands'
+import { isTaskCancelled, sendAgentTask } from './codexTask'
+import { cowriteFetch } from './apiClient'
+import { SkillManager } from './SkillManager'
 import './App.css'
 
 type PageMeta = Omit<Page, 'content'>
 
 const api = async <T,>(path: string, options?: RequestInit): Promise<T> => {
-  const response = await fetch(path, {
+  const response = await cowriteFetch(path, {
     ...options,
     headers: { 'content-type': 'application/json', ...(options?.headers ?? {}) },
   })
@@ -63,8 +66,13 @@ function NewPageModal({ onClose, onCreated, notify }: {
       const page = await api<Page>('/api/pages', { method: 'POST', body: JSON.stringify(input) })
       if (mode === 'write' && prompt.trim()) {
         const command = await (await fetch(`/api/pages/${page.id}/command`)).text()
-        await navigator.clipboard.writeText(command)
-        notify('页面已创建，口令已复制。粘贴给 Codex，内容会写进这个页面')
+        try {
+          const result = await sendAgentTask(command)
+          notify(result === 'sent' ? '页面已创建，任务已发送到 Codex' : '页面已创建，任务已复制，请回到 Codex 粘贴发送')
+        } catch (error) {
+          if (!isTaskCancelled(error)) throw error
+          notify('页面已创建，任务未发送')
+        }
       } else if (mode === 'import') {
         notify(`已导入 ${importedFileName}`)
       }
@@ -97,7 +105,7 @@ function NewPageModal({ onClose, onCreated, notify }: {
       <div className="modal-actions">
         <button onClick={onClose}>取消</button>
         <button className="primary" disabled={creating || !title.trim() || (mode === 'import' && !importedContent)} onClick={create}>
-          {mode === 'import' ? '导入页面' : prompt.trim() ? '创建并复制口令' : '创建空白页'}
+          {mode === 'import' ? '导入页面' : prompt.trim() ? '创建并发送任务' : '创建空白页'}
         </button>
       </div>
     </div>
@@ -122,7 +130,7 @@ function LayoutModal({ onClose, onChoose }: {
           <b>小红书排版</b><small>Codex 内置生图</small>
         </button>
       </div>
-      <p className="slide-footnote">选择后复制任务，粘贴给 Agent 执行。</p>
+      <p className="slide-footnote">选择后由 Codex 弹窗确认，再发送任务。</p>
     </div>
   </div>
 }
@@ -148,7 +156,7 @@ function ArticleIllustrationModal({ page, onClose, onConfirm }: {
       <p className="slide-footnote">Agent 会按文章结构生成配图，并分别插入对应段落，不改动正文。</p>
       <div className="modal-actions">
         <button onClick={onClose}>取消</button>
-        <button className="primary" onClick={onConfirm}>确认并复制配图任务</button>
+        <button className="primary" onClick={onConfirm}>发送配图任务</button>
       </div>
     </div>
   </div>
@@ -179,7 +187,7 @@ function CowriteModal({ page, onClose, onUsePage, onSubmit }: {
             <small>填写你的具体创作任务</small>
           </button>
         </div>
-        <p className="slide-footnote">二选一，任务会复制到 Codex / Claude Code 对话框。</p>
+        <p className="slide-footnote">二选一，任务会交给 Codex 确认后发送。</p>
       </> : <>
         <div className="cowrite-current-page">
           <span>当前页面</span>
@@ -190,7 +198,7 @@ function CowriteModal({ page, onClose, onUsePage, onSubmit }: {
           <button onClick={() => setMode('choose')}>返回</button>
           <span />
           <button onClick={onClose}>取消</button>
-          <button className="primary" disabled={!requirement.trim()} onClick={() => onSubmit(requirement.trim())}>复制并发送到对话框</button>
+          <button className="primary" disabled={!requirement.trim()} onClick={() => onSubmit(requirement.trim())}>发送到 Codex</button>
         </div>
       </>}
     </div>
@@ -215,7 +223,7 @@ function SlideModal({ onClose, onChoose }: {
           <b>HTML</b><small>网页幻灯片</small>
         </button>
       </div>
-      <p className="slide-footnote">选择格式后，粘贴给 Agent 即可生成并回写链接。</p>
+      <p className="slide-footnote">选择格式后由 Codex 弹窗确认，完成后自动回写链接。</p>
     </div>
   </div>
 }
@@ -254,7 +262,7 @@ function SendModal({ page, onClose, onSendLark }: {
           <button onClick={() => setTarget('choose')}>返回</button>
           <span />
           <button onClick={onClose}>取消</button>
-          <button className="primary" onClick={onSendLark}>确认并复制发送任务</button>
+          <button className="primary" onClick={onSendLark}>发送任务到 Codex</button>
         </div>
       </>}
     </div>
@@ -302,7 +310,7 @@ function Editor({ page, onDirty, onSaved, notify }: {
       throw new Error('仅支持粘贴 PNG、JPEG、GIF 或 WebP 图片')
     }
     if (file.size > 10 * 1024 * 1024) throw new Error('粘贴图片不能超过 10 MB')
-    const response = await fetch('/api/assets/upload', {
+    const response = await cowriteFetch('/api/assets/upload', {
       method: 'POST',
       headers: { 'Content-Type': file.type },
       body: file,
@@ -457,10 +465,14 @@ function Editor({ page, onDirty, onSaved, notify }: {
     scheduleSave(400)
   }
 
-  const copyAi = async (command: string, hint: string) => {
-    await navigator.clipboard.writeText(command)
-    setSelectionBar(null)
-    notify(hint)
+  const sendAi = async (command: string, sentHint: string) => {
+    try {
+      const result = await sendAgentTask(command)
+      setSelectionBar(null)
+      notify(result === 'sent' ? sentHint : '任务已复制，请回到 Codex 粘贴发送')
+    } catch (error) {
+      if (!isTaskCancelled(error)) notify(error instanceof Error ? error.message : '任务发送失败')
+    }
   }
 
   return <>
@@ -473,10 +485,10 @@ function Editor({ page, onDirty, onSaved, notify }: {
             <button title="行内代码" onMouseDown={(event) => { event.preventDefault(); wrapSelection('`', '`') }}>{'<>'}</button>
             <button title="引用" onMouseDown={(event) => { event.preventDefault(); wrapSelection('\n> ', '\n') }}>&gt;</button>
             <span className="bar-divider" />
-            <button className="ai" onMouseDown={(event) => { event.preventDefault(); copyAi(illustrateCommand({ pageId, selection: selectionBar.text }), 'Codex 内置生图任务已复制，结果会插入选中段落下方') }}>配图</button>
-            <button className="ai" onMouseDown={(event) => { event.preventDefault(); copyAi(explainerCommand({ pageId, selection: selectionBar.text }), 'HTML/PPT 解释图口令已复制，结果会插入选中段落下方') }}>HTML</button>
-            <button className="ai" onMouseDown={(event) => { event.preventDefault(); copyAi(polishCommand({ pageId, selection: selectionBar.text }), 'Skill 优化口令已复制，Agent 只会改写这段文字') }}>优化</button>
-            <button className="ai" onMouseDown={(event) => { event.preventDefault(); copyAi(conversationCommand({ pageId, selection: selectionBar.text }), '已引用选中文字，粘贴到 Codex 对话框后补充修改要求') }}>对话</button>
+            <button className="ai" onMouseDown={(event) => { event.preventDefault(); sendAi(illustrateCommand({ pageId, selection: selectionBar.text }), '配图任务已发送，结果会插入选中段落下方') }}>配图</button>
+            <button className="ai" onMouseDown={(event) => { event.preventDefault(); sendAi(explainerCommand({ pageId, selection: selectionBar.text }), 'HTML 解释图任务已发送，结果会插入选中段落下方') }}>HTML</button>
+            <button className="ai" onMouseDown={(event) => { event.preventDefault(); sendAi(polishCommand({ pageId, selection: selectionBar.text }), '优化任务已发送，Codex 只会改写这段文字') }}>优化</button>
+            <button className="ai" onMouseDown={(event) => { event.preventDefault(); sendAi(conversationCommand({ pageId, selection: selectionBar.text }), '修改任务已发送，可在确认弹窗中补充要求') }}>对话</button>
           </>
     </div>}
   </>
@@ -486,6 +498,7 @@ function App() {
   const [pages, setPages] = useState<PageMeta[] | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [activePage, setActivePage] = useState<Page | null>(null)
+  const [workspaceView, setWorkspaceView] = useState<'page' | 'skill-manager'>('page')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
   const [cowriteOpen, setCowriteOpen] = useState(false)
@@ -544,68 +557,81 @@ function App() {
     notify('页面已删除')
   }
 
-  const copyPendingCommand = async () => {
+  const dispatchTask = async (command: string, sentHint: string) => {
+    try {
+      const result = await sendAgentTask(command)
+      notify(result === 'sent' ? sentHint : '任务已复制，请回到 Codex 粘贴发送')
+      return true
+    } catch (error) {
+      if (!isTaskCancelled(error)) notify(error instanceof Error ? error.message : '任务发送失败')
+      return false
+    }
+  }
+
+  const sendPendingCommand = async () => {
     if (!activePage) return
     const command = await (await fetch(`/api/pages/${activePage.id}/command`)).text()
-    await navigator.clipboard.writeText(command)
-    notify('口令已复制，粘贴给 Codex / Claude Code')
+    await dispatchTask(command, '创作任务已发送到 Codex')
   }
 
-  const copyPageCreationCommand = async (requirement: string) => {
+  const sendPageCreationCommand = async (requirement: string) => {
     if (!activePage) return
-    await navigator.clipboard.writeText(pageCreationCommand({ pageId: activePage.id, title: activePage.title, content: activePage.content }, requirement))
-    setCowriteOpen(false)
-    notify('当前页面和创作要求已复制，请粘贴到 Codex / Claude Code 对话框')
+    const sent = await dispatchTask(
+      pageCreationCommand({ pageId: activePage.id, title: activePage.title, content: activePage.content }, requirement),
+      '当前页面与创作要求已发送到 Codex',
+    )
+    if (sent) setCowriteOpen(false)
   }
 
-  const copyCurrentPageCreationCommand = async () => {
-    await copyPageCreationCommand('以当前页面全文作为创作要求，围绕其中的主题、信息和结构进行创作。')
+  const sendCurrentPageCreationCommand = async () => {
+    await sendPageCreationCommand('以当前页面全文作为创作要求，围绕其中的主题、信息和结构进行创作。')
   }
 
-  const copySlideCommand = async (format: 'pptx' | 'html') => {
+  const sendSlideCommand = async (format: 'pptx' | 'html') => {
     if (!activePage) return
     const input = { pageId: activePage.id, title: activePage.title }
     const command = format === 'pptx' ? slidePptxCommand(input) : slideHtmlCommand(input)
-    await navigator.clipboard.writeText(command)
-    setSlideOpen(false)
-    notify(`${format === 'pptx' ? 'PPTX 与预览' : 'HTML Slide'}任务已复制，Agent 完成后会把交付地址插回当前页面`)
+    const sent = await dispatchTask(command, `${format === 'pptx' ? 'PPTX 与预览' : 'HTML Slide'}任务已发送，完成后会把交付地址插回当前页面`)
+    if (sent) setSlideOpen(false)
   }
 
-  const copyWechatLayoutCommand = async () => {
+  const sendWechatLayoutCommand = async () => {
     if (!activePage) return
-    await navigator.clipboard.writeText(wechatLayoutCommand({ pageId: activePage.id, title: activePage.title }))
-    setLayoutOpen(false)
-    notify('公众号排版口令已复制，粘贴给 Agent 后会把 HTML 预览地址插回当前页面')
+    const sent = await dispatchTask(
+      wechatLayoutCommand({ pageId: activePage.id, title: activePage.title }),
+      '公众号排版任务已发送，完成后会把 HTML 预览地址插回当前页面',
+    )
+    if (sent) setLayoutOpen(false)
   }
 
-  const copyLayoutCommand = async (format: 'wechat' | 'xhs') => {
-    if (format === 'wechat') return copyWechatLayoutCommand()
+  const sendLayoutCommand = async (format: 'wechat' | 'xhs') => {
+    if (format === 'wechat') return sendWechatLayoutCommand()
     if (!activePage) return
-    await navigator.clipboard.writeText(xhsLayoutCommand({ pageId: activePage.id, title: activePage.title }))
-    setLayoutOpen(false)
-    notify('小红书排版口令已复制，Agent 确认方案后会用 Codex 内置模型生成图片组')
+    const sent = await dispatchTask(
+      xhsLayoutCommand({ pageId: activePage.id, title: activePage.title }),
+      '小红书排版任务已发送，Codex 确认方案后会生成图片组',
+    )
+    if (sent) setLayoutOpen(false)
   }
 
-  const copyArticleIllustrationCommand = async () => {
+  const sendArticleIllustrationCommand = async () => {
     if (!activePage) return
-    await navigator.clipboard.writeText(articleIllustrationCommand({
+    const sent = await dispatchTask(articleIllustrationCommand({
       pageId: activePage.id,
       title: activePage.title,
       content: activePage.content,
-    }))
-    setIllustrationOpen(false)
-    notify('整篇配图任务已复制，Agent 会用 Codex 内置模型生成并插入对应段落')
+    }), '整篇配图任务已发送，Codex 会生成图片并插入对应段落')
+    if (sent) setIllustrationOpen(false)
   }
 
-  const copyLarkSendCommand = async () => {
+  const sendLarkCommand = async () => {
     if (!activePage) return
-    await navigator.clipboard.writeText(larkSendCommand({
+    const sent = await dispatchTask(larkSendCommand({
       pageId: activePage.id,
       title: activePage.title,
       content: activePage.content,
-    }))
-    setSendOpen(false)
-    notify('飞书发送任务已复制，请粘贴到 Codex / Claude Code 对话框执行')
+    }), '飞书发送任务已提交到 Codex')
+    if (sent) setSendOpen(false)
   }
 
   if (!pages) return <div className="loading"><span>C</span><p>正在打开 Cowrite…</p></div>
@@ -616,10 +642,18 @@ function App() {
         <span className="logo">C</span><b>Cowrite</b>
         <button title="收起目录" onClick={() => setSidebarOpen(false)}>«</button>
       </div>
-      <button className="new-page" onClick={() => setModalOpen(true)}>＋ 新建页面</button>
+      <button
+        className={`sidebar-tool ${workspaceView === 'skill-manager' ? 'active' : ''}`}
+        aria-current={workspaceView === 'skill-manager' ? 'page' : undefined}
+        onClick={() => setWorkspaceView('skill-manager')}
+      >
+        <span className="skill-tool-icon" aria-hidden="true"><i /><i /><i /><i /></span>
+        Skill 管理
+      </button>
+      <button className="new-page" onClick={() => { setWorkspaceView('page'); setModalOpen(true) }}>＋ 新建页面</button>
       <nav>
-        {pages.map((page) => <div key={page.id} className={`sidebar-page ${page.id === activeId ? 'active' : ''}`}>
-          <button className="sidebar-page-select" onClick={() => setActiveId(page.id)}>
+        {pages.map((page) => <div key={page.id} className={`sidebar-page ${workspaceView === 'page' && page.id === activeId ? 'active' : ''}`}>
+          <button className="sidebar-page-select" onClick={() => { setWorkspaceView('page'); setActiveId(page.id) }}>
             <span className="doc-icon">▤</span>
             <span className="doc-title">{page.title}</span>
             {page.prompt && page.revision === 1 && <span className="pending-dot" title="等待 Agent 创作" />}
@@ -633,63 +667,69 @@ function App() {
     </aside>
 
     <main className="workspace">
-      <div className="topbar">
-        {!sidebarOpen && <button className="icon-button" title="展开目录" onClick={() => setSidebarOpen(true)}>☰</button>}
-        {activePage && <>
-          <input
-            className="title-input"
-            key={activePage.id}
-            defaultValue={activePage.title}
-            placeholder="未命名页面"
-            onBlur={(event) => { if (event.target.value.trim()) renameTitle(event.target.value.trim()) }}
-          />
-          <div className="topbar-right">
-            <span className={`save-state ${saveState}`}>{saveState === 'saved' ? '已保存' : '保存中…'}</span>
-            <button onClick={() => setIllustrationOpen(true)} title="使用 Codex 内置模型为整篇文章配图">配图</button>
-            <button onClick={() => setLayoutOpen(true)} title="把当前 Page 排版为公众号或小红书内容">排版</button>
-            <button onClick={() => setSlideOpen(true)} title="把当前 Page 转换为 PPT 或 HTML">Slide</button>
-            <button onClick={() => setCowriteOpen(true)} title="根据当前 Page 内容继续创作">Cowrite</button>
-            <button onClick={() => setSendOpen(true)} title="把当前 Page 发送到社交媒体">发送</button>
-          </div>
-        </>}
+      {workspaceView === 'skill-manager' && <SkillManager
+        sidebarOpen={sidebarOpen}
+        onOpenSidebar={() => setSidebarOpen(true)}
+      />}
+      <div className={`page-workspace ${workspaceView === 'page' ? '' : 'inactive'}`} aria-hidden={workspaceView !== 'page'}>
+        <div className="topbar">
+          {!sidebarOpen && <button className="icon-button" title="展开目录" onClick={() => setSidebarOpen(true)}>☰</button>}
+          {activePage && <>
+            <input
+              className="title-input"
+              key={activePage.id}
+              defaultValue={activePage.title}
+              placeholder="未命名页面"
+              onBlur={(event) => { if (event.target.value.trim()) renameTitle(event.target.value.trim()) }}
+            />
+            <div className="topbar-right">
+              <span className={`save-state ${saveState}`}>{saveState === 'saved' ? '已保存' : '保存中…'}</span>
+              <button onClick={() => setIllustrationOpen(true)} title="使用 Codex 内置模型为整篇文章配图">配图</button>
+              <button onClick={() => setLayoutOpen(true)} title="把当前 Page 排版为公众号或小红书内容">排版</button>
+              <button onClick={() => setSlideOpen(true)} title="把当前 Page 转换为 PPT 或 HTML">Slide</button>
+              <button onClick={() => setCowriteOpen(true)} title="根据当前 Page 内容继续创作">Cowrite</button>
+              <button onClick={() => setSendOpen(true)} title="把当前 Page 发送到社交媒体">发送</button>
+            </div>
+          </>}
+        </div>
+        {activePage?.prompt && activePage.revision === 1 && <div className="prompt-banner">
+          <div><b>等待 Agent 创作</b><p>{activePage.prompt}</p></div>
+          <button onClick={sendPendingCommand}>发送到 Codex</button>
+        </div>}
+        {activePage
+          ? <Editor key={activePage.id} page={activePage} onDirty={onDirty} onSaved={onSaved} notify={notify} />
+          : <div className="empty-state"><p>没有页面。</p><button className="primary" onClick={() => setModalOpen(true)}>＋ 新建页面</button></div>}
       </div>
-      {activePage?.prompt && activePage.revision === 1 && <div className="prompt-banner">
-        <div><b>等待 Agent 创作</b><p>{activePage.prompt}</p></div>
-        <button onClick={copyPendingCommand}>复制口令</button>
-      </div>}
-      {activePage
-        ? <Editor key={activePage.id} page={activePage} onDirty={onDirty} onSaved={onSaved} notify={notify} />
-        : <div className="empty-state"><p>没有页面。</p><button className="primary" onClick={() => setModalOpen(true)}>＋ 新建页面</button></div>}
     </main>
 
     {modalOpen && <NewPageModal
       onClose={() => setModalOpen(false)}
-      onCreated={async (page) => { setModalOpen(false); await refreshList(); setActiveId(page.id) }}
+      onCreated={async (page) => { setModalOpen(false); setWorkspaceView('page'); await refreshList(); setActiveId(page.id) }}
       notify={notify}
     />}
     {slideOpen && activePage && <SlideModal
       onClose={() => setSlideOpen(false)}
-      onChoose={copySlideCommand}
+      onChoose={sendSlideCommand}
     />}
     {layoutOpen && activePage && <LayoutModal
       onClose={() => setLayoutOpen(false)}
-      onChoose={copyLayoutCommand}
+      onChoose={sendLayoutCommand}
     />}
     {illustrationOpen && activePage && <ArticleIllustrationModal
       page={activePage}
       onClose={() => setIllustrationOpen(false)}
-      onConfirm={copyArticleIllustrationCommand}
+      onConfirm={sendArticleIllustrationCommand}
     />}
     {cowriteOpen && activePage && <CowriteModal
       page={activePage}
       onClose={() => setCowriteOpen(false)}
-      onUsePage={copyCurrentPageCreationCommand}
-      onSubmit={copyPageCreationCommand}
+      onUsePage={sendCurrentPageCreationCommand}
+      onSubmit={sendPageCreationCommand}
     />}
     {sendOpen && activePage && <SendModal
       page={activePage}
       onClose={() => setSendOpen(false)}
-      onSendLark={copyLarkSendCommand}
+      onSendLark={sendLarkCommand}
     />}
     {deleteTarget && <DeletePageModal
       page={deleteTarget}

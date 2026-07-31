@@ -1,6 +1,7 @@
 """Headless smoke test for Cowrite's Page-level export workflows."""
 
 import os
+import tempfile
 from pathlib import Path
 
 from playwright.sync_api import expect, sync_playwright
@@ -15,9 +16,24 @@ COWRITE_SCREENSHOT = Path("/tmp/cowrite-creation-modal.png")
 SEND_SCREENSHOT = Path("/tmp/cowrite-send-modal.png")
 DELETE_SCREENSHOT = Path("/tmp/cowrite-delete-modal.png")
 ARTICLE_ILLUSTRATION_SCREENSHOT = Path("/tmp/cowrite-article-illustration-modal.png")
+SKILL_MANAGER_SCREENSHOT = Path("/tmp/cowrite-skill-manager.png")
 
 
 def main() -> None:
+    skill_fixture = tempfile.TemporaryDirectory(prefix="cowrite-skill-smoke-")
+    skill_directory_path = Path(skill_fixture.name) / "skills"
+    for folder, name, description in [
+        ("cowrite", "cowrite", "Use Cowrite for local writing."),
+        ("delete-me", "delete-me", "Write and polish an article."),
+        ("slides", "slide-deck", "Create polished PPT presentations."),
+    ]:
+        skill_path = skill_directory_path / folder
+        skill_path.mkdir(parents=True)
+        (skill_path / "SKILL.md").write_text(
+            f"---\nname: {name}\ndescription: {description}\n---\n",
+            encoding="utf-8",
+        )
+
     with sync_playwright() as playwright:
         executable_path = os.getenv("PLAYWRIGHT_CHROMIUM_EXECUTABLE")
         browser = playwright.chromium.launch(
@@ -29,6 +45,13 @@ def main() -> None:
         )
         page = context.new_page()
         page.goto(APP_URL, wait_until="networkidle")
+
+        def send_with_browser_fallback(action) -> None:
+            with page.expect_dialog() as dialog_info:
+                action()
+            dialog = dialog_info.value
+            assert "普通浏览器" in dialog.message
+            dialog.accept()
 
         buttons = page.get_by_role("button").all_inner_texts()
         print(f"buttons={buttons}")
@@ -46,6 +69,73 @@ def main() -> None:
         assert title_style == {"overflow": "hidden", "textOverflow": "ellipsis", "whiteSpace": "nowrap"}
         expect(page.locator(".topbar-right").get_by_role("button", name="删除")).to_have_count(0)
         assert page.locator(".sidebar-delete").count() == page.locator(".sidebar-page").count()
+        skill_manager_button = page.get_by_role("button", name="Skill 管理")
+        new_page_button = page.get_by_role("button", name="新建页面")
+        assert skill_manager_button.bounding_box()["y"] < new_page_button.bounding_box()["y"]
+        skill_manager_button.click()
+        page.get_by_role("heading", name="Skill 管理").wait_for()
+        expect(skill_manager_button).to_have_attribute("aria-current", "page")
+        expect(page.get_by_role("tab", name="Codex", exact=True)).to_be_visible()
+        expect(page.get_by_role("tab", name="Claude Code", exact=True)).to_be_visible()
+        expect(page.get_by_text("把散落的 Skill", exact=False)).to_have_count(0)
+        page.get_by_role("tab", name="自定义目录", exact=True).click()
+        skill_directory = str(skill_directory_path)
+        directory_input = page.get_by_label("本地 Skill 目录")
+        directory_input.fill(skill_directory)
+        directory_input.press("Enter")
+        page.locator(".skill-card").first.wait_for()
+        all_skill_count = page.locator(".skill-card").count()
+        assert all_skill_count >= 1
+        page.get_by_label("搜索 Skill").fill("cowrite")
+        filtered_skill_count = page.locator(".skill-card").count()
+        assert 1 <= filtered_skill_count < all_skill_count
+        cowrite_heading = page.get_by_role("heading", name="cowrite", exact=True)
+        expect(cowrite_heading).to_be_visible()
+        cowrite_card = page.locator(".skill-card").filter(has=cowrite_heading)
+        cowrite_card.get_by_role("button", name="使用 cowrite", exact=True).click()
+        page.get_by_role("heading", name="使用 cowrite", exact=True).wait_for()
+        expect(page.get_by_text("Skill 调用地址", exact=True)).to_be_visible()
+        page.set_viewport_size({"width": 390, "height": 600})
+        supplementary_context = page.get_by_label("补充信息 选填")
+        supplementary_context.fill("文档地址：/tmp/cowrite-brief.md")
+        page.get_by_role("button", name="复制地址", exact=True).click()
+        skill_address = page.evaluate("navigator.clipboard.readText()")
+        assert skill_address.endswith("/skills/cowrite/SKILL.md")
+        page.get_by_role("button", name="复制调用口令", exact=True).click()
+        skill_prompt = page.evaluate("navigator.clipboard.readText()")
+        assert "Skill 显示名称（仅供识别）：\"cowrite\"" in skill_prompt
+        assert "文档地址：/tmp/cowrite-brief.md" in skill_prompt
+        assert f"Skill 调用地址（唯一执行依据）：\"{skill_address}\"" in skill_prompt
+        modal_box = page.locator(".skill-use-modal").bounding_box()
+        action_box = page.get_by_role("button", name="已复制调用口令", exact=True).bounding_box()
+        assert modal_box and modal_box["y"] >= 0
+        assert action_box and action_box["y"] + action_box["height"] <= 600
+        page.get_by_role("button", name="取消", exact=True).click()
+        page.set_viewport_size({"width": 1280, "height": 720})
+        page.get_by_label("搜索 Skill").fill("")
+        delete_skill_heading = page.get_by_role("heading", name="delete-me", exact=True)
+        delete_skill_card = page.locator(".skill-card").filter(has=delete_skill_heading)
+        delete_skill_card.get_by_role("button", name="删除 Skill delete-me", exact=True).click()
+        page.get_by_role("heading", name="删除这个 Skill？", exact=True).wait_for()
+        expect(page.get_by_text(".cowrite-trash", exact=False)).to_be_visible()
+        page.get_by_role("button", name="取消", exact=True).click()
+        expect(delete_skill_heading).to_be_visible()
+        delete_skill_card.get_by_role("button", name="删除 Skill delete-me", exact=True).click()
+        page.get_by_role("button", name="确认删除 Skill", exact=True).click()
+        expect(delete_skill_heading).to_have_count(0)
+        page.get_by_role("tab", name="专家").click()
+        page.locator(".expert-card").first.wait_for()
+        assert page.locator(".expert-card").count() >= 1
+        slide_expert_heading = page.get_by_role("heading", name="演示设计专家", exact=True)
+        slide_expert_card = page.locator(".expert-card").filter(has=slide_expert_heading)
+        slide_expert_card.get_by_role("button", name="删除专家 演示设计专家", exact=True).click()
+        page.get_by_role("heading", name="删除这个专家？", exact=True).wait_for()
+        expect(page.get_by_text("不会删除其 Skill 文件", exact=False)).to_be_visible()
+        page.get_by_role("button", name="取消", exact=True).click()
+        expect(slide_expert_heading).to_be_visible()
+        page.screenshot(path=str(SKILL_MANAGER_SCREENSHOT), full_page=True)
+        page.locator(".sidebar-page-select").first.click()
+        page.locator(".editor-holder").wait_for()
         page.get_by_role("button", name="新建页面").click()
         with page.expect_file_chooser() as chooser_info:
             page.get_by_role("tab", name="导入 Markdown").click()
@@ -97,7 +187,7 @@ def main() -> None:
         conversation_button = page.get_by_role("button", name="对话", exact=True)
         conversation_button.wait_for(state="attached")
         page.screenshot(path=str(CONVERSATION_SCREENSHOT), full_page=True)
-        conversation_button.dispatch_event("mousedown")
+        send_with_browser_fallback(lambda: conversation_button.dispatch_event("mousedown"))
         conversation_command = page.evaluate("navigator.clipboard.readText()")
         assert "我想这样修改" in conversation_command
         assert "引用原文：\n> " in conversation_command
@@ -105,14 +195,14 @@ def main() -> None:
         page.get_by_role("button", name="排版", exact=True).click()
         page.get_by_role("heading", name="选择排版").wait_for()
         page.screenshot(path=str(LAYOUT_SCREENSHOT), full_page=True)
-        page.get_by_role("button", name="公众号排版").click()
+        send_with_browser_fallback(lambda: page.get_by_role("button", name="公众号排版").click())
         wechat_command = page.evaluate("navigator.clipboard.readText()")
         assert "space-wechat-layout" in wechat_command
         assert "index.html" in wechat_command
         assert "公众号排版预览" in wechat_command
 
         page.get_by_role("button", name="排版", exact=True).click()
-        page.get_by_role("button", name="小红书排版").click()
+        send_with_browser_fallback(lambda: page.get_by_role("button", name="小红书排版").click())
         xhs_command = page.evaluate("navigator.clipboard.readText()")
         assert "baoyu-xhs-images" in xhs_command
         assert "Codex 内置 image_gen" in xhs_command
@@ -129,7 +219,7 @@ def main() -> None:
         page.get_by_role("heading", name="整篇配图", exact=True).wait_for()
         page.wait_for_timeout(250)
         page.screenshot(path=str(ARTICLE_ILLUSTRATION_SCREENSHOT), full_page=True)
-        page.get_by_role("button", name="确认并复制配图任务").click()
+        send_with_browser_fallback(lambda: page.get_by_role("button", name="发送配图任务").click())
         article_illustration_command = page.evaluate("navigator.clipboard.readText()")
         assert "article-batch-illustration Skill" in article_illustration_command
         assert "Codex 内置 image_gen" in article_illustration_command
@@ -138,7 +228,7 @@ def main() -> None:
 
         page.get_by_role("button", name="Cowrite", exact=True).click()
         page.get_by_role("heading", name="Cowrite", exact=True).wait_for()
-        page.get_by_role("button", name="按页面内容为要求创作").click()
+        send_with_browser_fallback(lambda: page.get_by_role("button", name="按页面内容为要求创作").click())
         page_command = page.evaluate("navigator.clipboard.readText()")
         assert "以当前页面全文作为创作要求" in page_command
         assert active_content in page_command
@@ -148,7 +238,7 @@ def main() -> None:
         requirement_input = page.get_by_placeholder("请输入创作要求")
         requirement_input.fill("续写一个真实案例")
         page.screenshot(path=str(COWRITE_SCREENSHOT), full_page=True)
-        page.get_by_role("button", name="复制并发送到对话框").click()
+        send_with_browser_fallback(lambda: page.get_by_role("button", name="发送到 Codex").click())
         creation_command = page.evaluate("navigator.clipboard.readText()")
         assert "创作要求：续写一个真实案例" in creation_command
         assert "<cowrite-page-content>" in creation_command
@@ -164,7 +254,7 @@ def main() -> None:
         expect(page.get_by_role("button", name="知乎 待完善")).to_be_disabled()
         page.get_by_role("button", name="飞书").click()
         page.get_by_text("发送到飞书？", exact=True).wait_for()
-        page.get_by_role("button", name="确认并复制发送任务").click()
+        send_with_browser_fallback(lambda: page.get_by_role("button", name="发送任务到 Codex").click())
         lark_command = page.evaluate("navigator.clipboard.readText()")
         assert "lark-cli docs +create --api-version v2" in lark_command
         assert active_content in lark_command
@@ -173,7 +263,7 @@ def main() -> None:
         page.get_by_role("heading", name="生成 Slides").wait_for()
         page.screenshot(path=str(SCREENSHOT), full_page=True)
 
-        page.get_by_role("button", name="PPT").click()
+        send_with_browser_fallback(lambda: page.get_by_role("button", name="PPT").click())
         ppt_command = page.evaluate("navigator.clipboard.readText()")
         assert "space-multi-design-ppt" in ppt_command
         assert ".pptx" in ppt_command
@@ -181,7 +271,7 @@ def main() -> None:
         assert "[浏览器预览 PPTX：" in ppt_command
 
         page.get_by_role("button", name="Slide").click()
-        page.get_by_role("button", name="HTML").click()
+        send_with_browser_fallback(lambda: page.get_by_role("button", name="HTML").click())
         html_command = page.evaluate("navigator.clipboard.readText()")
         assert "space-multi-design-ppt" in html_command
         assert "build_deck.py" in html_command
@@ -201,7 +291,9 @@ def main() -> None:
         print(f"send_screenshot={SEND_SCREENSHOT}")
         print(f"delete_screenshot={DELETE_SCREENSHOT}")
         print(f"article_illustration_screenshot={ARTICLE_ILLUSTRATION_SCREENSHOT}")
+        print(f"skill_manager_screenshot={SKILL_MANAGER_SCREENSHOT}")
         browser.close()
+    skill_fixture.cleanup()
 
 
 if __name__ == "__main__":

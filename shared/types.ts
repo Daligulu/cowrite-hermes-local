@@ -11,3 +11,38 @@ export interface Page {
 export interface CowriteData {
   pages: Page[]
 }
+
+export interface LocalSkill {
+  id: string
+  name: string
+  folder: string
+  oneLine: string
+  description: string
+  category: string
+  path: string
+  skillFile: string
+}
+
+export interface LocalSkillExpert {
+  id: string
+  name: string
+  emoji: string
+  description: string
+  skills: string[]
+  source: 'local-category'
+}
+
+export interface LocalSkillCatalog {
+  directory: string
+  skills: LocalSkill[]
+  categories: string[]
+  experts: LocalSkillExpert[]
+  warnings: string[]
+}
+
+export interface LocalSkillSource {
+  id: 'codex' | 'claude'
+  label: string
+  directory: string
+  available: boolean
+}

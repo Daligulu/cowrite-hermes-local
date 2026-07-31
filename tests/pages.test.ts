@@ -22,6 +22,10 @@ function testApp() {
   return createApp(new CowriteService(store))
 }
 
+async function mutationToken(app: ReturnType<typeof testApp>): Promise<string> {
+  return (await request(app).get('/api/session').expect(200)).body.token as string
+}
+
 describe('cowrite pages', () => {
   it('registers the production SPA fallback with Express 5 routing', () => {
     const previous = process.env.NODE_ENV
@@ -36,7 +40,8 @@ describe('cowrite pages', () => {
 
   it('creates a page with a prompt and builds a command', async () => {
     const app = testApp()
-    const page = await request(app).post('/api/pages').send({ title: 'Skill 生态', prompt: '写一篇 1500 字文章' }).expect(201)
+    const token = await mutationToken(app)
+    const page = await request(app).post('/api/pages').set('X-Cowrite-Token', token).send({ title: 'Skill 生态', prompt: '写一篇 1500 字文章' }).expect(201)
     expect(page.body.revision).toBe(1)
     const command = await request(app).get(`/api/pages/${page.body.id}/command`).expect(200)
     expect(command.text).toContain(page.body.id)
@@ -45,8 +50,9 @@ describe('cowrite pages', () => {
 
   it('creates a page from imported Markdown content', async () => {
     const app = testApp()
+    const token = await mutationToken(app)
     const content = '# 导入文章\n\n这是从本地 Markdown 导入的正文。'
-    const page = await request(app).post('/api/pages').send({ title: '导入文章', content }).expect(201)
+    const page = await request(app).post('/api/pages').set('X-Cowrite-Token', token).send({ title: '导入文章', content }).expect(201)
     expect(page.body.title).toBe('导入文章')
     expect(page.body.content).toBe(content)
     expect(page.body.prompt).toBeUndefined()
@@ -62,23 +68,25 @@ describe('cowrite pages', () => {
 
   it('protects content edits with revision checks', async () => {
     const app = testApp()
+    const token = await mutationToken(app)
     const page = await request(app).get('/api/pages/page_welcome').expect(200)
-    const updated = await request(app).patch('/api/pages/page_welcome').send({ content: '# 新内容', expectedRevision: page.body.revision }).expect(200)
+    const updated = await request(app).patch('/api/pages/page_welcome').set('X-Cowrite-Token', token).send({ content: '# 新内容', expectedRevision: page.body.revision }).expect(200)
     expect(updated.body.revision).toBe(page.body.revision + 1)
-    await request(app).patch('/api/pages/page_welcome').send({ content: '# 覆盖', expectedRevision: page.body.revision }).expect(409)
-    await request(app).patch('/api/pages/page_welcome').send({ content: '# 无保护' }).expect(400)
+    await request(app).patch('/api/pages/page_welcome').set('X-Cowrite-Token', token).send({ content: '# 覆盖', expectedRevision: page.body.revision }).expect(409)
+    await request(app).patch('/api/pages/page_welcome').set('X-Cowrite-Token', token).send({ content: '# 无保护' }).expect(400)
   })
 
   it('inserts a block after the anchor paragraph', async () => {
     const app = testApp()
+    const token = await mutationToken(app)
     const page = await request(app).get('/api/pages/page_welcome').expect(200)
-    const inserted = await request(app).post('/api/pages/page_welcome/insert').send({
+    const inserted = await request(app).post('/api/pages/page_welcome/insert').set('X-Cowrite-Token', token).send({
       anchor: '三种用法',
       markdown: '![插图](/assets/demo.png)',
       expectedRevision: page.body.revision,
     }).expect(200)
     expect(inserted.body.content).toContain('## 三种用法\n\n![插图](/assets/demo.png)')
-    await request(app).post('/api/pages/page_welcome/insert').send({
+    await request(app).post('/api/pages/page_welcome/insert').set('X-Cowrite-Token', token).send({
       anchor: '不存在的锚点文字',
       markdown: 'x',
       expectedRevision: inserted.body.revision,
@@ -90,22 +98,26 @@ describe('cowrite pages', () => {
     await writeFile(source, 'pptx fixture')
     const store = new JsonStore(path.join(directory, 'cowrite.json'))
     const app = createApp(new CowriteService(store, path.join(directory, 'assets')))
-    const uploaded = await request(app).post('/api/assets').send({ path: source }).expect(201)
+    const token = await mutationToken(app)
+    const uploaded = await request(app).post('/api/assets').set('X-Cowrite-Token', token).send({ path: source }).expect(201)
     expect(uploaded.body.url).toMatch(/^\/assets\/.+\.pptx$/)
   })
 
   it('uploads pasted PNG bytes without embedding base64 in page content', async () => {
     const store = new JsonStore(path.join(directory, 'cowrite.json'))
     const app = createApp(new CowriteService(store, path.join(directory, 'assets')))
+    const token = await mutationToken(app)
     const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00])
     const uploaded = await request(app)
       .post('/api/assets/upload')
+      .set('X-Cowrite-Token', token)
       .set('Content-Type', 'image/png')
       .send(png)
       .expect(201)
     expect(uploaded.body.url).toMatch(/^\/assets\/.+\.png$/)
     await request(app)
       .post('/api/assets/upload')
+      .set('X-Cowrite-Token', token)
       .set('Content-Type', 'image/png')
       .send(Buffer.from('not a png'))
       .expect(400)
@@ -113,10 +125,11 @@ describe('cowrite pages', () => {
 
   it('renames without a revision bump and deletes', async () => {
     const app = testApp()
+    const token = await mutationToken(app)
     const page = await request(app).get('/api/pages/page_welcome').expect(200)
-    const renamed = await request(app).patch('/api/pages/page_welcome').send({ title: '新标题' }).expect(200)
+    const renamed = await request(app).patch('/api/pages/page_welcome').set('X-Cowrite-Token', token).send({ title: '新标题' }).expect(200)
     expect(renamed.body.revision).toBe(page.body.revision)
-    await request(app).delete('/api/pages/page_welcome').expect(200)
+    await request(app).delete('/api/pages/page_welcome').set('X-Cowrite-Token', token).expect(200)
     await request(app).get('/api/pages/page_welcome').expect(404)
   })
 })

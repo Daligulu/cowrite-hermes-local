@@ -8,8 +8,13 @@
 .sidebar-head b { flex: 1; font-size: 13px; }
 .sidebar-head button { border: 0; background: transparent; color: var(--faint); border-radius: 4px; padding: 3px 7px; }
 .sidebar-head button:hover { background: var(--hover); }
-.new-page { margin: 8px 0; height: 32px; border: 0; background: transparent; border-radius: 5px; color: var(--muted); font-size: 13px; text-align: left; padding: 0 8px; }
-.new-page:hover { background: var(--hover); }
+.sidebar-tool, .new-page { height: 32px; border: 0; background: transparent; border-radius: 5px; color: var(--muted); font-size: 13px; text-align: left; padding: 0 8px; }
+.sidebar-tool { margin: 8px 0 1px; display: flex; align-items: center; gap: 8px; }
+.new-page { margin: 1px 0 8px; }
+.sidebar-tool:hover, .sidebar-tool.active, .new-page:hover { background: var(--hover); }
+.sidebar-tool.active { color: var(--text); font-weight: 500; }
+.skill-tool-icon { width: 13px; height: 13px; display: grid; grid-template-columns: repeat(2, 5px); grid-template-rows: repeat(2, 5px); gap: 2px; }
+.skill-tool-icon i { border: 1px solid currentColor; border-radius: 1px; }
 .sidebar nav { flex: 1; overflow-x: hidden; overflow-y: auto; display: grid; gap: 1px; align-content: start; }
 .sidebar-page { display: flex; align-items: center; min-width: 0; border-radius: 5px; color: #55534e; }
 .sidebar-page:hover, .sidebar-page.active { background: var(--hover); }
@@ -25,6 +30,8 @@
 .mcp-dot { width: 7px; height: 7px; border-radius: 50%; background: #4ca658; }
 
 .workspace { flex: 1; min-width: 0; height: 100vh; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; }
+.page-workspace { flex: 1; min-height: 100vh; display: flex; flex-direction: column; }
+.page-workspace.inactive { display: none; }
 
 .topbar { height: 48px; display: flex; align-items: center; gap: 10px; padding: 0 14px; position: sticky; top: 0; z-index: 10; background: #ffffffee; backdrop-filter: blur(8px); }
 .icon-button { border: 0; background: transparent; border-radius: 5px; padding: 5px 9px; color: var(--muted); font-size: 15px; }
