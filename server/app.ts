@@ -6,12 +6,14 @@ import { z } from 'zod'
 import { assetsDir, buildCreateCommand, CowriteService } from './service.js'
 import { LocalSkillLibrary } from './skilldeck.js'
 import { JsonStore } from './store.js'
+import { LocalProjectService } from './projectWorkspace.js'
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 
 export function createApp(
   service = new CowriteService(new JsonStore()),
   skillLibrary = new LocalSkillLibrary(),
+  projectService = new LocalProjectService(),
 ) {
   const app = express()
   const sessionToken = randomBytes(32).toString('base64url')
@@ -27,17 +29,27 @@ export function createApp(
       }
     }
     const host = parseHostname(request.headers.host ?? '')
+    const requestPort = (() => {
+      try { return new URL(`http://${request.headers.host ?? ''}`).port }
+      catch { return '' }
+    })()
     const origin = request.headers.origin
     const originUrl = origin ? (() => {
       try { return new URL(origin) }
       catch { return undefined }
     })() : ''
     const fetchSite = request.headers['sec-fetch-site']
+    const isViteDevelopmentOrigin = Boolean(
+      originUrl
+      && originUrl.hostname === host
+      && originUrl.port === '4321'
+      && requestPort === '4320',
+    )
     if (!localHosts.has(host)
       || (origin !== undefined && (
         !originUrl
         || !localHosts.has(originUrl.hostname)
-        || originUrl.host !== request.headers.host
+        || (originUrl.host !== request.headers.host && !isViteDevelopmentOrigin)
       ))
       || fetchSite === 'cross-site') {
       response.status(403).json({ error: 'Cowrite API only accepts requests from the local app.' })
@@ -82,6 +94,25 @@ export function createApp(
       confirmation: z.literal('delete-expert'),
     }).strict().parse(request.body)
     response.json(await skillLibrary.deleteExpert(input.directory, input.expertId))
+  })
+  app.post('/api/projects/open', async (request, response) => {
+    const input = z.object({ directory: z.string().trim().min(1).max(4000).optional() }).strict().parse(request.body ?? {})
+    response.status(201).json(await projectService.openProject(input.directory))
+  })
+  app.get('/api/projects/:id', async (request, response) => {
+    response.json(await projectService.getProject(request.params.id))
+  })
+  app.get('/api/projects/:id/file', async (request, response) => {
+    const filePath = z.string().trim().min(1).max(4000).parse(request.query.path)
+    response.json(await projectService.getMarkdown(request.params.id, filePath))
+  })
+  app.patch('/api/projects/:id/file', async (request, response) => {
+    const input = z.object({
+      path: z.string().trim().min(1).max(4000),
+      content: z.string().max(2 * 1024 * 1024),
+      expectedVersion: z.string().min(1).max(100),
+    }).strict().parse(request.body)
+    response.json(await projectService.updateMarkdown(request.params.id, input.path, input.content, input.expectedVersion))
   })
   app.get('/api/pages', async (_request, response) => response.json(await service.listPages()))
   app.get('/api/pages/:id', async (request, response) => response.json(await service.getPage(request.params.id)))

@@ -27,6 +27,32 @@ async function mutationToken(app: ReturnType<typeof testApp>): Promise<string> {
 }
 
 describe('cowrite pages', () => {
+  it('accepts the Vite development origin on another localhost port', async () => {
+    const app = testApp()
+    const token = await mutationToken(app)
+    await request(app)
+      .post('/api/pages')
+      .set('Host', '127.0.0.1:4320')
+      .set('Origin', 'http://127.0.0.1:4321')
+      .set('Sec-Fetch-Site', 'same-origin')
+      .set('X-Cowrite-Token', token)
+      .send({ title: '开发模式页面' })
+      .expect(201)
+  })
+
+  it('still rejects non-local origins', async () => {
+    const app = testApp()
+    const token = await mutationToken(app)
+    await request(app)
+      .post('/api/pages')
+      .set('Host', '127.0.0.1:4320')
+      .set('Origin', 'https://example.com')
+      .set('Sec-Fetch-Site', 'cross-site')
+      .set('X-Cowrite-Token', token)
+      .send({ title: '不应创建' })
+      .expect(403)
+  })
+
   it('registers the production SPA fallback with Express 5 routing', () => {
     const previous = process.env.NODE_ENV
     process.env.NODE_ENV = 'production'

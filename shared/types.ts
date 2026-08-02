@@ -46,3 +46,26 @@ export interface LocalSkillSource {
   directory: string
   available: boolean
 }
+
+export interface ProjectFileNode {
+  name: string
+  path: string
+  type: 'directory' | 'markdown'
+  children?: ProjectFileNode[]
+}
+
+export interface LocalProject {
+  id: string
+  name: string
+  path: string
+  tree: ProjectFileNode[]
+  markdownFiles: string[]
+  warnings: string[]
+}
+
+export interface ProjectMarkdownFile {
+  path: string
+  name: string
+  content: string
+  version: string
+}

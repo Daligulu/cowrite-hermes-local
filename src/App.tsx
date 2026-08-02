@@ -6,6 +6,7 @@ import { articleIllustrationCommand, conversationCommand, explainerCommand, illu
 import { isTaskCancelled, sendAgentTask } from './codexTask'
 import { cowriteFetch } from './apiClient'
 import { SkillManager } from './SkillManager'
+import { ProjectWorkspace } from './ProjectWorkspace'
 import './App.css'
 
 type PageMeta = Omit<Page, 'content'>
@@ -498,7 +499,7 @@ function App() {
   const [pages, setPages] = useState<PageMeta[] | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [activePage, setActivePage] = useState<Page | null>(null)
-  const [workspaceView, setWorkspaceView] = useState<'page' | 'skill-manager'>('page')
+  const [workspaceView, setWorkspaceView] = useState<'page' | 'project' | 'skill-manager'>('page')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
   const [cowriteOpen, setCowriteOpen] = useState(false)
@@ -643,6 +644,14 @@ function App() {
         <button title="收起目录" onClick={() => setSidebarOpen(false)}>«</button>
       </div>
       <button
+        className={`sidebar-tool ${workspaceView === 'project' ? 'active' : ''}`}
+        aria-current={workspaceView === 'project' ? 'page' : undefined}
+        onClick={() => { setWorkspaceView('project'); setSidebarOpen(false) }}
+      >
+        <span className="project-tool-icon" aria-hidden="true" />
+        项目
+      </button>
+      <button
         className={`sidebar-tool ${workspaceView === 'skill-manager' ? 'active' : ''}`}
         aria-current={workspaceView === 'skill-manager' ? 'page' : undefined}
         onClick={() => setWorkspaceView('skill-manager')}
@@ -671,6 +680,12 @@ function App() {
         sidebarOpen={sidebarOpen}
         onOpenSidebar={() => setSidebarOpen(true)}
       />}
+      <ProjectWorkspace
+        active={workspaceView === 'project'}
+        sidebarOpen={sidebarOpen}
+        onOpenSidebar={() => setSidebarOpen(true)}
+        notify={notify}
+      />
       <div className={`page-workspace ${workspaceView === 'page' ? '' : 'inactive'}`} aria-hidden={workspaceView !== 'page'}>
         <div className="topbar">
           {!sidebarOpen && <button className="icon-button" title="展开目录" onClick={() => setSidebarOpen(true)}>☰</button>}
