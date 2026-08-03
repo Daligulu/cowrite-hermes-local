@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { ActionConfig, ActionConfigFile, ActionPrompt, CowriteTask, WorkflowStep } from '../shared/types'
+import type { ActionConfig, ActionConfigFile, ActionPrompt, CowriteTask, LocalSkill, WorkflowStep } from '../shared/types'
 import { cowriteFetch } from './apiClient'
+import { filterLocalSkills } from './skillManagerModel'
 import './ActionConfigManager.css'
 
 async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
@@ -37,7 +38,9 @@ function emptyAction(index: number): ActionConfig {
 export function ActionConfigManager({ page, notify }: { page: { id: string; title: string } | null; notify: (message: string) => void }) {
   const [config, setConfig] = useState<ActionConfigFile | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [availableSkills, setAvailableSkills] = useState<string[]>([])
+  const [catalog, setCatalog] = useState<LocalSkill[]>([])
+  const [skillCategory, setSkillCategory] = useState('全部')
+  const [skillQuery, setSkillQuery] = useState('')
   const [saving, setSaving] = useState(false)
   const [testing, setTesting] = useState(false)
   const [dirty, setDirty] = useState(false)
@@ -57,14 +60,26 @@ export function ActionConfigManager({ page, notify }: { page: { id: string; titl
 
   useEffect(() => {
     refresh().catch(() => undefined)
-    requestJson<{ skills: Array<{ folder: string }> }>('/api/skilldeck/catalog')
-      .then((catalog) => setAvailableSkills(catalog.skills.map((skill) => skill.folder)))
+    requestJson<{ skills: LocalSkill[] }>('/api/skilldeck/catalog')
+      .then((data) => setCatalog(data.skills))
       .catch(() => undefined)
   }, [refresh])
 
   const selected = useMemo(
     () => config?.actions.find((action) => action.id === selectedId) ?? null,
     [config, selectedId],
+  )
+
+  const categories = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const skill of catalog) counts.set(skill.category, (counts.get(skill.category) ?? 0) + 1)
+    const entries = [...counts.entries()].sort((a, b) => b[1] - a[1])
+    return [['全部', catalog.length] as const, ...entries]
+  }, [catalog])
+
+  const visibleSkills = useMemo(
+    () => filterLocalSkills(catalog, skillCategory, skillQuery),
+    [catalog, skillCategory, skillQuery],
   )
 
   const updateSelected = (patch: Partial<ActionConfig>) => {
@@ -287,28 +302,49 @@ export function ActionConfigManager({ page, notify }: { page: { id: string; titl
 
             <div className="field">
               <span>Skills（支持多选，按顺序加载执行）</span>
+              {selected.skills.length > 0 && (
+                <div className="selected-skills">
+                  {selected.skills.map((name) => (
+                    <span key={name} className="selected-skill-tag">
+                      {name}
+                      <button type="button" aria-label={`移除 ${name}`} onClick={() => toggleSkill(name)}>✕</button>
+                    </span>
+                  ))}
+                </div>
+              )}
               <div className="skill-picker">
                 <input id="custom-skill-input" placeholder="输入自定义 skill 名后点添加" />
                 <button onClick={addCustomSkill}>添加</button>
               </div>
-              <div className="skill-grid">
-                {availableSkills.map((folder) => {
-                  const name = skillName(folder)
+              <div className="skill-filters">
+                <select value={skillCategory} onChange={(event) => setSkillCategory(event.target.value)}>
+                  {categories.map(([category, count]) => (
+                    <option key={category} value={category}>{category}（{count}）</option>
+                  ))}
+                </select>
+                <input
+                  value={skillQuery}
+                  placeholder="搜索技能名称或描述…"
+                  onChange={(event) => setSkillQuery(event.target.value)}
+                />
+              </div>
+              <div className="skill-list">
+                {visibleSkills.map((skill) => {
+                  const name = skillName(skill.folder)
+                  const on = selected.skills.includes(name)
                   return (
-                    <label key={folder} className={`skill-chip ${selected.skills.includes(name) ? 'on' : ''}`}>
-                      <input
-                        type="checkbox"
-                        checked={selected.skills.includes(name)}
-                        onChange={() => toggleSkill(name)}
-                      />
-                      {folder}
+                    <label key={skill.id} className={`skill-row ${on ? 'on' : ''}`}>
+                      <input type="checkbox" checked={on} onChange={() => toggleSkill(name)} />
+                      <span className="skill-row-name">{name}</span>
+                      <span className="skill-row-desc">{skill.oneLine}</span>
                     </label>
                   )
                 })}
+                {visibleSkills.length === 0 && <div className="skill-empty">没有匹配的技能</div>}
               </div>
-              {selected.skills.filter((skill) => !availableSkills.some((folder) => skillName(folder) === skill)).length > 0 && (
+              {selected.skills.filter((skill) => !catalog.some((entry) => skillName(entry.folder) === skill)).length > 0 && (
                 <div className="skill-warning">
-                  自定义技能（不在已装列表）：{selected.skills.filter((skill) => !availableSkills.some((folder) => skillName(folder) === skill)).join(', ')}
+                  自定义技能（不在已装列表）：{selected.skills.filter((skill) => !catalog.some((entry) => skillName(entry.folder) === skill)).join(', ')}
                 </div>
               )}
             </div>
