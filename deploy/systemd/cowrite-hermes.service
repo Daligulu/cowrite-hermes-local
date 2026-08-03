@@ -9,6 +9,7 @@ User=root
 Group=root
 WorkingDirectory=/opt/cowrite-hermes
 Environment=NODE_ENV=production
+Environment=PATH=/root/.hermes/node/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
 EnvironmentFile=/etc/cowrite-hermes.env
 ExecStart=/root/.hermes/node/bin/npm run start:api
 Restart=on-failure
