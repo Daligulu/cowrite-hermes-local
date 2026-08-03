@@ -273,3 +273,52 @@
   .task-strip-detail { max-height: 40vh; overflow-y: auto; }
   .page-workspace .editor-holder { margin-bottom: 200px !important; }
 }
+/* ===== Home workspace ===== */
+.home-workspace { width: min(880px, calc(100% - 32px)); margin: 0 auto; padding: 28px 0 60px; display: grid; gap: 26px; }
+.home-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.home-head-text h1 { font-size: 24px; font-weight: 700; color: #1c2b3a; margin: 0 0 6px; }
+.home-head-text p { margin: 0; color: #7a8694; font-size: 13px; }
+.home-queue-chip { flex: none; display: inline-flex; align-items: center; gap: 7px; border: 1px solid #dce5f0; background: #f4f8ff; color: #24579e; border-radius: 999px; padding: 7px 13px; font-size: 12px; cursor: pointer; }
+.home-queue-dot { width: 8px; height: 8px; border-radius: 50%; background: #2f7de1; animation: task-pulse 1.2s ease-in-out infinite; }
+.home-start { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.home-card { display: flex; align-items: center; gap: 12px; text-align: left; border: 1px solid var(--line); background: #fff; border-radius: 14px; padding: 16px; cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+.home-card:hover { border-color: #a9bce7; box-shadow: 0 6px 20px #2952a312; }
+.home-card-icon { width: 40px; height: 40px; flex: none; display: grid; place-items: center; font-size: 19px; background: #f2f5fa; border-radius: 11px; }
+.home-card b { display: block; font-size: 14px; color: #222; margin-bottom: 3px; }
+.home-card small { display: block; font-size: 11px; color: #8a94a0; line-height: 1.5; }
+.home-section { display: grid; gap: 10px; }
+.home-section-head { display: flex; align-items: center; justify-content: space-between; }
+.home-section-head h2 { font-size: 15px; font-weight: 600; color: #2c3e50; margin: 0; }
+.home-link { border: 0; background: transparent; color: #5b7fb5; font-size: 12px; cursor: pointer; padding: 4px 6px; border-radius: 6px; }
+.home-link:hover { background: #f0f5ff; }
+.home-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.home-row { width: 100%; display: flex; align-items: center; gap: 11px; text-align: left; border: 1px solid var(--line); background: #fff; border-radius: 11px; padding: 11px 13px; cursor: pointer; }
+.home-row:hover { background: #f8fafd; border-color: #d5dff0; }
+.home-row .doc-icon { color: #8a94a0; font-size: 14px; }
+.home-row-title { flex: 1; min-width: 0; }
+.home-row-title b { display: block; font-size: 13px; color: #222; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.home-row-title small { display: block; font-size: 11px; color: #98a2ad; margin-top: 2px; }
+.home-chevron { color: #b6c0cc; font-size: 15px; }
+.home-empty { border: 1px dashed #d8e0ea; border-radius: 12px; padding: 22px; text-align: center; color: #8a94a0; font-size: 13px; display: grid; gap: 10px; justify-items: center; }
+.home-empty .primary { border: 0; background: #16324f; color: #fff; border-radius: 8px; padding: 9px 16px; font-size: 13px; cursor: pointer; }
+.home-task-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.home-task-dot-queued { background: #c9c9c9; }
+.home-task-dot-running { background: #2f7de1; animation: task-pulse 1.2s ease-in-out infinite; }
+.home-task-dot-succeeded { background: #2fa96b; }
+.home-task-dot-failed { background: #d54343; }
+.home-task-dot-cancelled { background: #b7b7b7; }
+.sidebar-home-link { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; border: 0; background: transparent; padding: 2px 6px; border-radius: 5px; cursor: pointer; color: inherit; font: inherit; }
+.sidebar-home-link:hover { background: var(--hover); }
+.sidebar-home-link b { flex: 1; font-size: 13px; text-align: left; }
+.home-tool-icon { width: 13px; height: 13px; display: grid; place-items: center; font-size: 12px; }
+@media (max-width: 760px) {
+  .home-workspace { padding: 20px 0 30px; gap: 20px; }
+  .home-head { flex-direction: column; }
+  .home-start { grid-template-columns: 1fr; }
+  .home-card { padding: 14px; }
+  .home-card small { font-size: 12px; }
+  .home-row { padding: 13px; }
+  .home-row-title b { font-size: 14px; }
+  .home-row-title small { font-size: 12px; }
+  .home-queue-chip { margin-top: 2px; }
+}

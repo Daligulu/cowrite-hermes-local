@@ -7,6 +7,7 @@ import { SkillManager } from './SkillManager'
 import { ProjectWorkspace } from './ProjectWorkspace'
 import { TaskCenter } from './TaskCenter'
 import { EditorCommandBar } from './CommandBar'
+import { HomeWorkspace } from './HomeWorkspace'
 import './App.css'
 
 type PageMeta = Omit<Page, 'content'>
@@ -22,12 +23,13 @@ const api = async <T,>(path: string, options?: RequestInit): Promise<T> => {
 }
 
 
-function NewPageModal({ onClose, onCreated, notify }: {
+function NewPageModal({ onClose, onCreated, notify, initialMode = 'write' }: {
   onClose: () => void
   onCreated: (page: Page) => void
   notify: (text: string) => void
+  initialMode?: 'write' | 'import'
 }) {
-  const [mode, setMode] = useState<'write' | 'import'>('write')
+  const [mode, setMode] = useState<'write' | 'import'>(initialMode)
   const [title, setTitle] = useState('')
   const [prompt, setPrompt] = useState('')
   const [importedContent, setImportedContent] = useState('')
@@ -345,10 +347,11 @@ function App() {
   const [pages, setPages] = useState<PageMeta[] | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [activePage, setActivePage] = useState<Page | null>(null)
-  const [workspaceView, setWorkspaceView] = useState<'page' | 'project' | 'skill-manager' | 'tasks'>('page')
+  const [workspaceView, setWorkspaceView] = useState<'home' | 'page' | 'project' | 'skill-manager' | 'tasks'>('home')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
-            const [deleteTarget, setDeleteTarget] = useState<PageMeta | null>(null)
+  const [newPageMode, setNewPageMode] = useState<'write' | 'import'>('write')
+  const [deleteTarget, setDeleteTarget] = useState<PageMeta | null>(null)
   const [deletePendingTasks, setDeletePendingTasks] = useState(0)
   const [saveState, setSaveState] = useState<'saved' | 'dirty'>('saved')
   const [toast, setToast] = useState('')
@@ -431,9 +434,19 @@ function App() {
   return <div className={`shell ${sidebarOpen ? 'sidebar-open' : ''}`}>
     <aside className="sidebar">
       <div className="sidebar-head">
-        <span className="logo">C</span><b>Cowrite</b>
-        <button title="收起目录" onClick={() => setSidebarOpen(false)}>«</button>
+        <button className="sidebar-home-link" title="返回首页" onClick={() => { setWorkspaceView('home'); setSidebarOpen(false) }}>
+          <span className="logo">C</span><b>Cowrite</b>
+        </button>
+        <button title="返回首页" onClick={() => { setSidebarOpen(false); if (workspaceView !== 'page') setWorkspaceView('home') }}>«</button>
       </div>
+      <button
+        className={`sidebar-tool ${workspaceView === 'home' ? 'active' : ''}`}
+        aria-current={workspaceView === 'home' ? 'page' : undefined}
+        onClick={() => { setWorkspaceView('home'); setSidebarOpen(false) }}
+      >
+        <span className="home-tool-icon" aria-hidden="true">⌂</span>
+        首页
+      </button>
       <button
         className={`sidebar-tool ${workspaceView === 'project' ? 'active' : ''}`}
         aria-current={workspaceView === 'project' ? 'page' : undefined}
@@ -458,7 +471,7 @@ function App() {
         <span className="task-tool-icon" aria-hidden="true">☰</span>
         任务中心
       </button>
-      <button className="new-page" onClick={() => { setWorkspaceView('page'); setModalOpen(true) }}>＋ 新建页面</button>
+      <button className="new-page" onClick={() => { setWorkspaceView('page'); setNewPageMode('write'); setModalOpen(true) }}>＋ 新建页面</button>
       <nav>
         {pages.map((page) => <div key={page.id} className={`sidebar-page ${workspaceView === 'page' && page.id === activeId ? 'active' : ''}`}>
           <button className="sidebar-page-select" onClick={() => { setWorkspaceView('page'); setActiveId(page.id) }}>
@@ -482,11 +495,22 @@ function App() {
     </aside>
 
     <main className="workspace">
+      {workspaceView === 'home' && <HomeWorkspace
+        onOpenPage={(pageId) => { setWorkspaceView('page'); setActiveId(pageId); setSidebarOpen(false) }}
+        onNewPage={() => { setWorkspaceView('page'); setNewPageMode('write'); setModalOpen(true) }}
+        onImportPage={() => { setWorkspaceView('page'); setNewPageMode('import'); setModalOpen(true) }}
+        onOpenProject={() => { setWorkspaceView('project'); setSidebarOpen(false) }}
+        onOpenTasks={() => { setWorkspaceView('tasks'); setSidebarOpen(false) }}
+      />}
       {workspaceView === 'skill-manager' && <SkillManager
         sidebarOpen={sidebarOpen}
         onOpenSidebar={() => setSidebarOpen(true)}
       />}
-      {workspaceView === 'tasks' && <TaskCenter notify={notify} />}
+      {workspaceView === 'tasks' && <TaskCenter
+        notify={notify}
+        sidebarOpen={sidebarOpen}
+        onOpenSidebar={() => setSidebarOpen(true)}
+      />}
       <ProjectWorkspace
         active={workspaceView === 'project'}
         sidebarOpen={sidebarOpen}
@@ -519,6 +543,7 @@ function App() {
     </main>
 
     {modalOpen && <NewPageModal
+      initialMode={newPageMode}
       onClose={() => setModalOpen(false)}
       onCreated={async (page) => { setModalOpen(false); setWorkspaceView('page'); await refreshList(); setActiveId(page.id) }}
       notify={notify}

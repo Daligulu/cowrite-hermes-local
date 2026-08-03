@@ -67,7 +67,7 @@ interface WorkerStatus {
   lastRetries?: number
 }
 
-export function TaskCenter({ notify }: { notify: (message: string) => void }) {
+export function TaskCenter({ notify, sidebarOpen, onOpenSidebar }: { notify: (message: string) => void; sidebarOpen?: boolean; onOpenSidebar?: () => void }) {
   const [tasks, setTasks] = useState<CowriteTask[] | null>(null)
   const [workerStatus, setWorkerStatus] = useState<WorkerStatus | null>(null)
   const [filter, setFilter] = useState<'all' | TaskStatus>('all')
@@ -134,6 +134,7 @@ export function TaskCenter({ notify }: { notify: (message: string) => void }) {
   return (
     <div className="task-center" aria-label="任务中心">
       <div className="task-center-head">
+        {!sidebarOpen && <button className="icon-button" title="打开目录" onClick={() => onOpenSidebar?.()}>☰</button>}
         <h2>任务中心</h2>
         <button className="icon-button" title="刷新" onClick={() => refresh().catch(() => undefined)}>↻</button>
       </div>
