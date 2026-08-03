@@ -50,7 +50,8 @@ export interface LocalSkillSource {
 
 export const TASK_ACTIONS = ['polish', 'illustrate', 'feng-ip', 'slides', 'wechat-layout', 'xiaohongshu', 'feishu-doc', 'knowledge-base', 'video'] as const
 export type TaskAction = typeof TASK_ACTIONS[number]
-export type TaskStatus = 'queued' | 'running' | 'succeeded' | 'failed'
+export type TaskStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled'
+export type TaskPriority = 'high' | 'normal' | 'low'
 
 export interface CowriteTaskInput {
   action: TaskAction
@@ -59,11 +60,16 @@ export interface CowriteTaskInput {
   anchor?: string
   requirements?: string
   delivery?: string
+  priority?: TaskPriority
 }
 
 export interface CowriteTask extends CowriteTaskInput {
   id: string
   status: TaskStatus
+  priority?: TaskPriority
+  attempts?: number
+  leaseUntil?: string
+  cancelRequestedAt?: string
   recommendedSkills: string[]
   workerId?: string
   result?: { message: string; assets?: string[] }

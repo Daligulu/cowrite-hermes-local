@@ -166,7 +166,7 @@ export function createCowriteMcpServer() {
     {
       title: 'List Cowrite Hermes tasks',
       description: 'List queued/running/completed Cowrite content-production tasks. Task records contain references, not full page content; read the referenced page only after claiming.',
-      inputSchema: { status: z.enum(['queued', 'running', 'succeeded', 'failed']).optional() },
+      inputSchema: { status: z.enum(['queued', 'running', 'succeeded', 'failed', 'cancelled']).optional() },
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
     async ({ status }) => {
@@ -221,6 +221,72 @@ export function createCowriteMcpServer() {
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
     },
     async ({ task_id, error }) => toolResult(await api<Record<string, unknown>>(`/api/tasks/${encodeURIComponent(task_id)}/fail`, { method: 'POST', body: JSON.stringify({ error }) })),
+  )
+
+  server.registerTool(
+    'cowrite_cancel_task',
+    {
+      title: 'Cancel a Cowrite task',
+      description: 'Cancel a queued or running task. Queued tasks stop immediately; running tasks are marked cancelled so their worker must stop and must not write results back.',
+      inputSchema: { task_id: z.string().min(1) },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+    },
+    async ({ task_id }) => toolResult(await api<Record<string, unknown>>(`/api/tasks/${encodeURIComponent(task_id)}/cancel`, { method: 'POST' })),
+  )
+
+  server.registerTool(
+    'cowrite_retry_task',
+    {
+      title: 'Retry a failed or cancelled Cowrite task',
+      description: 'Re-queue a failed or cancelled task so the worker executes it again.',
+      inputSchema: { task_id: z.string().min(1) },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+    },
+    async ({ task_id }) => toolResult(await api<Record<string, unknown>>(`/api/tasks/${encodeURIComponent(task_id)}/retry`, { method: 'POST' })),
+  )
+
+  server.registerTool(
+    'cowrite_move_task_to_front',
+    {
+      title: 'Move a queued Cowrite task to the front of the queue',
+      description: 'Prioritize a queued task so it is claimed before other normal/low tasks. Only queued tasks can be moved.',
+      inputSchema: { task_id: z.string().min(1) },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+    },
+    async ({ task_id }) => toolResult(await api<Record<string, unknown>>(`/api/tasks/${encodeURIComponent(task_id)}/move-to-front`, { method: 'POST' })),
+  )
+
+  server.registerTool(
+    'cowrite_set_task_priority',
+    {
+      title: 'Set a queued Cowrite task priority',
+      description: "Set a queued task's priority to high, normal, or low. High priority tasks are claimed first.",
+      inputSchema: { task_id: z.string().min(1), priority: z.enum(['high', 'normal', 'low']) },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+    },
+    async ({ task_id, priority }) => toolResult(await api<Record<string, unknown>>(`/api/tasks/${encodeURIComponent(task_id)}/priority`, { method: 'POST', body: JSON.stringify({ priority }) })),
+  )
+
+  server.registerTool(
+    'cowrite_recover_tasks',
+    {
+      title: 'Recover expired Cowrite task leases',
+      description: 'Re-queue running tasks whose lease expired (worker died or timed out). Returns counts of recovered and failed tasks.',
+      inputSchema: {},
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    },
+    async () => toolResult(await api<Record<string, unknown>>('/api/tasks/recover', { method: 'POST' })),
+  )
+
+  server.registerTool(
+    'cowrite_worker_status',
+    {
+      title: 'Cowrite worker health status',
+      description: 'Read the latest Cowrite worker run result, including last error and whether the backend is healthy. Use this before claiming tasks when the queue seems stuck.',
+      inputSchema: {},
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    },
+    async () => toolResult(await api<Record<string, unknown>>('/api/worker/status')),
   )
 
   return server

@@ -1,5 +1,6 @@
 import express, { type ErrorRequestHandler } from 'express'
 import { randomBytes } from 'node:crypto'
+import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { z } from 'zod'
@@ -125,6 +126,31 @@ export function createApp(
     const task = await taskStore.claim(request.params.id, input.workerId)
     if (!task) response.status(409).json({ error: 'Task is no longer queued' })
     else response.json(task)
+  })
+  app.post('/api/tasks/:id/heartbeat', async (request, response) => {
+    const input = z.object({ workerId: z.string().min(1).max(200) }).strict().parse(request.body)
+    response.json(await taskStore.heartbeat(request.params.id, input.workerId))
+  })
+  app.post('/api/tasks/:id/cancel', async (request, response) => {
+    response.json(await taskStore.cancel(request.params.id))
+  })
+  app.post('/api/tasks/:id/retry', async (request, response) => {
+    response.json(await taskStore.retry(request.params.id))
+  })
+  app.post('/api/tasks/:id/move-to-front', async (request, response) => {
+    response.json(await taskStore.moveToFront(request.params.id))
+  })
+  app.post('/api/tasks/:id/priority', async (request, response) => {
+    const input = z.object({ priority: z.enum(['high', 'normal', 'low']) }).strict().parse(request.body)
+    response.json(await taskStore.setPriority(request.params.id, input.priority))
+  })
+  app.post('/api/tasks/recover', async (_request, response) => {
+    response.json(await taskStore.recoverExpiredLeases())
+  })
+  app.get('/api/worker/status', async (_request, response) => {
+    const statusPath = path.join(process.env.COWRITE_HOME || path.join(process.env.HOME || '.', '.cowrite'), 'worker-status.json')
+    const raw = await readFile(statusPath, 'utf8').catch(() => null)
+    response.json(raw ? JSON.parse(raw) : { lastRunAt: null, lastResult: null, lastError: null, lastErrorAt: null })
   })
   app.post('/api/tasks/:id/complete', async (request, response) => {
     const input = z.object({ message: z.string().min(1).max(20_000), assets: z.array(z.string().max(4000)).max(100).optional() }).strict().parse(request.body)

@@ -165,3 +165,66 @@
   .hermes-task-controls b, .hermes-task-controls input { grid-column: 1 / -1; }
   .hermes-task-controls button { width: 100%; }
 }
+
+/* Task Center */
+.task-center { padding: 18px 20px 40px; max-width: 900px; margin: 0 auto; }
+.task-center-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.task-center-head h2 { margin: 0; font-size: 17px; color: var(--text); }
+
+.worker-alert { border: 1px solid #f0c9c9; background: #fff5f5; color: #8f2d2d; border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; font-size: 12px; }
+.worker-alert b { display: block; margin-bottom: 4px; }
+.worker-alert p { margin: 4px 0; overflow-wrap: anywhere; }
+.worker-alert small { color: #a96a6a; }
+.worker-ok { border: 1px solid #cde7d5; background: #f2faf5; color: #1d6f45; border-radius: 10px; padding: 10px 14px; margin-bottom: 12px; font-size: 12px; }
+
+.task-filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.task-filters button { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 6px 12px; font-size: 12px; color: var(--muted); cursor: pointer; }
+.task-filters button.active { background: #16324f; border-color: #16324f; color: #fff; }
+.task-filters button em { font-style: normal; font-size: 10px; opacity: .75; }
+
+.task-empty { text-align: center; color: var(--faint); padding: 40px 0; font-size: 13px; }
+
+.task-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.task-item { border: 1px solid var(--line); border-radius: 12px; background: #fff; overflow: hidden; }
+.task-item-main { width: 100%; display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: none; border: 0; text-align: left; cursor: pointer; }
+.task-status-dot { width: 8px; height: 8px; border-radius: 50%; background: #c9c9c9; flex: none; }
+.task-item-running .task-status-dot { background: #2f7de1; animation: task-pulse 1.2s ease-in-out infinite; }
+.task-item-succeeded .task-status-dot { background: #2fa96b; }
+.task-item-failed .task-status-dot { background: #d54343; }
+.task-item-cancelled .task-status-dot { background: #b0b0b0; }
+@keyframes task-pulse { 50% { opacity: .35; } }
+
+.task-title { min-width: 0; flex: 1; display: grid; gap: 2px; }
+.task-title b { font-size: 13px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.task-title small { font-size: 11px; color: var(--faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.task-badge { flex: none; font-size: 11px; border-radius: 999px; padding: 3px 9px; background: #eef2f6; color: #52606d; }
+.task-badge-running { background: #e8f2ff; color: #1457a6; }
+.task-badge-succeeded { background: #e8f7ef; color: #147a45; }
+.task-badge-failed { background: #fff0f0; color: #a22525; }
+.task-badge-cancelled { background: #f0f0f0; color: #777; }
+.task-priority { flex: none; font-size: 10px; border-radius: 5px; padding: 2px 6px; }
+.task-priority-high { background: #ffe9e9; color: #c0392b; }
+.task-priority-low { background: #eef1f4; color: #5d6b7a; }
+.task-time { flex: none; font-size: 11px; color: var(--faint); }
+.task-chevron { flex: none; color: var(--faint); font-size: 11px; }
+
+.task-detail { border-top: 1px dashed var(--line); padding: 12px 14px; font-size: 12px; color: #3f3c37; display: grid; gap: 8px; }
+.task-detail p { margin: 0; overflow-wrap: anywhere; line-height: 1.6; }
+.task-detail b { color: #57544e; }
+.task-result { color: #1d6f45; }
+.task-error { color: #a22525; }
+.task-assets { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.task-assets a { color: #1457a6; text-decoration: underline; }
+.task-meta { color: var(--faint); font-size: 11px; }
+.task-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 2px; }
+.task-actions button, .task-actions select { border: 1px solid #d8e1ea; background: #fff; border-radius: 8px; padding: 6px 11px; font-size: 12px; color: #2c3e50; cursor: pointer; }
+.task-actions button:hover { background: #f2f6fa; }
+
+@media (max-width: 760px) {
+  .task-center { padding: 12px 12px 40px; }
+  .task-item-main { padding: 10px; gap: 8px; }
+  .task-badge { font-size: 10px; padding: 2px 7px; }
+  .task-time { display: none; }
+  .task-detail { padding: 10px; }
+  .task-actions button, .task-actions select { flex: 1; }
+}

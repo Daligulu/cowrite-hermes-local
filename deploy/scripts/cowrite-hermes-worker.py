@@ -9,12 +9,15 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from urllib.error import URLError
-from urllib.request import urlopen
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
 
 BASE_URL = os.environ.get("COWRITE_URL", "http://127.0.0.1:4320")
 LOCK = Path("/run/cowrite-hermes-worker.lock")
 HERMES = os.environ.get("HERMES_BIN", "/root/.local/bin/hermes")
+COWRITE_HOME = Path(os.environ.get("COWRITE_HOME", str(Path.home() / ".cowrite")))
+STATUS_FILE = COWRITE_HOME / "worker-status.json"
+ALERT_FILE = COWRITE_HOME / "worker-alert.json"
 
 PROMPT = r"""你是 Cowrite for Hermes 的定时任务 Worker。只处理一个任务，并对所有外部结果进行真实验证。
 
@@ -32,20 +35,105 @@ PROMPT = r"""你是 Cowrite for Hermes 的定时任务 Worker。只处理一个�
 7. 不创建新的定时任务，不处理第二个任务，不输出或记录凭据。
 """
 
+BACKOFF_DELAYS = [30, 60, 120, 240, 480]  # 429/限流时的指数退避，累计约 15 分钟
+
+
+def http_json(path: str, method: str = "GET", body: dict | None = None, timeout: int = 15):
+    data = None if body is None else json.dumps(body).encode()
+    request = Request(
+        f"{BASE_URL}{path}",
+        data=data,
+        headers={"content-type": "application/json"},
+        method=method,
+    )
+    with urlopen(request, timeout=timeout) as response:
+        raw = response.read()
+        return json.loads(raw) if raw else None
+
 
 def queued_count() -> int:
     last_error: Exception | None = None
     for attempt in range(10):
         try:
-            with urlopen(f"{BASE_URL}/api/tasks?status=queued", timeout=10) as response:
-                data = json.load(response)
-            return len(data) if isinstance(data, list) else 0
-        except URLError as exc:
+            return len(http_json("/api/tasks?status=queued") or [])
+        except (URLError, HTTPError) as exc:
             last_error = exc
             if attempt < 9:
                 time.sleep(1)
     assert last_error is not None
     raise last_error
+
+
+def recover_leases() -> None:
+    try:
+        http_json("/api/tasks/recover", method="POST")
+    except Exception:
+        pass
+
+
+def is_rate_limit(output: str) -> bool:
+    lowered = output.lower()
+    return "429" in output or "usage limit" in lowered or "rate limit" in lowered or "too many requests" in lowered
+
+
+def fail_stale_running_tasks(reason: str) -> None:
+    """If the agent exited abnormally, any task it had claimed must not stay running forever."""
+    try:
+        tasks = http_json("/api/tasks?status=running") or []
+    except Exception:
+        return
+    for task in tasks:
+        worker_id = task.get("workerId") or ""
+        if not worker_id.startswith("cowrite"):
+            continue
+        try:
+            http_json(
+                f"/api/tasks/{task['id']}/fail",
+                method="POST",
+                body={"error": f"Worker 异常退出，任务已自动标记失败，可在任务中心重试。原因：{reason}"},
+            )
+        except Exception:
+            pass
+
+
+def write_status(payload: dict) -> None:
+    COWRITE_HOME.mkdir(parents=True, exist_ok=True)
+    STATUS_FILE.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+
+
+def write_alert(error: str) -> None:
+    COWRITE_HOME.mkdir(parents=True, exist_ok=True)
+    ALERT_FILE.write_text(
+        json.dumps({"error": error[:2000], "at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+
+def clear_alert() -> None:
+    ALERT_FILE.unlink(missing_ok=True)
+
+
+def run_agent_with_backoff(worker_id: str, env: dict) -> tuple[bool, str, float, int]:
+    """Run hermes chat with exponential backoff on rate limits. Returns (ok, output, duration_sec, retries)."""
+    for attempt in range(len(BACKOFF_DELAYS) + 1):
+        started = time.monotonic()
+        completed = subprocess.run(
+            [HERMES, "chat", "-Q", "--yolo", "--source", "cowrite-worker", "--max-turns", "120", "-q", PROMPT],
+            env=env,
+            text=True,
+            capture_output=True,
+            timeout=1800,
+        )
+        duration = time.monotonic() - started
+        output = f"{completed.stdout or ''}\n{completed.stderr or ''}".strip()
+        if completed.returncode == 0:
+            return True, output, duration, attempt
+        if is_rate_limit(output) and attempt < len(BACKOFF_DELAYS):
+            print(f"rate limited, backing off {BACKOFF_DELAYS[attempt]}s (attempt {attempt + 1})", file=sys.stderr)
+            time.sleep(BACKOFF_DELAYS[attempt])
+            continue
+        return False, output, duration, attempt
+    return False, "", 0.0, len(BACKOFF_DELAYS)
 
 
 def main() -> int:
@@ -55,18 +143,29 @@ def main() -> int:
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
             return 0
+
+        recover_leases()
+
         if queued_count() == 0:
+            write_status({"lastRunAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "lastResult": "no_tasks", "lastError": None, "lastErrorAt": None, "lastDurationSec": 0, "lastRetries": 0})
             return 0
+
         worker_id = f"cowrite-worker-{socket.gethostname()}-{os.getpid()}"
         env = os.environ.copy()
         env["COWRITE_WORKER_ID"] = worker_id
-        completed = subprocess.run(
-            [HERMES, "chat", "-Q", "--yolo", "--source", "cowrite-worker", "--max-turns", "120", "-q", PROMPT],
-            env=env,
-            text=True,
-            timeout=1800,
-        )
-        return completed.returncode
+
+        ok, output, duration, retries = run_agent_with_backoff(worker_id, env)
+
+        if ok:
+            write_status({"lastRunAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "lastResult": "ok", "lastError": None, "lastErrorAt": None, "lastDurationSec": round(duration, 1), "lastRetries": retries})
+            clear_alert()
+            return 0
+
+        error_tail = output[-2000:] if output else "hermes chat 异常退出，无输出"
+        write_status({"lastRunAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "lastResult": "error", "lastError": error_tail, "lastErrorAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "lastDurationSec": round(duration, 1), "lastRetries": retries})
+        write_alert(error_tail)
+        fail_stale_running_tasks(error_tail)
+        return 1
 
 
 if __name__ == "__main__":
@@ -74,4 +173,6 @@ if __name__ == "__main__":
         raise SystemExit(main())
     except Exception as exc:
         print(f"cowrite worker failed before/after agent execution: {exc}", file=sys.stderr)
+        write_status({"lastRunAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "lastResult": "error", "lastError": str(exc), "lastErrorAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "lastDurationSec": 0, "lastRetries": 0})
+        write_alert(str(exc))
         raise

@@ -5,6 +5,7 @@ import type { CowriteTask, Page, TaskAction } from '../shared/types'
 import { cowriteFetch } from './apiClient'
 import { SkillManager } from './SkillManager'
 import { ProjectWorkspace } from './ProjectWorkspace'
+import { TaskCenter } from './TaskCenter'
 import './App.css'
 
 type PageMeta = Omit<Page, 'content'>
@@ -74,7 +75,7 @@ function HermesTaskPanel({ page, notify }: { page: Page; notify: (message: strin
     </div>
     {tasks.length > 0 && <div className="hermes-task-list">
       {tasks.map((task) => <span key={task.id} className={`task-${task.status}`} title={task.result?.message || task.error || task.id}>
-        {HERMES_ACTIONS.find((option) => option.value === task.action)?.label || task.action} · {{ queued: '排队中', running: '执行中', succeeded: '已完成', failed: '失败' }[task.status]}
+        {HERMES_ACTIONS.find((option) => option.value === task.action)?.label || task.action} · {{ queued: '排队中', running: '执行中', succeeded: '已完成', failed: '失败', cancelled: '已取消' }[task.status]}
       </span>)}
     </div>}
   </section>
@@ -558,7 +559,7 @@ function App() {
   const [pages, setPages] = useState<PageMeta[] | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [activePage, setActivePage] = useState<Page | null>(null)
-  const [workspaceView, setWorkspaceView] = useState<'page' | 'project' | 'skill-manager'>('page')
+  const [workspaceView, setWorkspaceView] = useState<'page' | 'project' | 'skill-manager' | 'tasks'>('page')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
   const [cowriteOpen, setCowriteOpen] = useState(false)
@@ -695,6 +696,14 @@ function App() {
         <span className="skill-tool-icon" aria-hidden="true"><i /><i /><i /><i /></span>
         Skill 管理
       </button>
+      <button
+        className={`sidebar-tool ${workspaceView === 'tasks' ? 'active' : ''}`}
+        aria-current={workspaceView === 'tasks' ? 'page' : undefined}
+        onClick={() => setWorkspaceView('tasks')}
+      >
+        <span className="task-tool-icon" aria-hidden="true">☰</span>
+        任务中心
+      </button>
       <button className="new-page" onClick={() => { setWorkspaceView('page'); setModalOpen(true) }}>＋ 新建页面</button>
       <nav>
         {pages.map((page) => <div key={page.id} className={`sidebar-page ${workspaceView === 'page' && page.id === activeId ? 'active' : ''}`}>
@@ -716,6 +725,7 @@ function App() {
         sidebarOpen={sidebarOpen}
         onOpenSidebar={() => setSidebarOpen(true)}
       />}
+      {workspaceView === 'tasks' && <TaskCenter notify={notify} />}
       <ProjectWorkspace
         active={workspaceView === 'project'}
         sidebarOpen={sidebarOpen}
