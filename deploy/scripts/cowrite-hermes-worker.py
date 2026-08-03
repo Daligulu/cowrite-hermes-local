@@ -7,7 +7,9 @@ import os
 import socket
 import subprocess
 import sys
+import time
 from pathlib import Path
+from urllib.error import URLError
 from urllib.request import urlopen
 
 BASE_URL = os.environ.get("COWRITE_URL", "http://127.0.0.1:4320")
@@ -32,9 +34,18 @@ PROMPT = r"""你是 Cowrite for Hermes 的定时任务 Worker。只处理一个�
 
 
 def queued_count() -> int:
-    with urlopen(f"{BASE_URL}/api/tasks?status=queued", timeout=10) as response:
-        data = json.load(response)
-    return len(data) if isinstance(data, list) else 0
+    last_error: Exception | None = None
+    for attempt in range(10):
+        try:
+            with urlopen(f"{BASE_URL}/api/tasks?status=queued", timeout=10) as response:
+                data = json.load(response)
+            return len(data) if isinstance(data, list) else 0
+        except URLError as exc:
+            last_error = exc
+            if attempt < 9:
+                time.sleep(1)
+    assert last_error is not None
+    raise last_error
 
 
 def main() -> int:
