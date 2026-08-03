@@ -46,8 +46,8 @@ const ACTIONS: Array<{ value: TaskAction; label: string; chip?: boolean }> = [
 
 const ACTION_KEYWORDS: Array<[RegExp, TaskAction]> = [
   [/峰峰.*配图|IP\s*配图|峰峰形象/i, 'feng-ip'],
-  [/配图|插图|插画|图片/i, 'illustrate'],
-  [/ppt|幻灯片|演示文稿|slides/i, 'slides'],
+  [/配图|插图|插画|配\s*\d+\s*张图|生成.*图|图片/i, 'illustrate'],
+  [/ppt|幻灯片|演示文稿|slides|做\s*\d+\s*页/i, 'slides'],
   [/排版|公众号|微信文章|草稿箱/i, 'wechat-layout'],
   [/小红书/i, 'xiaohongshu'],
   [/飞书|云文档|发布文档/i, 'feishu-doc'],
