@@ -53,9 +53,9 @@ function toolResult<T extends object>(value: T) {
 
 export function createCowriteMcpServer() {
   const server = new McpServer(
-    { name: 'cowrite-mcp-server', version: '0.13.0' },
+    { name: 'cowrite-mcp-server', version: '0.14.0-hermes.1' },
     {
-      instructions: 'Use cowrite_open_canvas when the user asks to open or start Cowrite in Codex. The native canvas can send confirmed follow-up tasks directly to the current conversation. Use the page tools for revision-safe reads and writes.',
+      instructions: 'Use Cowrite page tools for revision-safe reads and writes. For queued content-production jobs, atomically claim a task, load each recommended Hermes Skill with skill_view, perform and verify the real work, then complete or fail the task honestly. cowrite_open_canvas is optional because Hermes users normally open the browser workspace URL.',
     },
   )
 
@@ -159,6 +159,68 @@ export function createCowriteMcpServer() {
       method: 'POST',
       body: JSON.stringify({ anchor, markdown, expectedRevision: expected_revision }),
     })),
+  )
+
+  server.registerTool(
+    'cowrite_list_tasks',
+    {
+      title: 'List Cowrite Hermes tasks',
+      description: 'List queued/running/completed Cowrite content-production tasks. Task records contain references, not full page content; read the referenced page only after claiming.',
+      inputSchema: { status: z.enum(['queued', 'running', 'succeeded', 'failed']).optional() },
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    },
+    async ({ status }) => {
+      const query = status ? `?status=${encodeURIComponent(status)}` : ''
+      const tasks = await api<Record<string, unknown>[]>(`/api/tasks${query}`)
+      return toolResult({ total: tasks.length, tasks })
+    },
+  )
+
+  server.registerTool(
+    'cowrite_get_task',
+    {
+      title: 'Get a Cowrite Hermes task',
+      description: 'Read one task by ID. Then load every recommended skill with skill_view(name) before executing it.',
+      inputSchema: { task_id: z.string().min(1) },
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    },
+    async ({ task_id }) => toolResult(await api<Record<string, unknown>>(`/api/tasks/${encodeURIComponent(task_id)}`)),
+  )
+
+  server.registerTool(
+    'cowrite_claim_task',
+    {
+      title: 'Atomically claim a Cowrite task',
+      description: 'Atomically claim a queued task. Pass task_id, or omit it to claim the oldest queued task. A null task means no work is available.',
+      inputSchema: { task_id: z.string().min(1).optional(), worker_id: z.string().min(1).max(200).default('hermes-agent') },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+    },
+    async ({ task_id, worker_id }) => {
+      if (task_id) return toolResult(await api<Record<string, unknown>>(`/api/tasks/${encodeURIComponent(task_id)}/claim`, { method: 'POST', body: JSON.stringify({ workerId: worker_id }) }))
+      return toolResult(await api<Record<string, unknown>>('/api/tasks/claim-next', { method: 'POST', body: JSON.stringify({ workerId: worker_id }) }))
+    },
+  )
+
+  server.registerTool(
+    'cowrite_complete_task',
+    {
+      title: 'Complete a Cowrite task',
+      description: 'Mark a claimed task succeeded after all requested artifacts were really created and verified.',
+      inputSchema: { task_id: z.string().min(1), message: z.string().min(1).max(20_000), assets: z.array(z.string().max(4000)).max(100).optional() },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+    },
+    async ({ task_id, message, assets }) => toolResult(await api<Record<string, unknown>>(`/api/tasks/${encodeURIComponent(task_id)}/complete`, { method: 'POST', body: JSON.stringify({ message, assets }) })),
+  )
+
+  server.registerTool(
+    'cowrite_fail_task',
+    {
+      title: 'Fail a Cowrite task',
+      description: 'Mark a claimed task failed with the real error or blocker. Never fabricate success.',
+      inputSchema: { task_id: z.string().min(1), error: z.string().min(1).max(20_000) },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+    },
+    async ({ task_id, error }) => toolResult(await api<Record<string, unknown>>(`/api/tasks/${encodeURIComponent(task_id)}/fail`, { method: 'POST', body: JSON.stringify({ error }) })),
   )
 
   return server

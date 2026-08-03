@@ -1,7 +1,7 @@
 {
   "name": "cowrite",
   "private": true,
-  "version": "0.13.0",
+  "version": "0.14.0-hermes.1",
   "type": "module",
   "scripts": {
     "dev": "concurrently -k -n WEB,API -c cyan,green \"vite\" \"tsx watch server/index.ts\"",

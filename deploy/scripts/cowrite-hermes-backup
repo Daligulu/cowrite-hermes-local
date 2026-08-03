@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+set -euo pipefail
+BACKUP_ROOT=${COWRITE_BACKUP_ROOT:-/root/.hermes/backups/cowrite-hermes}
+STAMP=$(date -u +%Y%m%dT%H%M%SZ)
+DEST="$BACKUP_ROOT/$STAMP"
+STAGE=$(mktemp -d)
+trap 'rm -rf "$STAGE"' EXIT
+mkdir -p "$DEST" "$STAGE/root"
+[ -d /root/.cowrite ] && cp -a /root/.cowrite "$STAGE/root/.cowrite"
+mkdir -p "$STAGE/root/repo"
+git -C /opt/cowrite-hermes archive --format=tar HEAD | tar -xf - -C "$STAGE/root/repo"
+cp -a /opt/cowrite-hermes/deploy "$STAGE/root/repo/deploy"
+python3 - "$STAGE/root" > "$DEST/manifest.json" <<'PY'
+import hashlib,json,pathlib,sys,datetime
+root=pathlib.Path(sys.argv[1]); files=[]
+for p in sorted(root.rglob('*')):
+    if p.is_file():
+        data=p.read_bytes(); files.append({'path':str(p.relative_to(root)),'bytes':len(data),'sha256':hashlib.sha256(data).hexdigest()})
+print(json.dumps({'created_at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'files':files},ensure_ascii=False,indent=2))
+PY
+python3 -m json.tool "$DEST/manifest.json" >/dev/null
+tar -C "$STAGE" -czf "$DEST/cowrite-hermes.tar.gz" root
+chmod 700 "$DEST"; chmod 600 "$DEST"/*
+tar -tzf "$DEST/cowrite-hermes.tar.gz" >/dev/null
+RESTORE=$(mktemp -d)
+tar -xzf "$DEST/cowrite-hermes.tar.gz" -C "$RESTORE"
+python3 - "$RESTORE/root" <<'PY'
+import json,pathlib,re,sys
+root=pathlib.Path(sys.argv[1])
+for p in root.rglob('*.json'):
+    json.loads(p.read_text('utf-8'))
+patterns=[re.compile(r'AKIA[0-9A-Z]{16}'),re.compile(r'-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----'),re.compile(r'(?i)(api[_-]?key|access[_-]?token|secret)\s*[:=]\s*["\']?[A-Za-z0-9_\-]{20,}')]
+for p in root.rglob('*'):
+    if p.is_file() and p.stat().st_size < 2_000_000:
+        text=p.read_text('utf-8',errors='ignore')
+        if any(rx.search(text) for rx in patterns): raise SystemExit(f'secret scan failed: {p}')
+print('isolation_restore=json-ok secret-scan=passed')
+PY
+rm -rf "$RESTORE"
+sha256sum "$DEST/cowrite-hermes.tar.gz" > "$DEST/SHA256SUMS"
+printf '%s\n' "$DEST"

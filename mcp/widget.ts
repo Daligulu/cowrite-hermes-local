@@ -75,7 +75,7 @@ async function widgetHtml(baseUrl: string) {
   const frameOrigin = ${JSON.stringify(origin)};
   const bridgeToken = ${JSON.stringify(session.token)};
   const app = new App(
-    { name: "cowrite", version: "0.13.0" },
+    { name: "cowrite", version: "0.14.0-hermes.1" },
     { availableDisplayModes: ["inline", "fullscreen"] },
     { autoResize: false },
   );

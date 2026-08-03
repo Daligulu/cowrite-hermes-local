@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Vditor from 'vditor'
 import 'vditor/dist/index.css'
-import type { Page } from '../shared/types'
-import { articleIllustrationCommand, conversationCommand, explainerCommand, illustrateCommand, larkSendCommand, pageCreationCommand, polishCommand, slideHtmlCommand, slidePptxCommand, wechatLayoutCommand, xhsLayoutCommand } from './agentCommands'
-import { isTaskCancelled, sendAgentTask } from './codexTask'
+import type { CowriteTask, Page, TaskAction } from '../shared/types'
 import { cowriteFetch } from './apiClient'
 import { SkillManager } from './SkillManager'
 import { ProjectWorkspace } from './ProjectWorkspace'
@@ -19,6 +17,67 @@ const api = async <T,>(path: string, options?: RequestInit): Promise<T> => {
   const result = await response.json()
   if (!response.ok) throw new Error(result.error || `请求失败：${response.status}`)
   return result as T
+}
+
+const HERMES_ACTIONS: Array<{ value: TaskAction; label: string }> = [
+  { value: 'polish', label: '润色文章' },
+  { value: 'illustrate', label: '文章配图' },
+  { value: 'feng-ip', label: '峰峰 IP 配图' },
+  { value: 'slides', label: '制作 PPT' },
+  { value: 'wechat-layout', label: '公众号排版' },
+  { value: 'xiaohongshu', label: '小红书图组' },
+  { value: 'feishu-doc', label: '发布飞书文档' },
+  { value: 'knowledge-base', label: '存入峰峰知识库' },
+  { value: 'video', label: '制作视频' },
+]
+
+function HermesTaskPanel({ page, notify }: { page: Page; notify: (message: string) => void }) {
+  const [action, setAction] = useState<TaskAction>('polish')
+  const [requirements, setRequirements] = useState('')
+  const [tasks, setTasks] = useState<CowriteTask[]>([])
+  const [submitting, setSubmitting] = useState(false)
+
+  const refresh = useCallback(async () => {
+    const all = await api<CowriteTask[]>('/api/tasks')
+    setTasks(all.filter((task) => task.pageId === page.id).slice(0, 5))
+  }, [page.id])
+
+  useEffect(() => {
+    refresh().catch(() => undefined)
+    const timer = setInterval(() => refresh().catch(() => undefined), 3000)
+    return () => clearInterval(timer)
+  }, [refresh])
+
+  const submit = async () => {
+    setSubmitting(true)
+    try {
+      const created = await api<CowriteTask>('/api/tasks', {
+        method: 'POST',
+        body: JSON.stringify({ action, pageId: page.id, requirements: requirements.trim() || undefined, delivery: 'cowrite' }),
+      })
+      setTasks((current) => [created, ...current].slice(0, 5))
+      setRequirements('')
+      notify(`Hermes 任务已入队：${created.id}`)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return <section className="hermes-task-panel" aria-label="Hermes 内容生产">
+    <div className="hermes-task-controls">
+      <b><span className="mcp-dot" /> Hermes 内容生产</b>
+      <select value={action} onChange={(event) => setAction(event.target.value as TaskAction)}>
+        {HERMES_ACTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+      </select>
+      <input value={requirements} placeholder="补充要求（可选）" onChange={(event) => setRequirements(event.target.value)} />
+      <button className="primary" disabled={submitting} onClick={submit}>{submitting ? '提交中…' : '交给 Hermes'}</button>
+    </div>
+    {tasks.length > 0 && <div className="hermes-task-list">
+      {tasks.map((task) => <span key={task.id} className={`task-${task.status}`} title={task.result?.message || task.error || task.id}>
+        {HERMES_ACTIONS.find((option) => option.value === task.action)?.label || task.action} · {{ queued: '排队中', running: '执行中', succeeded: '已完成', failed: '失败' }[task.status]}
+      </span>)}
+    </div>}
+  </section>
 }
 
 function NewPageModal({ onClose, onCreated, notify }: {
@@ -66,14 +125,11 @@ function NewPageModal({ onClose, onCreated, notify }: {
       const input = mode === 'import' ? { title, content: importedContent } : { title, prompt }
       const page = await api<Page>('/api/pages', { method: 'POST', body: JSON.stringify(input) })
       if (mode === 'write' && prompt.trim()) {
-        const command = await (await fetch(`/api/pages/${page.id}/command`)).text()
-        try {
-          const result = await sendAgentTask(command)
-          notify(result === 'sent' ? '页面已创建，任务已发送到 Codex' : '页面已创建，任务已复制，请回到 Codex 粘贴发送')
-        } catch (error) {
-          if (!isTaskCancelled(error)) throw error
-          notify('页面已创建，任务未发送')
-        }
+        await api<CowriteTask>('/api/tasks', {
+          method: 'POST',
+          body: JSON.stringify({ action: 'polish', pageId: page.id, requirements: `根据页面创作要求完成初稿：${prompt.trim()}`, delivery: 'cowrite' }),
+        })
+        notify('页面已创建，创作任务已发送到 Hermes')
       } else if (mode === 'import') {
         notify(`已导入 ${importedFileName}`)
       }
@@ -128,10 +184,10 @@ function LayoutModal({ onClose, onChoose }: {
           <b>公众号排版</b><small>可复制富 HTML</small>
         </button>
         <button className="slide-option" onClick={() => onChoose('xhs')}>
-          <b>小红书排版</b><small>Codex 内置生图</small>
+          <b>小红书排版</b><small>ApiYi 生图</small>
         </button>
       </div>
-      <p className="slide-footnote">选择后由 Codex 弹窗确认，再发送任务。</p>
+      <p className="slide-footnote">选择后由 Hermes 弹窗确认，再发送任务。</p>
     </div>
   </div>
 }
@@ -150,7 +206,7 @@ function ArticleIllustrationModal({ page, onClose, onConfirm }: {
       <div className="illustration-page"><span>当前页面</span><b>{page.title}</b></div>
       <div className="illustration-specs">
         <div><span>规划</span><b>自动选择 2-6 处</b></div>
-        <div><span>模型</span><b>Codex image_gen</b></div>
+        <div><span>模型</span><b>Hermes · ApiYi</b></div>
         <div><span>画幅</span><b>16:9 · 高清</b></div>
         <div><span>风格</span><b>全文统一匹配</b></div>
       </div>
@@ -188,7 +244,7 @@ function CowriteModal({ page, onClose, onUsePage, onSubmit }: {
             <small>填写你的具体创作任务</small>
           </button>
         </div>
-        <p className="slide-footnote">二选一，任务会交给 Codex 确认后发送。</p>
+        <p className="slide-footnote">二选一，任务会交给 Hermes 确认后发送。</p>
       </> : <>
         <div className="cowrite-current-page">
           <span>当前页面</span>
@@ -199,7 +255,7 @@ function CowriteModal({ page, onClose, onUsePage, onSubmit }: {
           <button onClick={() => setMode('choose')}>返回</button>
           <span />
           <button onClick={onClose}>取消</button>
-          <button className="primary" disabled={!requirement.trim()} onClick={() => onSubmit(requirement.trim())}>发送到 Codex</button>
+          <button className="primary" disabled={!requirement.trim()} onClick={() => onSubmit(requirement.trim())}>发送到 Hermes</button>
         </div>
       </>}
     </div>
@@ -224,7 +280,7 @@ function SlideModal({ onClose, onChoose }: {
           <b>HTML</b><small>网页幻灯片</small>
         </button>
       </div>
-      <p className="slide-footnote">选择格式后由 Codex 弹窗确认，完成后自动回写链接。</p>
+      <p className="slide-footnote">选择格式后由 Hermes 弹窗确认，完成后自动回写链接。</p>
     </div>
   </div>
 }
@@ -263,7 +319,7 @@ function SendModal({ page, onClose, onSendLark }: {
           <button onClick={() => setTarget('choose')}>返回</button>
           <span />
           <button onClick={onClose}>取消</button>
-          <button className="primary" onClick={onSendLark}>发送任务到 Codex</button>
+          <button className="primary" onClick={onSendLark}>发送任务到 Hermes</button>
         </div>
       </>}
     </div>
@@ -352,7 +408,7 @@ function Editor({ page, onDirty, onSaved, notify }: {
     const editor = new Vditor(holder, {
       mode: 'ir',
       value: page.content,
-      placeholder: '开始写作，或把口令粘贴给 Codex 让它来写……',
+      placeholder: '开始写作，或把口令粘贴给 Hermes 让它来写……',
       cache: { enable: false },
       toolbar: [],
       counter: { enable: false },
@@ -466,13 +522,16 @@ function Editor({ page, onDirty, onSaved, notify }: {
     scheduleSave(400)
   }
 
-  const sendAi = async (command: string, sentHint: string) => {
+  const sendAi = async (action: TaskAction, requirements: string, sentHint: string) => {
     try {
-      const result = await sendAgentTask(command)
+      await api<CowriteTask>('/api/tasks', {
+        method: 'POST',
+        body: JSON.stringify({ action, pageId, requirements, delivery: 'cowrite' }),
+      })
       setSelectionBar(null)
-      notify(result === 'sent' ? sentHint : '任务已复制，请回到 Codex 粘贴发送')
+      notify(sentHint)
     } catch (error) {
-      if (!isTaskCancelled(error)) notify(error instanceof Error ? error.message : '任务发送失败')
+      notify(error instanceof Error ? error.message : '任务发送失败')
     }
   }
 
@@ -486,10 +545,10 @@ function Editor({ page, onDirty, onSaved, notify }: {
             <button title="行内代码" onMouseDown={(event) => { event.preventDefault(); wrapSelection('`', '`') }}>{'<>'}</button>
             <button title="引用" onMouseDown={(event) => { event.preventDefault(); wrapSelection('\n> ', '\n') }}>&gt;</button>
             <span className="bar-divider" />
-            <button className="ai" onMouseDown={(event) => { event.preventDefault(); sendAi(illustrateCommand({ pageId, selection: selectionBar.text }), '配图任务已发送，结果会插入选中段落下方') }}>配图</button>
-            <button className="ai" onMouseDown={(event) => { event.preventDefault(); sendAi(explainerCommand({ pageId, selection: selectionBar.text }), 'HTML 解释图任务已发送，结果会插入选中段落下方') }}>HTML</button>
-            <button className="ai" onMouseDown={(event) => { event.preventDefault(); sendAi(polishCommand({ pageId, selection: selectionBar.text }), '优化任务已发送，Codex 只会改写这段文字') }}>优化</button>
-            <button className="ai" onMouseDown={(event) => { event.preventDefault(); sendAi(conversationCommand({ pageId, selection: selectionBar.text }), '修改任务已发送，可在确认弹窗中补充要求') }}>对话</button>
+            <button className="ai" onMouseDown={(event) => { event.preventDefault(); sendAi('illustrate', `只为以下选中文段配图，并插入其后：\n${selectionBar.text}`, '配图任务已发送，结果会插入选中段落下方') }}>配图</button>
+            <button className="ai" onMouseDown={(event) => { event.preventDefault(); sendAi('illustrate', `为以下选中文字制作 HTML 解释图并插入其后：\n${selectionBar.text}`, 'HTML 解释图任务已发送') }}>HTML</button>
+            <button className="ai" onMouseDown={(event) => { event.preventDefault(); sendAi('polish', `只优化以下选中文字，保持原意和上下文：\n${selectionBar.text}`, '优化任务已发送，Hermes 只会改写这段文字') }}>优化</button>
+            <button className="ai" onMouseDown={(event) => { event.preventDefault(); sendAi('polish', `根据上下文改进以下选中文字，如需求不明确请在任务结果中说明：\n${selectionBar.text}`, '修改任务已发送到 Hermes') }}>对话</button>
           </>
     </div>}
   </>
@@ -558,29 +617,27 @@ function App() {
     notify('页面已删除')
   }
 
-  const dispatchTask = async (command: string, sentHint: string) => {
+  const enqueuePageTask = async (action: TaskAction, requirements?: string) => {
+    if (!activePage) return false
     try {
-      const result = await sendAgentTask(command)
-      notify(result === 'sent' ? sentHint : '任务已复制，请回到 Codex 粘贴发送')
+      const task = await api<CowriteTask>('/api/tasks', {
+        method: 'POST',
+        body: JSON.stringify({ action, pageId: activePage.id, requirements, delivery: 'cowrite' }),
+      })
+      notify(`Hermes 任务已入队：${task.id}`)
       return true
     } catch (error) {
-      if (!isTaskCancelled(error)) notify(error instanceof Error ? error.message : '任务发送失败')
+      notify(error instanceof Error ? error.message : 'Hermes 任务提交失败')
       return false
     }
   }
 
   const sendPendingCommand = async () => {
-    if (!activePage) return
-    const command = await (await fetch(`/api/pages/${activePage.id}/command`)).text()
-    await dispatchTask(command, '创作任务已发送到 Codex')
+    await enqueuePageTask('polish', activePage?.prompt || '根据当前页面的创作要求完成初稿')
   }
 
   const sendPageCreationCommand = async (requirement: string) => {
-    if (!activePage) return
-    const sent = await dispatchTask(
-      pageCreationCommand({ pageId: activePage.id, title: activePage.title, content: activePage.content }, requirement),
-      '当前页面与创作要求已发送到 Codex',
-    )
+    const sent = await enqueuePageTask('polish', requirement)
     if (sent) setCowriteOpen(false)
   }
 
@@ -589,49 +646,28 @@ function App() {
   }
 
   const sendSlideCommand = async (format: 'pptx' | 'html') => {
-    if (!activePage) return
-    const input = { pageId: activePage.id, title: activePage.title }
-    const command = format === 'pptx' ? slidePptxCommand(input) : slideHtmlCommand(input)
-    const sent = await dispatchTask(command, `${format === 'pptx' ? 'PPTX 与预览' : 'HTML Slide'}任务已发送，完成后会把交付地址插回当前页面`)
+    const sent = await enqueuePageTask('slides', `输出格式：${format}`)
     if (sent) setSlideOpen(false)
   }
 
   const sendWechatLayoutCommand = async () => {
-    if (!activePage) return
-    const sent = await dispatchTask(
-      wechatLayoutCommand({ pageId: activePage.id, title: activePage.title }),
-      '公众号排版任务已发送，完成后会把 HTML 预览地址插回当前页面',
-    )
+    const sent = await enqueuePageTask('wechat-layout')
     if (sent) setLayoutOpen(false)
   }
 
   const sendLayoutCommand = async (format: 'wechat' | 'xhs') => {
     if (format === 'wechat') return sendWechatLayoutCommand()
-    if (!activePage) return
-    const sent = await dispatchTask(
-      xhsLayoutCommand({ pageId: activePage.id, title: activePage.title }),
-      '小红书排版任务已发送，Codex 确认方案后会生成图片组',
-    )
+    const sent = await enqueuePageTask('xiaohongshu')
     if (sent) setLayoutOpen(false)
   }
 
   const sendArticleIllustrationCommand = async () => {
-    if (!activePage) return
-    const sent = await dispatchTask(articleIllustrationCommand({
-      pageId: activePage.id,
-      title: activePage.title,
-      content: activePage.content,
-    }), '整篇配图任务已发送，Codex 会生成图片并插入对应段落')
+    const sent = await enqueuePageTask('illustrate')
     if (sent) setIllustrationOpen(false)
   }
 
   const sendLarkCommand = async () => {
-    if (!activePage) return
-    const sent = await dispatchTask(larkSendCommand({
-      pageId: activePage.id,
-      title: activePage.title,
-      content: activePage.content,
-    }), '飞书发送任务已提交到 Codex')
+    const sent = await enqueuePageTask('feishu-doc')
     if (sent) setSendOpen(false)
   }
 
@@ -699,7 +735,7 @@ function App() {
             />
             <div className="topbar-right">
               <span className={`save-state ${saveState}`}>{saveState === 'saved' ? '已保存' : '保存中…'}</span>
-              <button onClick={() => setIllustrationOpen(true)} title="使用 Codex 内置模型为整篇文章配图">配图</button>
+              <button onClick={() => setIllustrationOpen(true)} title="使用 Hermes 内置模型为整篇文章配图">配图</button>
               <button onClick={() => setLayoutOpen(true)} title="把当前 Page 排版为公众号或小红书内容">排版</button>
               <button onClick={() => setSlideOpen(true)} title="把当前 Page 转换为 PPT 或 HTML">Slide</button>
               <button onClick={() => setCowriteOpen(true)} title="根据当前 Page 内容继续创作">Cowrite</button>
@@ -707,9 +743,10 @@ function App() {
             </div>
           </>}
         </div>
+        {activePage && <HermesTaskPanel page={activePage} notify={notify} />}
         {activePage?.prompt && activePage.revision === 1 && <div className="prompt-banner">
           <div><b>等待 Agent 创作</b><p>{activePage.prompt}</p></div>
-          <button onClick={sendPendingCommand}>发送到 Codex</button>
+          <button onClick={sendPendingCommand}>发送到 Hermes</button>
         </div>}
         {activePage
           ? <Editor key={activePage.id} page={activePage} onDirty={onDirty} onSaved={onSaved} notify={notify} />

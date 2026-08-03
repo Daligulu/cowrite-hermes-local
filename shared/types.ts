@@ -41,10 +41,35 @@ export interface LocalSkillCatalog {
 }
 
 export interface LocalSkillSource {
-  id: 'codex' | 'claude'
+  id: 'hermes' | 'codex' | 'claude'
   label: string
   directory: string
   available: boolean
+  readOnly?: boolean
+}
+
+export const TASK_ACTIONS = ['polish', 'illustrate', 'feng-ip', 'slides', 'wechat-layout', 'xiaohongshu', 'feishu-doc', 'knowledge-base', 'video'] as const
+export type TaskAction = typeof TASK_ACTIONS[number]
+export type TaskStatus = 'queued' | 'running' | 'succeeded' | 'failed'
+
+export interface CowriteTaskInput {
+  action: TaskAction
+  pageId?: string
+  projectPath?: string
+  anchor?: string
+  requirements?: string
+  delivery?: string
+}
+
+export interface CowriteTask extends CowriteTaskInput {
+  id: string
+  status: TaskStatus
+  recommendedSkills: string[]
+  workerId?: string
+  result?: { message: string; assets?: string[] }
+  error?: string
+  createdAt: string
+  updatedAt: string
 }
 
 export interface ProjectFileNode {

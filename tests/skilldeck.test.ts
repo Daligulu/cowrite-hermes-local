@@ -98,6 +98,23 @@ description: 生成封面和配图。
     expect(catalog.experts[0].skills).toEqual(['writer'])
   })
 
+  it('recursively scans categorized Hermes skills and marks the source read-only', async () => {
+    const hermesHome = path.join(directory, '.hermes')
+    const hermesSkills = path.join(hermesHome, 'skills')
+    await mkdir(path.join(hermesSkills, 'creative', 'feng-ip'), { recursive: true })
+    await writeFile(path.join(hermesSkills, 'creative', 'feng-ip', 'SKILL.md'), `---\nname: feng-ip\ndescription: 峰峰个人IP生图。\n---\n`)
+    const library = new LocalSkillLibrary({
+      defaultDirectory: skillsDirectory,
+      hermesDirectory: hermesSkills,
+    })
+    const config = await library.getConfig()
+    expect(config.sources).toContainEqual({ id: 'hermes', label: 'Hermes', directory: hermesSkills, available: true, readOnly: true })
+    const catalog = await library.getCatalog(hermesSkills)
+    expect(catalog.skills).toHaveLength(1)
+    expect(catalog.skills[0]).toMatchObject({ name: 'feng-ip', folder: 'creative/feng-ip' })
+    await expect(library.deleteSkill(hermesSkills, 'creative/feng-ip')).rejects.toThrow(/read-only/i)
+  })
+
   it('rejects relative paths and reports unreadable directories', async () => {
     const library = new LocalSkillLibrary({ defaultDirectory: skillsDirectory })
     await expect(library.getCatalog('../skills')).rejects.toThrow('absolute')
@@ -174,6 +191,7 @@ description: 写作公众号文章。
     expect(config.body.sources).toEqual([
       { id: 'codex', label: 'Codex', directory: skillsDirectory, available: true },
       expect.objectContaining({ id: 'claude', label: 'Claude Code' }),
+      expect.objectContaining({ id: 'hermes', label: 'Hermes', readOnly: true }),
     ])
 
     const catalog = await request(app)
@@ -202,6 +220,7 @@ description: 写作公众号文章。
     expect(config.sources).toEqual([
       { id: 'codex', label: 'Codex', directory: skillsDirectory, available: true },
       { id: 'claude', label: 'Claude Code', directory: claudeDirectory, available: true },
+      expect.objectContaining({ id: 'hermes', label: 'Hermes', readOnly: true }),
     ])
 
     await rm(claudeDirectory, { recursive: true })

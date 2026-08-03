@@ -35,8 +35,9 @@ export function createLatestRequestGate() {
   }
 }
 
-export function selectInitialSkillSource(sources: LocalSkillSource[]): 'codex' | 'claude' | 'custom' {
-  return sources.find((source) => source.id === 'codex' && source.available)?.id
+export function selectInitialSkillSource(sources: LocalSkillSource[]): 'hermes' | 'codex' | 'claude' | 'custom' {
+  return sources.find((source) => source.id === 'hermes' && source.available)?.id
+    ?? sources.find((source) => source.id === 'codex' && source.available)?.id
     ?? sources.find((source) => source.id === 'claude' && source.available)?.id
     ?? 'custom'
 }
@@ -52,9 +53,9 @@ export function getSkillInvocationAddress(skill: LocalSkill): string {
 export function buildSkillInvocationPrompt(skill: LocalSkill, supplementaryContext: string): string {
   const note = supplementaryContext.trim() || '（无，按该 Skill 的默认流程执行）'
   return [
-    '请读取并按照以下本地 SKILL.md 完成任务。',
-    `Skill 调用地址（唯一执行依据）：${JSON.stringify(getSkillInvocationAddress(skill))}`,
-    `Skill 显示名称（仅供识别）：${JSON.stringify(skill.name)}`,
-    `用户补充信息（仅作为任务上下文；与 Skill 冲突时以 SKILL.md 为准）：${JSON.stringify(note)}`,
+    '请先调用 Hermes `skill_view` 工具加载并严格按照该 Skill 完成任务。',
+    `skill_view 名称：${JSON.stringify(skill.name)}`,
+    `Skill 分类路径（仅供识别）：${JSON.stringify(skill.folder)}`,
+    `用户补充信息（仅作为任务上下文；与 Skill 冲突时以 skill_view 返回内容为准）：${JSON.stringify(note)}`,
   ].join('\n')
 }

@@ -77,8 +77,15 @@ interface RegisteredProject {
 
 export class LocalProjectService {
   private readonly projects = new Map<string, RegisteredProject>()
+  private readonly allowedRoots: string[]
 
-  constructor(private readonly directoryPicker: DirectoryPicker = pickLocalDirectory) {}
+  constructor(
+    private readonly directoryPicker: DirectoryPicker = pickLocalDirectory,
+    allowedRoots = (process.env.COWRITE_ALLOWED_PROJECT_ROOTS || '')
+      .split(path.delimiter).map((value) => value.trim()).filter(Boolean),
+  ) {
+    this.allowedRoots = allowedRoots.map((root) => path.resolve(root))
+  }
 
   async openProject(selectedDirectory?: string): Promise<LocalProject> {
     const selected = (selectedDirectory ?? await this.directoryPicker()).trim()
@@ -86,6 +93,14 @@ export class LocalProjectService {
     const root = await realpath(selected).catch(() => undefined)
     if (!root || !(await stat(root).catch(() => undefined))?.isDirectory()) {
       throw new Error('选择的项目文件夹不存在或不可读取')
+    }
+    if (this.allowedRoots.length) {
+      const allowed = await Promise.all(this.allowedRoots.map(async (candidate) => realpath(candidate).catch(() => candidate)))
+      if (!allowed.some((candidate) => root === candidate || isWithin(candidate, root))) {
+        throw new Error('Project is outside COWRITE_ALLOWED_PROJECT_ROOTS allowed root')
+      }
+    } else if (process.env.NODE_ENV === 'production') {
+      throw new Error('COWRITE_ALLOWED_PROJECT_ROOTS must be configured in production')
     }
     const project: RegisteredProject = {
       id: `project_${nanoid(10)}`,

@@ -274,6 +274,7 @@ function ProjectSkillPickerModal({ projectPath, currentSkills, onClose, onAdd }:
             <span>来源</span>
             <select aria-label="按 Skill 来源筛选" value={sourceFilter} onChange={(event) => setSourceFilter(event.target.value as 'all' | SkillSourceId)}>
               <option value="all">全部来源</option>
+              <option value="hermes" disabled={!availableSourceIds.has('hermes')}>Hermes</option>
               <option value="codex" disabled={!availableSourceIds.has('codex')}>Codex</option>
               <option value="claude" disabled={!availableSourceIds.has('claude')}>Claude Code</option>
               {availableSourceIds.has('custom') && <option value="custom">自定义目录</option>}
@@ -344,7 +345,7 @@ function ProjectSkillUseModal({ skill, project, file, onClose, onRemove, notify 
     try {
       await copyText(prompt)
       setCopyState('copied')
-      notify('项目提示词已复制，可以发送给 Codex')
+      notify('项目提示词已复制，可以发送给 Hermes')
     } catch {
       setCopyState('error')
       notify('复制失败，请检查浏览器剪贴板权限')
@@ -363,7 +364,7 @@ function ProjectSkillUseModal({ skill, project, file, onClose, onRemove, notify 
         <div><span>当前项目</span><b>{project.name}</b></div>
       </div>
       <label className="project-skill-task-field">
-        <span>告诉 Codex 要完成什么 <i>选填</i></span>
+        <span>告诉 Hermes 要完成什么 <i>选填</i></span>
         <textarea
           maxLength={5_000}
           value={requirement}

@@ -139,6 +139,7 @@ export interface LocalSkillLibraryOptions {
   defaultDirectory?: string
   codexDirectory?: string
   claudeDirectory?: string
+  hermesDirectory?: string
   preferencesFile?: string
   maxSkills?: number
   maxSkillFileBytes?: number
@@ -149,6 +150,7 @@ export class LocalSkillLibrary {
   readonly defaultDirectory: string
   private readonly codexDirectory: string
   private readonly claudeDirectory: string
+  private readonly hermesDirectory: string
   private readonly maxSkills: number
   private readonly maxSkillFileBytes: number
   private readonly maxTotalSkillBytes: number
@@ -167,8 +169,10 @@ export class LocalSkillLibrary {
       options.claudeDirectory
       ?? path.join(homedir(), '.claude', 'skills'),
     )
-    this.defaultDirectory = this.codexDirectory
-    this.builtInDirectories = new Set([this.codexDirectory, this.claudeDirectory])
+    const hermesHome = process.env.COWRITE_HERMES_HOME || process.env.HERMES_HOME || path.join(homedir(), '.hermes')
+    this.hermesDirectory = expandDirectory(options.hermesDirectory ?? path.join(hermesHome, 'skills'))
+    this.defaultDirectory = options.defaultDirectory ? this.codexDirectory : this.hermesDirectory
+    this.builtInDirectories = new Set([this.codexDirectory, this.claudeDirectory, this.hermesDirectory])
     this.maxSkills = options.maxSkills ?? DEFAULT_MAX_SKILLS
     this.maxSkillFileBytes = options.maxSkillFileBytes ?? DEFAULT_MAX_SKILL_FILE_BYTES
     this.maxTotalSkillBytes = options.maxTotalSkillBytes ?? DEFAULT_MAX_TOTAL_SKILL_BYTES
@@ -176,9 +180,10 @@ export class LocalSkillLibrary {
   }
 
   async getConfig(): Promise<{ defaultDirectory: string; sources: LocalSkillSource[] }> {
-    const definitions = [
-      { id: 'codex' as const, label: 'Codex', directory: this.codexDirectory },
-      { id: 'claude' as const, label: 'Claude Code', directory: this.claudeDirectory },
+    const definitions: Array<Omit<LocalSkillSource, 'available'>> = [
+      { id: 'codex', label: 'Codex', directory: this.codexDirectory },
+      { id: 'claude', label: 'Claude Code', directory: this.claudeDirectory },
+      { id: 'hermes', label: 'Hermes', directory: this.hermesDirectory, readOnly: true },
     ]
     const sources = await Promise.all(definitions.map(async (source) => ({
       ...source,
@@ -209,68 +214,70 @@ export class LocalSkillLibrary {
   async getCatalog(directory = this.defaultDirectory): Promise<LocalSkillCatalog> {
     const resolvedDirectory = await this.resolveRootDirectory(directory)
     this.approvedDirectories.add(resolvedDirectory)
-
-    const entries = []
-    const directoryHandle = await opendir(resolvedDirectory)
-    for await (const entry of directoryHandle) {
-      if (entries.length >= this.maxSkills) {
-        throw new Error(`Skill directory contains more than ${this.maxSkills.toLocaleString()} entries`)
-      }
-      entries.push(entry)
-    }
-
     const skills: LocalSkill[] = []
     const warnings: string[] = []
     let totalSkillBytes = 0
-    for (const entry of entries) {
-      if (!entry.isDirectory() && !entry.isSymbolicLink()) continue
-      const linkedSkillDirectory = path.join(resolvedDirectory, entry.name)
-      const skillDirectory = await realpath(linkedSkillDirectory).catch(() => undefined)
-      if (!skillDirectory) continue
-      const allowedSymlinkBases = [resolvedDirectory, path.dirname(resolvedDirectory), homedir()]
-      if (!allowedSymlinkBases.some((base) => isWithin(base, skillDirectory))) {
-        warnings.push(`${entry.name}: linked Skill directory is outside the allowed local roots`)
-        continue
-      }
-      const directoryInfo = await stat(skillDirectory).catch(() => undefined)
-      if (!directoryInfo?.isDirectory()) continue
-      const skillFile = await findSkillFile(skillDirectory)
-      if (!skillFile) continue
+    let visitedEntries = 0
+    const seenDirectories = new Set<string>()
 
-      try {
-        const fileInfo = await stat(skillFile)
-        if (fileInfo.size > this.maxSkillFileBytes) {
-          warnings.push(`${entry.name}: SKILL.md exceeds ${this.maxSkillFileBytes.toLocaleString()} bytes`)
-          continue
+    const visit = async (visibleDirectory: string, relativeDirectory = ''): Promise<void> => {
+      const actualDirectory = await realpath(visibleDirectory).catch(() => undefined)
+      if (!actualDirectory || seenDirectories.has(actualDirectory)) return
+      const allowedSymlinkBases = [resolvedDirectory, path.dirname(resolvedDirectory), homedir()]
+      if (!allowedSymlinkBases.some((base) => actualDirectory === base || isWithin(base, actualDirectory))) {
+        warnings.push(`${relativeDirectory || '.'}: linked Skill directory is outside the allowed local roots`)
+        return
+      }
+      seenDirectories.add(actualDirectory)
+      const skillFile = await findSkillFile(actualDirectory)
+      if (skillFile && relativeDirectory) {
+        try {
+          const fileInfo = await stat(skillFile)
+          if (fileInfo.size > this.maxSkillFileBytes) {
+            warnings.push(`${relativeDirectory}: SKILL.md exceeds ${this.maxSkillFileBytes.toLocaleString()} bytes`)
+            return
+          }
+          if (totalSkillBytes + fileInfo.size > this.maxTotalSkillBytes) {
+            warnings.push(`${relativeDirectory}: total SKILL.md read limit of ${this.maxTotalSkillBytes.toLocaleString()} bytes reached`)
+            return
+          }
+          totalSkillBytes += fileInfo.size
+          const frontmatter = parseSkillFrontmatter(await readFile(skillFile, 'utf8'))
+          const rawName = frontmatter.name?.trim() || path.basename(relativeDirectory)
+          const rawDescription = frontmatter.description?.trim() || '（无描述）'
+          const name = rawName.slice(0, MAX_NAME_CHARACTERS)
+          const description = rawDescription.slice(0, MAX_DESCRIPTION_CHARACTERS)
+          if (rawName.length > name.length || rawDescription.length > description.length) {
+            warnings.push(`${relativeDirectory}: frontmatter text was truncated to the local display limit`)
+          }
+          skills.push({
+            id: relativeDirectory,
+            name,
+            folder: relativeDirectory,
+            oneLine: summarize(description),
+            description,
+            category: classifySkill(name, description),
+            path: actualDirectory,
+            skillFile,
+          })
+        } catch (error) {
+          warnings.push(`${relativeDirectory}: ${error instanceof Error ? error.message : String(error)}`)
         }
-        if (totalSkillBytes + fileInfo.size > this.maxTotalSkillBytes) {
-          warnings.push(`${entry.name}: total SKILL.md read limit of ${this.maxTotalSkillBytes.toLocaleString()} bytes reached`)
-          continue
+        return
+      }
+
+      const directoryHandle = await opendir(actualDirectory)
+      for await (const entry of directoryHandle) {
+        if (entry.name === '.cowrite-trash' || entry.name === 'node_modules' || entry.name === '.git') continue
+        if (!entry.isDirectory() && !entry.isSymbolicLink()) continue
+        if (++visitedEntries > this.maxSkills) {
+          throw new Error(`Skill directory contains more than ${this.maxSkills.toLocaleString()} entries`)
         }
-        totalSkillBytes += fileInfo.size
-        const frontmatter = parseSkillFrontmatter(await readFile(skillFile, 'utf8'))
-        const rawName = frontmatter.name?.trim() || entry.name
-        const rawDescription = frontmatter.description?.trim() || '（无描述）'
-        const name = rawName.slice(0, MAX_NAME_CHARACTERS)
-        const description = rawDescription.slice(0, MAX_DESCRIPTION_CHARACTERS)
-        if (rawName.length > name.length || rawDescription.length > description.length) {
-          warnings.push(`${entry.name}: frontmatter text was truncated to the local display limit`)
-        }
-        skills.push({
-          id: entry.name,
-          name,
-          folder: entry.name,
-          oneLine: summarize(description),
-          description,
-          category: classifySkill(name, description),
-          path: skillDirectory,
-          skillFile,
-        })
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
-        warnings.push(`${entry.name}: ${message}`)
+        const relative = relativeDirectory ? `${relativeDirectory}/${entry.name}` : entry.name
+        await visit(path.join(actualDirectory, entry.name), relative)
       }
     }
+    await visit(resolvedDirectory)
 
     skills.sort((left, right) => left.name.localeCompare(right.name, 'zh-CN'))
     const categories = [...new Set(skills.map((skill) => skill.category))]
@@ -286,6 +293,11 @@ export class LocalSkillLibrary {
   }
 
   async deleteSkill(directory: string, folder: string): Promise<LocalSkillCatalog> {
+    const resolvedDeleteRoot = await this.resolveRootDirectory(directory)
+    const resolvedHermesRoot = await realpath(this.hermesDirectory).catch(() => this.hermesDirectory)
+    if (resolvedDeleteRoot === resolvedHermesRoot) {
+      throw new Error('Hermes Skill sources are read-only in Cowrite')
+    }
     if (!folder
       || folder === '.'
       || folder === '..'

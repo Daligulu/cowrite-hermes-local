@@ -1,7 +1,12 @@
 let sessionTokenPromise: Promise<string> | undefined
 
+export function cowriteUrl(input: RequestInfo | URL): RequestInfo | URL {
+  if (typeof input !== 'string' || !input.startsWith('/')) return input
+  return new URL(input.slice(1), document.baseURI).toString()
+}
+
 async function loadSessionToken(): Promise<string> {
-  const response = await fetch('/api/session')
+  const response = await fetch(cowriteUrl('/api/session'))
   const result = await response.json() as { token?: string; error?: string }
   if (!response.ok || !result.token) {
     throw new Error(result.error || '无法建立 Cowrite 本地会话')
@@ -22,12 +27,13 @@ function isMutation(method = 'GET'): boolean {
 }
 
 export async function cowriteFetch(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
-  if (!isMutation(init.method)) return fetch(input, init)
+  const resolvedInput = cowriteUrl(input)
+  if (!isMutation(init.method)) return fetch(resolvedInput, init)
 
   const send = async () => {
     const headers = new Headers(init.headers)
     headers.set('X-Cowrite-Token', await sessionToken())
-    return fetch(input, { ...init, headers })
+    return fetch(resolvedInput, { ...init, headers })
   }
 
   let response = await send()

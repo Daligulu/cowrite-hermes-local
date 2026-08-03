@@ -1,0 +1,27 @@
+[Unit]
+Description=Cowrite for Hermes content workspace
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/opt/cowrite-hermes
+Environment=NODE_ENV=production
+EnvironmentFile=/etc/cowrite-hermes.env
+ExecStart=/root/.hermes/node/bin/npm run start:api
+Restart=on-failure
+RestartSec=3
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/root/.cowrite /root/Documents/Obsidian\x20Vault
+ReadOnlyPaths=/root/.hermes
+LockPersonality=true
+RestrictSUIDSGID=true
+
+[Install]
+WantedBy=multi-user.target

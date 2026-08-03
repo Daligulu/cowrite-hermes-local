@@ -7,6 +7,8 @@ import { assetsDir, buildCreateCommand, CowriteService } from './service.js'
 import { LocalSkillLibrary } from './skilldeck.js'
 import { JsonStore } from './store.js'
 import { LocalProjectService } from './projectWorkspace.js'
+import { TaskStore } from './taskStore.js'
+import { TASK_ACTIONS } from '../shared/types.js'
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -14,6 +16,7 @@ export function createApp(
   service = new CowriteService(new JsonStore()),
   skillLibrary = new LocalSkillLibrary(),
   projectService = new LocalProjectService(),
+  taskStore = new TaskStore(),
 ) {
   const app = express()
   const sessionToken = randomBytes(32).toString('base64url')
@@ -45,11 +48,13 @@ export function createApp(
       && originUrl.port === '4321'
       && requestPort === '4320',
     )
+    const publicMode = Boolean(process.env.COWRITE_PUBLIC_BASE_PATH)
+    const sameSitePublicOrigin = Boolean(publicMode && originUrl && fetchSite !== 'cross-site')
     if (!localHosts.has(host)
       || (origin !== undefined && (
         !originUrl
-        || !localHosts.has(originUrl.hostname)
-        || (originUrl.host !== request.headers.host && !isViteDevelopmentOrigin)
+        || (!sameSitePublicOrigin && (!localHosts.has(originUrl.hostname)
+          || (originUrl.host !== request.headers.host && !isViteDevelopmentOrigin)))
       ))
       || fetchSite === 'cross-site') {
       response.status(403).json({ error: 'Cowrite API only accepts requests from the local app.' })
@@ -94,6 +99,40 @@ export function createApp(
       confirmation: z.literal('delete-expert'),
     }).strict().parse(request.body)
     response.json(await skillLibrary.deleteExpert(input.directory, input.expertId))
+  })
+  const taskInput = z.object({
+    action: z.enum(TASK_ACTIONS),
+    pageId: z.string().min(1).max(200).optional(),
+    projectPath: z.string().min(1).max(4000).optional(),
+    anchor: z.string().min(1).max(4000).optional(),
+    requirements: z.string().max(20_000).optional(),
+    delivery: z.string().max(200).optional(),
+  }).strict().refine((value) => value.pageId || value.projectPath, 'pageId or projectPath is required')
+  app.post('/api/tasks', async (request, response) => {
+    response.status(201).json(await taskStore.create(taskInput.parse(request.body)))
+  })
+  app.get('/api/tasks', async (request, response) => {
+    const status = z.enum(['queued', 'running', 'succeeded', 'failed']).optional().parse(request.query.status)
+    response.json(await taskStore.list(status))
+  })
+  app.post('/api/tasks/claim-next', async (request, response) => {
+    const input = z.object({ workerId: z.string().min(1).max(200) }).strict().parse(request.body)
+    response.json({ task: await taskStore.claimNext(input.workerId) })
+  })
+  app.get('/api/tasks/:id', async (request, response) => response.json(await taskStore.get(request.params.id)))
+  app.post('/api/tasks/:id/claim', async (request, response) => {
+    const input = z.object({ workerId: z.string().min(1).max(200) }).strict().parse(request.body)
+    const task = await taskStore.claim(request.params.id, input.workerId)
+    if (!task) response.status(409).json({ error: 'Task is no longer queued' })
+    else response.json(task)
+  })
+  app.post('/api/tasks/:id/complete', async (request, response) => {
+    const input = z.object({ message: z.string().min(1).max(20_000), assets: z.array(z.string().max(4000)).max(100).optional() }).strict().parse(request.body)
+    response.json(await taskStore.complete(request.params.id, input))
+  })
+  app.post('/api/tasks/:id/fail', async (request, response) => {
+    const input = z.object({ error: z.string().min(1).max(20_000) }).strict().parse(request.body)
+    response.json(await taskStore.fail(request.params.id, input.error))
   })
   app.post('/api/projects/open', async (request, response) => {
     const input = z.object({ directory: z.string().trim().min(1).max(4000).optional() }).strict().parse(request.body ?? {})

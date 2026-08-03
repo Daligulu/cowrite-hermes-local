@@ -14,7 +14,7 @@ import './SkillManager.css'
 
 const DIRECTORY_KEY = 'cowrite.skill-manager.directory'
 const DIRECTORY_HISTORY_KEY = 'cowrite.skill-manager.history'
-type SourceId = 'codex' | 'claude' | 'custom'
+type SourceId = 'hermes' | 'codex' | 'claude' | 'custom'
 type DeleteTarget =
   | { kind: 'skill'; skill: LocalSkill; directory: string; sourceId: SourceId }
   | { kind: 'expert'; expert: LocalSkillExpert; skillCount: number; directory: string; sourceId: SourceId }
@@ -245,6 +245,7 @@ export function SkillManager({ sidebarOpen, onOpenSidebar }: {
   const [deleteError, setDeleteError] = useState('')
   const [operationNotice, setOperationNotice] = useState('')
   const requestGates = useRef<Record<SourceId, ReturnType<typeof createLatestRequestGate>>>({
+    hermes: createLatestRequestGate(),
     codex: createLatestRequestGate(),
     claude: createLatestRequestGate(),
     custom: createLatestRequestGate(),
@@ -492,7 +493,7 @@ export function SkillManager({ sidebarOpen, onOpenSidebar }: {
                 >
                   使用
                 </button>
-                <button
+                {sourceId !== 'hermes' && <button
                   className="skill-delete-button"
                   aria-label={`删除 Skill ${skill.name}`}
                   onClick={() => openDeleteConfirmation({
@@ -503,7 +504,7 @@ export function SkillManager({ sidebarOpen, onOpenSidebar }: {
                   })}
                 >
                   删除
-                </button>
+                </button>}
               </div>
             </article>)}
           </div>
@@ -533,7 +534,7 @@ export function SkillManager({ sidebarOpen, onOpenSidebar }: {
                   >
                     查看
                   </button>
-                  <button
+                  {sourceId !== 'hermes' && <button
                     className="skill-delete-button"
                     aria-label={`删除专家 ${expert.name}`}
                     onClick={() => openDeleteConfirmation({
@@ -545,7 +546,7 @@ export function SkillManager({ sidebarOpen, onOpenSidebar }: {
                     })}
                   >
                     删除
-                  </button>
+                  </button>}
                 </div>
               </article>
             })}

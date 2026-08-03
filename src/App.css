@@ -148,3 +148,20 @@
   .topbar-right button { padding-inline: 7px; }
   .slide-options { grid-template-columns: 1fr; }
 }
+
+/* Hermes native content-production queue */
+.hermes-task-panel { padding: 10px 16px; border-bottom: 1px solid var(--line); background: #fbfdff; }
+.hermes-task-controls { display: grid; grid-template-columns: auto minmax(135px, 180px) minmax(160px, 1fr) auto; gap: 8px; align-items: center; }
+.hermes-task-controls b { display: flex; align-items: center; gap: 6px; white-space: nowrap; color: #16324f; }
+.hermes-task-controls select, .hermes-task-controls input { min-height: 34px; min-width: 0; border: 1px solid #d8e1ea; border-radius: 8px; background: #fff; padding: 0 10px; }
+.hermes-task-list { display: flex; gap: 7px; overflow: auto; padding-top: 8px; }
+.hermes-task-list span { white-space: nowrap; font-size: 12px; border-radius: 999px; padding: 4px 9px; background: #eef2f6; color: #52606d; }
+.hermes-task-list .task-running { background: #e8f2ff; color: #1457a6; }
+.hermes-task-list .task-succeeded { background: #e8f7ef; color: #147a45; }
+.hermes-task-list .task-failed { background: #fff0f0; color: #a22525; }
+@media (max-width: 760px) {
+  .hermes-task-panel { padding: 9px; }
+  .hermes-task-controls { grid-template-columns: 1fr 1fr; }
+  .hermes-task-controls b, .hermes-task-controls input { grid-column: 1 / -1; }
+  .hermes-task-controls button { width: 100%; }
+}

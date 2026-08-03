@@ -69,6 +69,13 @@ describe('local project workspace', () => {
     await expect(projectService.getProject('missing')).rejects.toThrow(/not found/)
   })
 
+  it('restricts projects to configured allowed roots', async () => {
+    const allowed = path.join(directory, 'notes')
+    const service = new LocalProjectService(async () => directory, [allowed])
+    await expect(service.openProject(directory)).rejects.toThrow(/allowed root/i)
+    await expect(service.openProject(allowed)).resolves.toMatchObject({ path: await realpath(allowed) })
+  })
+
   it('exposes folder selection, file read, and protected write through the local API', async () => {
     const app = createApp(undefined, undefined, new LocalProjectService(async () => directory))
     const token = await mutationToken(app)
