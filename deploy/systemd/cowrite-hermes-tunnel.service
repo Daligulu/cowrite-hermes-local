@@ -1,0 +1,20 @@
+[Unit]
+Description=Cowrite for Hermes HTTPS quick tunnel
+After=network-online.target nginx.service cowrite-hermes.service
+Wants=network-online.target
+Requires=cowrite-hermes.service
+
+[Service]
+Type=simple
+ExecStart=/opt/cowrite-hermes/deploy/scripts/cowrite-cloudflared.py
+Restart=always
+RestartSec=10
+User=root
+Group=root
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/root/.cowrite
+
+[Install]
+WantedBy=multi-user.target
