@@ -85,9 +85,13 @@ export function EditorCommandBar({ page, notify }: { page: Page; notify: (messag
   const latest = tasks[0]
 
   const submit = async (action?: TaskAction, requirements?: string) => {
-    const chosen = action ?? detectAction(text).action
-    const req = requirements ?? (action ? text.trim() || undefined : detectAction(text).requirements)
-    if (!req && !action) return
+    const trimmed = text.trim()
+    if (!trimmed && !action) return
+    const detected = detectAction(trimmed)
+    const chosen = action ?? detected.action
+    const req = requirements !== undefined
+      ? requirements
+      : (action ? (trimmed || undefined) : (detected.requirements ?? (trimmed || undefined)))
     setSubmitting(true)
     try {
       const created = await api<CowriteTask>('/api/tasks', {
@@ -108,7 +112,7 @@ export function EditorCommandBar({ page, notify }: { page: Page; notify: (messag
 
   const chip = (value: TaskAction) => {
     setText(ACTION_LABELS[value] ?? value)
-    submit(value)
+    submit(value, '')
   }
 
   const actOn = async (taskId: string, path: string, body?: unknown) => {
