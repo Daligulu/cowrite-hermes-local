@@ -3,13 +3,14 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { TaskStore } from '../server/taskStore.js'
+import { ActionConfigStore, DEFAULT_ACTIONS } from '../server/actionConfig.js'
 
 let directory: string
 let store: TaskStore
 
 beforeEach(async () => {
   directory = await mkdtemp(path.join(tmpdir(), 'cowrite-tasks-'))
-  store = new TaskStore(path.join(directory, 'tasks.json'))
+  store = new TaskStore(path.join(directory, 'tasks.json'), new ActionConfigStore(path.join(directory, 'action-config.json')))
 })
 
 afterEach(async () => rm(directory, { recursive: true, force: true }))
@@ -19,6 +20,30 @@ describe('Hermes task queue', () => {
     const task = await store.create({ action: 'feng-ip', pageId: 'page_1', requirements: '白底黑线', delivery: 'cowrite' })
     expect(task).toMatchObject({ status: 'queued', recommendedSkills: ['feng-ip'], pageId: 'page_1', priority: 'normal', attempts: 0 })
     expect((await new TaskStore(path.join(directory, 'tasks.json')).get(task.id)).status).toBe('queued')
+  })
+
+  it('reads multi-skill recommendations from the action config', async () => {
+    const configStore = new ActionConfigStore(path.join(directory, 'action-config.json'))
+    const custom = structuredClone(await configStore.load())
+    custom.actions.push({
+      id: 'multi',
+      label: '多技能动作',
+      enabled: true,
+      chip: false,
+      keywords: ['多技能'],
+      skills: ['humanizer-zh', 'wewrite'],
+      prompts: [],
+      workflow: [],
+    })
+    await configStore.save(custom)
+    const routedStore = new TaskStore(path.join(directory, 'tasks.json'), configStore)
+    const task = await routedStore.create({ action: 'multi', pageId: 'page_1' })
+    expect(task.recommendedSkills).toEqual(['humanizer-zh', 'wewrite'])
+  })
+
+  it('falls back to empty skills for an unknown action', async () => {
+    const task = await store.create({ action: 'no-such-action', pageId: 'page_1' })
+    expect(task.recommendedSkills).toEqual([])
   })
 
   it('atomically lets only one worker claim a queued task', async () => {

@@ -4,6 +4,7 @@ import 'vditor/dist/index.css'
 import type { CowriteTask, Page, TaskAction } from '../shared/types'
 import { cowriteFetch } from './apiClient'
 import { SkillManager } from './SkillManager'
+import { ActionConfigManager } from './ActionConfigManager'
 import { ProjectWorkspace } from './ProjectWorkspace'
 import { TaskCenter } from './TaskCenter'
 import { EditorCommandBar } from './CommandBar'
@@ -371,7 +372,7 @@ function App() {
   const [pages, setPages] = useState<PageMeta[] | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [activePage, setActivePage] = useState<Page | null>(null)
-  const [workspaceView, setWorkspaceView] = useState<'home' | 'page' | 'project' | 'skill-manager' | 'tasks'>('home')
+  const [workspaceView, setWorkspaceView] = useState<'home' | 'page' | 'project' | 'skill-manager' | 'action-config' | 'tasks'>('home')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
   const [newPageMode, setNewPageMode] = useState<'write' | 'import'>('write')
@@ -488,6 +489,14 @@ function App() {
         Skill 管理
       </button>
       <button
+        className={`sidebar-tool ${workspaceView === 'action-config' ? 'active' : ''}`}
+        aria-current={workspaceView === 'action-config' ? 'page' : undefined}
+        onClick={() => { setWorkspaceView('action-config'); setSidebarOpen(false) }}
+      >
+        <span className="action-tool-icon" aria-hidden="true">⚙</span>
+        动作配置
+      </button>
+      <button
         className={`sidebar-tool ${workspaceView === 'tasks' ? 'active' : ''}`}
         aria-current={workspaceView === 'tasks' ? 'page' : undefined}
         onClick={() => setWorkspaceView('tasks')}
@@ -529,6 +538,10 @@ function App() {
       {workspaceView === 'skill-manager' && <SkillManager
         sidebarOpen={sidebarOpen}
         onOpenSidebar={() => setSidebarOpen(true)}
+      />}
+      {workspaceView === 'action-config' && <ActionConfigManager
+        page={activePage}
+        notify={notify}
       />}
       {workspaceView === 'tasks' && <TaskCenter
         notify={notify}

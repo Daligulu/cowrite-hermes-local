@@ -49,9 +49,41 @@ export interface LocalSkillSource {
 }
 
 export const TASK_ACTIONS = ['polish', 'illustrate', 'feng-ip', 'slides', 'wechat-layout', 'xiaohongshu', 'feishu-doc', 'knowledge-base', 'video'] as const
-export type TaskAction = typeof TASK_ACTIONS[number]
+/** 动作标识符：配置化后支持任意自定义 id（不再限定字面量联合） */
+export type TaskAction = string
 export type TaskStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled'
 export type TaskPriority = 'high' | 'normal' | 'low'
+
+export interface ActionPrompt {
+  id: string
+  role: 'system' | 'user'
+  text: string
+}
+
+export interface WorkflowStep {
+  step: 'load' | 'process' | 'verify' | 'write'
+  skill?: string | null
+  prompt?: string | null
+  input?: string
+  output?: string
+}
+
+export interface ActionConfig {
+  id: string
+  label: string
+  enabled: boolean
+  chip: boolean
+  keywords: string[]
+  skills: string[]
+  prompts: ActionPrompt[]
+  workflow: WorkflowStep[]
+}
+
+export interface ActionConfigFile {
+  version: 1
+  updatedAt?: string
+  actions: ActionConfig[]
+}
 
 export interface CowriteTaskInput {
   action: TaskAction

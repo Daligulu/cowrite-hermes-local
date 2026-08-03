@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { CowriteTask, Page, TaskAction, TaskPriority, TaskStatus } from '../shared/types'
+import type { ActionConfig, CowriteTask, Page, TaskStatus, TaskPriority } from '../shared/types'
 import { cowriteFetch } from './apiClient'
 
 const api = async <T,>(path: string, options?: RequestInit): Promise<T> => {
@@ -12,18 +12,6 @@ const api = async <T,>(path: string, options?: RequestInit): Promise<T> => {
   return result as T
 }
 
-export const ACTION_LABELS: Record<string, string> = {
-  polish: '润色文章',
-  illustrate: '文章配图',
-  'feng-ip': '峰峰 IP 配图',
-  slides: '制作 PPT',
-  'wechat-layout': '公众号排版',
-  xiaohongshu: '小红书图组',
-  'feishu-doc': '发布飞书文档',
-  'knowledge-base': '存入峰峰知识库',
-  video: '制作视频',
-}
-
 const STATUS_LABELS: Record<TaskStatus, string> = {
   queued: '排队中',
   running: '执行中',
@@ -32,35 +20,23 @@ const STATUS_LABELS: Record<TaskStatus, string> = {
   cancelled: '已取消',
 }
 
-const ACTIONS: Array<{ value: TaskAction; label: string; chip?: boolean }> = [
-  { value: 'polish', label: '润色文章', chip: true },
-  { value: 'illustrate', label: '文章配图', chip: true },
-  { value: 'slides', label: '制作 PPT', chip: true },
-  { value: 'wechat-layout', label: '公众号排版', chip: true },
-  { value: 'feishu-doc', label: '发布飞书文档', chip: true },
-  { value: 'feng-ip', label: '峰峰 IP 配图' },
-  { value: 'xiaohongshu', label: '小红书图组' },
-  { value: 'knowledge-base', label: '存入峰峰知识库' },
-  { value: 'video', label: '制作视频' },
-]
-
-const ACTION_KEYWORDS: Array<[RegExp, TaskAction]> = [
-  [/峰峰.*配图|IP\s*配图|峰峰形象/i, 'feng-ip'],
-  [/配图|插图|插画|配\s*\d+\s*张图|生成.*图|图片/i, 'illustrate'],
-  [/ppt|幻灯片|演示文稿|slides|做\s*\d+\s*页/i, 'slides'],
-  [/排版|公众号|微信文章|草稿箱/i, 'wechat-layout'],
-  [/小红书/i, 'xiaohongshu'],
-  [/飞书|云文档|发布文档/i, 'feishu-doc'],
-  [/知识库|归档|KB/i, 'knowledge-base'],
-  [/视频|video/i, 'video'],
-  [/润色|改写|优化|修改|口语化|通顺/i, 'polish'],
-]
-
-function detectAction(text: string): { action: TaskAction; requirements?: string } {
-  for (const [re, action] of ACTION_KEYWORDS) {
-    if (re.test(text)) return { action }
+function safeRegex(source: string): RegExp | null {
+  try {
+    return new RegExp(source, 'i')
+  } catch {
+    return null
   }
-  return { action: 'polish', requirements: text.trim() || undefined }
+}
+
+function detectAction(text: string, actions: ActionConfig[]): { action: string; requirements?: string } {
+  for (const action of actions) {
+    if (!action.enabled) continue
+    for (const keyword of action.keywords) {
+      const re = safeRegex(keyword)
+      if (re && re.test(text)) return { action: action.id }
+    }
+  }
+  return { action: actions.find((action) => action.id === 'polish')?.id ?? 'polish', requirements: text.trim() || undefined }
 }
 
 export function EditorCommandBar({ page, notify }: { page: Page; notify: (message: string) => void }) {
@@ -69,6 +45,7 @@ export function EditorCommandBar({ page, notify }: { page: Page; notify: (messag
   const [submitting, setSubmitting] = useState(false)
   const [tasks, setTasks] = useState<CowriteTask[]>([])
   const [expanded, setExpanded] = useState(false)
+  const [actions, setActions] = useState<ActionConfig[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
 
   const refresh = useCallback(async () => {
@@ -77,17 +54,22 @@ export function EditorCommandBar({ page, notify }: { page: Page; notify: (messag
   }, [page.id])
 
   useEffect(() => {
+    api<{ config: { actions: ActionConfig[] } }>('/api/action-config')
+      .then((data) => setActions(data.config.actions))
+      .catch(() => undefined)
     refresh().catch(() => undefined)
     const timer = setInterval(() => refresh().catch(() => undefined), 3000)
     return () => clearInterval(timer)
   }, [refresh])
 
+  const labelFor = (id: string) => actions.find((action) => action.id === id)?.label ?? id
+
   const latest = tasks[0]
 
-  const submit = async (action?: TaskAction, requirements?: string) => {
+  const submit = async (action?: string, requirements?: string) => {
     const trimmed = text.trim()
     if (!trimmed && !action) return
-    const detected = detectAction(trimmed)
+    const detected = detectAction(trimmed, actions)
     const chosen = action ?? detected.action
     const req = requirements !== undefined
       ? requirements
@@ -101,7 +83,7 @@ export function EditorCommandBar({ page, notify }: { page: Page; notify: (messag
       setTasks((current) => [created, ...current.filter((t) => t.id !== created.id)].slice(0, 5))
       setText('')
       setExpanded(true)
-      notify(`已提交：${ACTION_LABELS[chosen] ?? chosen}`)
+      notify(`已提交：${labelFor(chosen)}`)
       inputRef.current?.focus()
     } catch (error) {
       notify(error instanceof Error ? error.message : 'Hermes 任务提交失败')
@@ -110,8 +92,8 @@ export function EditorCommandBar({ page, notify }: { page: Page; notify: (messag
     }
   }
 
-  const chip = (value: TaskAction) => {
-    setText(ACTION_LABELS[value] ?? value)
+  const chip = (value: string) => {
+    setText(labelFor(value))
     inputRef.current?.focus()
   }
 
@@ -129,6 +111,8 @@ export function EditorCommandBar({ page, notify }: { page: Page; notify: (messag
 
   const statusDot = (status: TaskStatus) => `dot ${status}`
   const statusLabel = (status: TaskStatus) => STATUS_LABELS[status] ?? status
+  const chipActions = actions.filter((action) => action.enabled && action.chip)
+  const moreActions = actions.filter((action) => action.enabled && !action.chip)
 
   return (
     <div className="editor-command">
@@ -147,8 +131,8 @@ export function EditorCommandBar({ page, notify }: { page: Page; notify: (messag
           </button>
         </div>
         <div className="command-chips">
-          {ACTIONS.filter((option) => option.chip).map((option) => (
-            <button key={option.value} disabled={submitting} onClick={() => chip(option.value)}>
+          {chipActions.map((option) => (
+            <button key={option.id} disabled={submitting} onClick={() => chip(option.id)}>
               {option.label}
             </button>
           ))}
@@ -156,8 +140,8 @@ export function EditorCommandBar({ page, notify }: { page: Page; notify: (messag
         </div>
         {moreOpen && (
           <div className="command-more">
-            {ACTIONS.filter((option) => !option.chip).map((option) => (
-              <button key={option.value} disabled={submitting} onClick={() => { setMoreOpen(false); chip(option.value) }}>
+            {moreActions.map((option) => (
+              <button key={option.id} disabled={submitting} onClick={() => { setMoreOpen(false); chip(option.id) }}>
                 {option.label}
               </button>
             ))}
@@ -169,31 +153,24 @@ export function EditorCommandBar({ page, notify }: { page: Page; notify: (messag
         <div className={`task-strip ${expanded ? 'expanded' : ''}`}>
           <div className="task-strip-row" role="button" tabIndex={0} onClick={() => setExpanded((open) => !open)}>
             <span className={statusDot(latest.status)} />
-            <span className="task-strip-label">{ACTION_LABELS[latest.action] ?? latest.action}</span>
+            <span className="task-strip-label">{labelFor(latest.action)}</span>
             <span className={`task-strip-state state-${latest.status}`}>{statusLabel(latest.status)}</span>
             <span className="chev">{expanded ? '▾' : '▸'}</span>
           </div>
           {expanded && (
             <div className="task-strip-detail">
-              {latest.requirements && <p className="detail-line">要求：{latest.requirements}</p>}
-              {latest.result?.message && <p className="detail-line detail-ok">结果：{latest.result.message}</p>}
-              {latest.error && <p className="detail-line detail-err">错误：{latest.error}</p>}
+              {latest.requirements && <div className="task-strip-req">{latest.requirements}</div>}
+              {latest.result?.message && <div className="task-strip-result">{latest.result.message}</div>}
+              {latest.error && <div className="task-strip-error">{latest.error}</div>}
               <div className="task-strip-actions">
-                {latest.status === 'queued' && (
-                  <button onClick={() => actOn(latest.id, '/move-to-front')}>移到队首</button>
-                )}
                 {(latest.status === 'queued' || latest.status === 'running') && (
                   <button onClick={() => actOn(latest.id, '/cancel')}>取消</button>
                 )}
                 {(latest.status === 'failed' || latest.status === 'cancelled') && (
-                  <button onClick={() => actOn(latest.id, '/retry')}>重新执行</button>
+                  <button onClick={() => actOn(latest.id, '/retry')}>重试</button>
                 )}
                 {latest.status === 'queued' && (
-                  <select value={latest.priority ?? 'normal'} onChange={(event) => actOn(latest.id, '/priority', { priority: event.target.value as TaskPriority })}>
-                    <option value="high">优先级：高</option>
-                    <option value="normal">优先级：普通</option>
-                    <option value="low">优先级：低</option>
-                  </select>
+                  <button onClick={() => actOn(latest.id, '/move-to-front', { priority: 'high' as TaskPriority })}>置顶</button>
                 )}
               </div>
             </div>

@@ -5,11 +5,11 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { z } from 'zod'
 import { assetsDir, buildCreateCommand, CowriteService } from './service.js'
+import { ActionConfigStore, actionConfigFileSchema } from './actionConfig.js'
 import { LocalSkillLibrary } from './skilldeck.js'
 import { JsonStore } from './store.js'
 import { LocalProjectService } from './projectWorkspace.js'
 import { TaskStore } from './taskStore.js'
-import { TASK_ACTIONS } from '../shared/types.js'
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -18,6 +18,7 @@ export function createApp(
   skillLibrary = new LocalSkillLibrary(),
   projectService = new LocalProjectService(),
   taskStore = new TaskStore(),
+  actionConfig = new ActionConfigStore(),
 ) {
   const app = express()
   const sessionToken = randomBytes(32).toString('base64url')
@@ -67,6 +68,7 @@ export function createApp(
   app.get('/api/health', (_request, response) => response.json({ ok: true, service: 'cowrite' }))
   app.get('/api/session', (_request, response) => response.json({ token: sessionToken }))
   app.get('/api/bridge-session', (_request, response) => response.json({ token: bridgeToken }))
+  app.get('/api/action-config', async (_request, response) => response.json({ config: await actionConfig.load() }))
   app.use('/api', (request, response, next) => {
     if (['GET', 'HEAD', 'OPTIONS'].includes(request.method)) {
       next()
@@ -79,6 +81,13 @@ export function createApp(
       return
     }
     next()
+  })
+  app.put('/api/action-config', async (request, response) => {
+    const input = actionConfigFileSchema.parse(request.body)
+    response.json({ config: await actionConfig.save(input) })
+  })
+  app.post('/api/action-config/reset', async (_request, response) => {
+    response.json({ config: await actionConfig.reset() })
   })
   app.get('/api/skilldeck/config', async (_request, response) => response.json(await skillLibrary.getConfig()))
   app.get('/api/skilldeck/catalog', async (request, response) => {
@@ -102,7 +111,7 @@ export function createApp(
     response.json(await skillLibrary.deleteExpert(input.directory, input.expertId))
   })
   const taskInput = z.object({
-    action: z.enum(TASK_ACTIONS),
+    action: z.string().trim().min(1).max(80),
     pageId: z.string().min(1).max(200).optional(),
     projectPath: z.string().min(1).max(4000).optional(),
     anchor: z.string().min(1).max(4000).optional(),

@@ -1,19 +1,8 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { nanoid } from 'nanoid'
+import { ActionConfigStore } from './actionConfig.js'
 import type { CowriteTask, CowriteTaskInput, TaskAction, TaskPriority, TaskStatus } from '../shared/types.js'
-
-const ACTION_SKILLS: Record<TaskAction, string[]> = {
-  polish: ['humanizer-zh'],
-  illustrate: ['apiyi-image-generation'],
-  'feng-ip': ['feng-ip'],
-  slides: ['dashiai-ppt'],
-  'wechat-layout': ['wewrite'],
-  xiaohongshu: ['xiaohongshu', 'apiyi-image-generation'],
-  'feishu-doc': ['lark-doc'],
-  'knowledge-base': ['feng-knowledge-base'],
-  video: ['feng-video'],
-}
 
 const PRIORITY_RANK: Record<TaskPriority, number> = { high: 0, normal: 1, low: 2 }
 const LEASE_MS = 30 * 60 * 1000
@@ -24,8 +13,11 @@ interface TaskData { tasks: CowriteTask[] }
 export class TaskStore {
   private operationChain: Promise<unknown> = Promise.resolve()
 
-  constructor(private readonly filePath = process.env.COWRITE_TASKS_FILE
-    || path.join(process.env.COWRITE_HOME || path.join(process.env.HOME || '.', '.cowrite'), 'tasks.json')) {}
+  constructor(
+    private readonly filePath = process.env.COWRITE_TASKS_FILE
+      || path.join(process.env.COWRITE_HOME || path.join(process.env.HOME || '.', '.cowrite'), 'tasks.json'),
+    private readonly actionConfig = new ActionConfigStore(),
+  ) {}
 
   private serialize<T>(operation: () => Promise<T>): Promise<T> {
     const result = this.operationChain.then(operation, operation)
@@ -55,13 +47,14 @@ export class TaskStore {
     return this.serialize(async () => {
       const data = await this.readUnlocked()
       const now = new Date().toISOString()
+      const recommendedSkills = await this.actionConfig.skillsFor(input.action)
       const task: CowriteTask = {
         ...input,
         id: `task_${nanoid(12)}`,
         status: 'queued',
         priority: input.priority ?? 'normal',
         attempts: 0,
-        recommendedSkills: ACTION_SKILLS[input.action],
+        recommendedSkills,
         createdAt: now,
         updatedAt: now,
       }
@@ -266,5 +259,3 @@ export class TaskStore {
     })
   }
 }
-
-export { ACTION_SKILLS }

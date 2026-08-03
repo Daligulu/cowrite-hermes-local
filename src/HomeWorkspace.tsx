@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { CowriteTask, Page, TaskStatus } from '../shared/types'
 import { cowriteFetch } from './apiClient'
-import { ACTION_LABELS } from './CommandBar'
 
 const api = async <T,>(path: string, options?: RequestInit): Promise<T> => {
   const response = await cowriteFetch(path, {
@@ -152,7 +151,7 @@ export function HomeWorkspace({
                 <button className="home-row" onClick={onOpenTasks}>
                   <span className={`home-task-dot home-task-dot-${task.status}`} />
                   <span className="home-row-title">
-                    <b>{ACTION_LABELS[task.action] ?? task.action}</b>
+                    <b>{task.action}</b>
                     <small>{STATUS_LABELS[task.status]} · {formatTime(task.createdAt)}</small>
                   </span>
                   <span className="home-chevron">›</span>
