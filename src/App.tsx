@@ -304,7 +304,7 @@ function SendModal({ page, onClose, onSendLark }: {
             <b>飞书</b><small>通过 lark-cli 创建云文档</small>
           </button>
           <button className="slide-option pending" disabled>
-            <b>公众号 <em>待完善</em></b><small>暂未开放</small>
+            <b>公众号 <em>用任务面板</em></b><small>请用下方「Hermes 内容生产 → 公众号排版」</small>
           </button>
           <button className="slide-option pending" disabled>
             <b>知乎 <em>待完善</em></b><small>暂未开放</small>
@@ -327,8 +327,9 @@ function SendModal({ page, onClose, onSendLark }: {
   </div>
 }
 
-function DeletePageModal({ page, onClose, onConfirm }: {
+function DeletePageModal({ page, pendingTasks, onClose, onConfirm }: {
   page: PageMeta
+  pendingTasks: number
   onClose: () => void
   onConfirm: () => Promise<void>
 }) {
@@ -341,9 +342,10 @@ function DeletePageModal({ page, onClose, onConfirm }: {
     <div className="modal delete-modal" role="alertdialog" aria-labelledby="delete-page-title" aria-describedby="delete-page-description" onClick={(event) => event.stopPropagation()}>
       <h2 id="delete-page-title">确定要删除吗？</h2>
       <p id="delete-page-description">页面“{page.title}”删除后无法恢复。</p>
+      {pendingTasks > 0 && <p className="delete-pending-tasks">该页面还有 <b>{pendingTasks}</b> 个排队或执行中的任务，删除页面会一并取消这些任务。</p>}
       <div className="modal-actions">
         <button disabled={deleting} onClick={onClose}>取消</button>
-        <button className="delete-confirm" disabled={deleting} onClick={confirm}>{deleting ? '删除中…' : '确定删除'}</button>
+        <button className="delete-confirm" disabled={deleting} onClick={confirm}>{deleting ? '删除中…' : pendingTasks > 0 ? '删除并取消任务' : '确定删除'}</button>
       </div>
     </div>
   </div>
@@ -568,6 +570,7 @@ function App() {
   const [slideOpen, setSlideOpen] = useState(false)
   const [sendOpen, setSendOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<PageMeta | null>(null)
+  const [deletePendingTasks, setDeletePendingTasks] = useState(0)
   const [saveState, setSaveState] = useState<'saved' | 'dirty'>('saved')
   const [toast, setToast] = useState('')
 
@@ -611,11 +614,18 @@ function App() {
   }
 
   const removePage = async (page: PageMeta) => {
+    // Cancel queued/running tasks attached to this page so they cannot write back into a deleted page.
+    const all = await api<CowriteTask[]>('/api/tasks')
+    const attached = all.filter((task) => task.pageId === page.id && (task.status === 'queued' || task.status === 'running'))
+    for (const task of attached) {
+      await api(`/api/tasks/${task.id}/cancel`, { method: 'POST' }).catch(() => undefined)
+    }
     await api(`/api/pages/${page.id}`, { method: 'DELETE' })
     const list = await refreshList()
     if (activeId === page.id) setActiveId(list[0]?.id ?? null)
     setDeleteTarget(null)
-    notify('页面已删除')
+    setDeletePendingTasks(0)
+    notify(attached.length > 0 ? `页面已删除，${attached.length} 个关联任务已取消` : '页面已删除')
   }
 
   const enqueuePageTask = async (action: TaskAction, requirements?: string) => {
@@ -712,7 +722,14 @@ function App() {
             <span className="doc-title">{page.title}</span>
             {page.prompt && page.revision === 1 && <span className="pending-dot" title="等待 Agent 创作" />}
           </button>
-          <button className="sidebar-delete" title={`删除 ${page.title}`} aria-label={`删除 ${page.title}`} onClick={() => setDeleteTarget(page)}>
+          <button className="sidebar-delete" title={`删除 ${page.title}`} aria-label={`删除 ${page.title}`} onClick={async () => {
+            setDeletePendingTasks(0)
+            setDeleteTarget(page)
+            try {
+              const all = await api<CowriteTask[]>('/api/tasks')
+              setDeletePendingTasks(all.filter((task) => task.pageId === page.id && (task.status === 'queued' || task.status === 'running')).length)
+            } catch { /* keep 0 */ }
+          }}>
             <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6.5 6.5v8m3.5-8v8m3.5-8v8M4 4.5h12M7 4.5V2.8h6v1.7m-7.5 0 .7 12.7h7.6l.7-12.7" /></svg>
           </button>
         </div>)}
@@ -795,7 +812,8 @@ function App() {
     />}
     {deleteTarget && <DeletePageModal
       page={deleteTarget}
-      onClose={() => setDeleteTarget(null)}
+      pendingTasks={deletePendingTasks}
+      onClose={() => { setDeleteTarget(null); setDeletePendingTasks(0) }}
       onConfirm={() => removePage(deleteTarget)}
     />}
     {toast && <div className="toast">✓ {toast}</div>}

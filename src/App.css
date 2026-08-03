@@ -145,8 +145,16 @@
 
 @media (max-width: 760px) {
   .save-state { display: none; }
-  .topbar-right button { padding-inline: 7px; }
+  .topbar { padding: 0 8px; gap: 6px; height: 46px; }
+  .topbar .title-input { min-width: 0; width: 0; flex: 1 1 auto; font-size: 13px; }
+  .topbar-right { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .topbar-right::-webkit-scrollbar { display: none; }
+  .topbar-right button { flex: none; padding: 6px 8px; font-size: 12px; min-height: 32px; }
   .slide-options { grid-template-columns: 1fr; }
+  .modal { max-height: 85vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .illustration-specs, .cowrite-options, .send-options { grid-template-columns: 1fr; }
+  .new-page-modal textarea { min-height: 120px; }
+  .hermes-task-controls select { font-size: 13px; }
 }
 
 /* Hermes native content-production queue */
@@ -227,4 +235,11 @@
   .task-time { display: none; }
   .task-detail { padding: 10px; }
   .task-actions button, .task-actions select { flex: 1; }
+}
+
+/* Delete confirmation: pending task warning */
+.delete-pending-tasks { margin: 0; padding: 10px 12px; border-radius: 8px; background: #fff8e6; color: #8a6d1a; font-size: 12px; line-height: 1.6; }
+.delete-pending-tasks b { color: #b45309; }
+@media (max-width: 760px) {
+  .delete-pending-tasks { font-size: 13px; }
 }
