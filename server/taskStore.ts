@@ -9,7 +9,7 @@ const ACTION_SKILLS: Record<TaskAction, string[]> = {
   'feng-ip': ['feng-ip'],
   slides: ['dashiai-ppt'],
   'wechat-layout': ['wewrite'],
-  xiaohongshu: ['baoyu-xhs-images'],
+  xiaohongshu: ['xiaohongshu', 'apiyi-image-generation'],
   'feishu-doc': ['lark-doc'],
   'knowledge-base': ['feng-knowledge-base'],
   video: ['feng-video'],

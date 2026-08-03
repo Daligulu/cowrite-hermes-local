@@ -1,0 +1,16 @@
+[Unit]
+Description=Cowrite Hermes queued-task worker
+After=network-online.target cowrite-hermes.service
+Requires=cowrite-hermes.service
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+Environment=HOME=/root
+Environment=PATH=/root/.hermes/node/bin:/root/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
+Environment=COWRITE_URL=http://127.0.0.1:4320
+ExecStart=/opt/cowrite-hermes/deploy/scripts/cowrite-hermes-worker.py
+TimeoutStartSec=35min
+NoNewPrivileges=true
+PrivateTmp=true

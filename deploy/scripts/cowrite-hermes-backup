@@ -1,41 +1,72 @@
 #!/usr/bin/env bash
 set -euo pipefail
+umask 077
 BACKUP_ROOT=${COWRITE_BACKUP_ROOT:-/root/.hermes/backups/cowrite-hermes}
 STAMP=$(date -u +%Y%m%dT%H%M%SZ)
 DEST="$BACKUP_ROOT/$STAMP"
-STAGE=$(mktemp -d)
-trap 'rm -rf "$STAGE"' EXIT
-mkdir -p "$DEST" "$STAGE/root"
-[ -d /root/.cowrite ] && cp -a /root/.cowrite "$STAGE/root/.cowrite"
-mkdir -p "$STAGE/root/repo"
-git -C /opt/cowrite-hermes archive --format=tar HEAD | tar -xf - -C "$STAGE/root/repo"
-cp -a /opt/cowrite-hermes/deploy "$STAGE/root/repo/deploy"
-python3 - "$STAGE/root" > "$DEST/manifest.json" <<'PY'
-import hashlib,json,pathlib,sys,datetime
+STAGE="$BACKUP_ROOT/.staging-$STAMP-$$"
+RESTORE=$(mktemp -d)
+cleanup() { rm -rf "$STAGE" "$RESTORE"; }
+trap cleanup EXIT
+mkdir -p "$BACKUP_ROOT" "$STAGE/payload/root/.cowrite" "$STAGE/payload/root/repo"
+
+# Back up durable application data only. The Quick Tunnel URL and random public
+# path are bearer access material and are intentionally regenerated, not archived.
+for file in cowrite.json tasks.json skilldeck-preferences.json; do
+  [ ! -f "/root/.cowrite/$file" ] || cp -a "/root/.cowrite/$file" "$STAGE/payload/root/.cowrite/$file"
+done
+[ ! -d /root/.cowrite/assets ] || cp -a /root/.cowrite/assets "$STAGE/payload/root/.cowrite/assets"
+git -C /opt/cowrite-hermes archive --format=tar HEAD | tar -xf - -C "$STAGE/payload/root/repo"
+cp -a /opt/cowrite-hermes/deploy "$STAGE/payload/root/repo/deploy"
+
+python3 - "$STAGE/payload/root" > "$STAGE/manifest.json" <<'PY'
+import datetime,hashlib,json,pathlib,sys
 root=pathlib.Path(sys.argv[1]); files=[]
 for p in sorted(root.rglob('*')):
     if p.is_file():
-        data=p.read_bytes(); files.append({'path':str(p.relative_to(root)),'bytes':len(data),'sha256':hashlib.sha256(data).hexdigest()})
-print(json.dumps({'created_at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'files':files},ensure_ascii=False,indent=2))
+        data=p.read_bytes()
+        files.append({'path':str(p.relative_to(root)),'bytes':len(data),'sha256':hashlib.sha256(data).hexdigest()})
+print(json.dumps({'schema':1,'created_at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'files':files},ensure_ascii=False,indent=2))
 PY
-python3 -m json.tool "$DEST/manifest.json" >/dev/null
-tar -C "$STAGE" -czf "$DEST/cowrite-hermes.tar.gz" root
-chmod 700 "$DEST"; chmod 600 "$DEST"/*
-tar -tzf "$DEST/cowrite-hermes.tar.gz" >/dev/null
-RESTORE=$(mktemp -d)
-tar -xzf "$DEST/cowrite-hermes.tar.gz" -C "$RESTORE"
-python3 - "$RESTORE/root" <<'PY'
-import json,pathlib,re,sys
-root=pathlib.Path(sys.argv[1])
-for p in root.rglob('*.json'):
-    json.loads(p.read_text('utf-8'))
-patterns=[re.compile(r'AKIA[0-9A-Z]{16}'),re.compile(r'-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----'),re.compile(r'(?i)(api[_-]?key|access[_-]?token|secret)\s*[:=]\s*["\']?[A-Za-z0-9_\-]{20,}')]
+python3 -m json.tool "$STAGE/manifest.json" >/dev/null
+tar -C "$STAGE/payload" -czf "$STAGE/cowrite-hermes.tar.gz" root
+sha256sum "$STAGE/cowrite-hermes.tar.gz" > "$STAGE/SHA256SUMS"
+(cd "$STAGE" && sha256sum -c SHA256SUMS)
+tar -xzf "$STAGE/cowrite-hermes.tar.gz" -C "$RESTORE"
+
+python3 - "$RESTORE/root" "$STAGE/manifest.json" <<'PY'
+import hashlib,json,pathlib,re,sys
+root=pathlib.Path(sys.argv[1]); manifest=json.loads(pathlib.Path(sys.argv[2]).read_text())
+assert (root/'repo/package.json').is_file(), 'repository package.json missing'
+for item in manifest['files']:
+    p=root/item['path']; assert p.is_file(), f'missing: {item["path"]}'
+    assert hashlib.sha256(p.read_bytes()).hexdigest()==item['sha256'], f'hash mismatch: {item["path"]}'
+for name in ('cowrite.json','tasks.json','skilldeck-preferences.json'):
+    p=root/'.cowrite'/name
+    if p.exists(): json.loads(p.read_text('utf-8'))
+patterns=[
+ re.compile(r'AKIA[0-9A-Z]{16}'),
+ re.compile(r'-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----'),
+ re.compile(r'(?i)\b(?:api[_-]?key|access[_-]?token|client[_-]?secret|password|authorization)\b\s*[:=]\s*["\']?(?!\[?REDACTED)[A-Za-z0-9_./+\-=]{20,}'),
+ re.compile(r'(?i)bearer\s+[A-Za-z0-9_./+\-=]{20,}'),
+]
 for p in root.rglob('*'):
-    if p.is_file() and p.stat().st_size < 2_000_000:
+    if p.is_file() and p.stat().st_size < 3_000_000:
         text=p.read_text('utf-8',errors='ignore')
-        if any(rx.search(text) for rx in patterns): raise SystemExit(f'secret scan failed: {p}')
-print('isolation_restore=json-ok secret-scan=passed')
+        if any(rx.search(text) for rx in patterns): raise SystemExit(f'secret scan failed: {p.relative_to(root)}')
+assert not (root/'.cowrite/current-public-url').exists(), 'public tunnel URL leaked into backup'
+assert not (root/'.cowrite/public-path').exists(), 'public bearer path leaked into backup'
+print(f'isolation_restore=passed files={len(manifest["files"])} json=passed hashes=passed secret_scan=passed bearer_paths=excluded')
 PY
+
+chmod 700 "$STAGE"; chmod 600 "$STAGE"/*
+mv "$STAGE" "$DEST"
+# Keep the newest seven completed backups; staging directories are handled by the trap.
+python3 - "$BACKUP_ROOT" <<'PY'
+import pathlib,shutil,sys
+root=pathlib.Path(sys.argv[1]); backups=sorted((p for p in root.iterdir() if p.is_dir() and not p.name.startswith('.staging-')),key=lambda p:p.name,reverse=True)
+for old in backups[7:]: shutil.rmtree(old)
+PY
+trap - EXIT
 rm -rf "$RESTORE"
-sha256sum "$DEST/cowrite-hermes.tar.gz" > "$DEST/SHA256SUMS"
-printf '%s\n' "$DEST"
+printf 'backup=%s verification=passed\n' "$DEST"

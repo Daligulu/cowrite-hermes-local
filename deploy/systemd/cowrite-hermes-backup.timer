@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily verified Cowrite Hermes backup at 03:00 Beijing time
+
+[Timer]
+OnCalendar=*-*-* 03:00:00 Asia/Shanghai
+Persistent=true
+RandomizedDelaySec=5m
+Unit=cowrite-hermes-backup.service
+
+[Install]
+WantedBy=timers.target
