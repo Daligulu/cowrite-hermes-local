@@ -141,7 +141,8 @@ export function EditorCommandBar({ page, notify }: { page: Page; notify: (messag
             onChange={(event) => setText(event.target.value)}
             onKeyDown={(event) => { if (event.key === 'Enter') submit() }}
           />
-          <button className="primary" disabled={submitting || !text.trim()} onClick={() => submit()}>
+          <button className="primary" disabled={submitting || !text.trim()} onClick={() => submit()} aria-busy={submitting}>
+            {submitting ? <span className="btn-spinner" aria-hidden="true" /> : <span className="btn-spark" aria-hidden="true">✦</span>}
             {submitting ? '提交中…' : '交给 Hermes'}
           </button>
         </div>

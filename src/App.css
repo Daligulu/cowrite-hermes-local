@@ -227,8 +227,14 @@
 .command-bar { background: #fff; border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 4px 18px #0000000d; padding: 10px; display: grid; gap: 8px; }
 .command-box { display: flex; align-items: center; gap: 8px; background: #f6f7f9; border: 1px solid #e3e8ef; border-radius: 10px; padding: 3px 3px 3px 14px; }
 .command-box input { flex: 1; min-width: 0; border: 0; background: transparent; font-size: 14px; padding: 9px 0; outline: none; color: #222; }
-.command-box .primary { border: 0; background: #16324f; color: #fff; border-radius: 8px; padding: 9px 16px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
-.command-box .primary:disabled { background: #b9c4cf; cursor: default; }
+.command-box .primary { border: 0; background: linear-gradient(135deg, #16324f 0%, #1e4d7c 100%); color: #fff; border-radius: 10px; padding: 9px 16px 9px 14px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 3px 10px #16324f33; transition: filter .15s ease, transform .1s ease, box-shadow .15s ease, background .15s ease; }
+.command-box .primary:hover:not(:disabled) { filter: brightness(1.12); box-shadow: 0 4px 14px #16324f4d; }
+.command-box .primary:active:not(:disabled) { transform: translateY(1px); box-shadow: 0 2px 6px #16324f33; }
+.command-box .primary:focus-visible { outline: 2px solid #7ea7e8; outline-offset: 2px; }
+.command-box .primary:disabled { background: linear-gradient(135deg, #c6cdd6 0%, #b9c4cf 100%); box-shadow: none; cursor: default; }
+.btn-spark { font-size: 12px; line-height: 1; }
+.btn-spinner { width: 12px; height: 12px; flex: none; border: 2px solid #ffffff66; border-top-color: #ffffff; border-radius: 50%; animation: btn-spin .7s linear infinite; }
+@keyframes btn-spin { to { transform: rotate(360deg); } }
 .command-chips { display: flex; gap: 7px; overflow-x: auto; scrollbar-width: none; }
 .command-chips::-webkit-scrollbar { display: none; }
 .command-chips button { flex: none; border: 1px solid #e2e7ee; background: #fff; border-radius: 999px; padding: 6px 13px; font-size: 12px; color: #2c3e50; cursor: pointer; }
@@ -268,6 +274,7 @@
   .editor-command { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; width: 100%; margin: 0; padding: 8px 10px calc(8px + env(safe-area-inset-bottom)); background: #fffffff2; backdrop-filter: blur(8px); border-top: 1px solid #e6eaf0; box-shadow: 0 -6px 20px #00000010; }
   .editor-command .command-bar { box-shadow: none; border: 1px solid #dfe5ee; }
   .command-box input { font-size: 13px; }
+  .command-box .primary { min-height: 40px; padding-left: 16px; padding-right: 18px; font-size: 13px; }
   .command-chips button { padding: 6px 11px; font-size: 12px; }
   .task-strip { margin-top: 6px; }
   .task-strip-detail { max-height: 40vh; overflow-y: auto; }
