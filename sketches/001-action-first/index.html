@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>草图 A · 行动优先</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #eef1f5; color: #1a1a1a; display: grid; place-items: center; min-height: 100vh; padding: 24px;
+  }
+  .stage-hint { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); background: #fff; border: 1px solid #dde3ea; border-radius: 999px; padding: 5px 14px; font-size: 12px; color: #667; z-index: 50; box-shadow: 0 2px 8px #00000012; }
+  .phone {
+    width: 390px; height: 844px; background: #fff; border-radius: 34px; overflow: hidden; position: relative;
+    box-shadow: 0 24px 80px #1a2b3c40; display: flex; flex-direction: column; border: 8px solid #111;
+  }
+  .status-bar { height: 28px; background: #fff; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; font-size: 12px; font-weight: 600; color: #222; flex: none; }
+  .topbar { height: 52px; display: flex; align-items: center; gap: 10px; padding: 0 14px; border-bottom: 1px solid #eef0f3; flex: none; }
+  .topbar .back { font-size: 18px; color: #3d4b57; background: none; border: 0; cursor: pointer; width: 32px; height: 32px; border-radius: 8px; }
+  .topbar .back:hover { background: #f1f4f7; }
+  .topbar .title { flex: 1; font-size: 14px; font-weight: 600; color: #222; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .topbar .saved { font-size: 11px; color: #2fa96b; background: #e8f7ef; border-radius: 999px; padding: 3px 9px; }
+  .content { flex: 1; overflow-y: auto; padding: 18px 20px 140px; }
+  .content h1 { font-size: 18px; margin: 4px 0 12px; }
+  .content p { font-size: 14px; line-height: 1.8; color: #333; margin-bottom: 12px; }
+  .content .muted { color: #999; font-size: 13px; }
+
+  /* command bar */
+  .command-bar { position: absolute; left: 0; right: 0; bottom: 0; background: #fff; border-top: 1px solid #e4e8ed; padding: 10px 14px calc(12px + env(safe-area-inset-bottom)); box-shadow: 0 -8px 24px #00000014; }
+  .command-box { display: flex; align-items: center; gap: 8px; background: #f3f5f8; border: 1px solid #dde3ea; border-radius: 12px; padding: 4px 6px 4px 14px; }
+  .command-box input { flex: 1; border: 0; background: transparent; font-size: 14px; padding: 9px 0; outline: none; color: #222; }
+  .command-box input::placeholder { color: #9aa5b1; }
+  .command-box button { flex: none; border: 0; background: #16324f; color: #fff; font-size: 14px; font-weight: 600; border-radius: 9px; padding: 9px 16px; cursor: pointer; }
+  .command-box button:disabled { background: #b9c4cf; cursor: default; }
+  .chips { display: flex; gap: 7px; overflow-x: auto; padding: 10px 2px 2px; scrollbar-width: none; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chips button { flex: none; border: 1px solid #dde3ea; background: #fff; border-radius: 999px; padding: 6px 13px; font-size: 12px; color: #2c3e50; cursor: pointer; }
+  .chips button:hover { background: #f0f5ff; border-color: #a9bce7; }
+  .chips button.sel { background: #e8f2ff; border-color: #2f7de1; color: #1457a6; }
+
+  /* task strip */
+  .task-strip { margin-top: 8px; border: 1px solid #e4e8ed; border-radius: 12px; background: #fff; overflow: hidden; }
+  .task-strip .row { display: flex; align-items: center; gap: 9px; padding: 10px 12px; cursor: pointer; }
+  .task-strip .row:hover { background: #f8fafc; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .dot.queued { background: #c9c9c9; }
+  .dot.running { background: #2f7de1; animation: pulse 1.2s ease-in-out infinite; }
+  .dot.done { background: #2fa96b; }
+  .dot.failed { background: #d54343; }
+  @keyframes pulse { 50% { opacity: .3; } }
+  .task-strip .label { flex: 1; font-size: 12px; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .task-strip .state { font-size: 11px; color: #667; flex: none; }
+  .task-strip .chev { color: #aab3bd; font-size: 11px; }
+  .task-detail { border-top: 1px dashed #e4e8ed; padding: 10px 12px; font-size: 12px; color: #444; line-height: 1.7; background: #fbfcfd; }
+  .task-detail .acts { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+  .task-detail .acts button { border: 1px solid #d8e1ea; background: #fff; border-radius: 8px; padding: 6px 12px; font-size: 12px; color: #2c3e50; cursor: pointer; }
+  .toast { position: absolute; left: 50%; bottom: 200px; transform: translateX(-50%); background: #37352f; color: #fff; padding: 8px 16px; border-radius: 999px; font-size: 12px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+  @media (max-width: 430px) {
+    body { padding: 0; background: #fff; }
+    .stage-hint { display: none; }
+    .phone { width: 100vw; height: 100vh; border: 0; border-radius: 0; }
+  }
+</style>
+</head>
+<body>
+  <div class="stage-hint">草图 A · 行动优先（可在手机宽度下直接预览）</div>
+  <div class="phone">
+    <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+    <div class="topbar">
+      <button class="back">☰</button>
+      <span class="title">关于最新的信用卡和AI结合发卡</span>
+      <span class="saved">已保存</span>
+    </div>
+
+    <div class="content">
+      <h1>2026 年信用卡开卡礼：送 Token 还是送会员？</h1>
+      <p>2026 年的信用卡开卡礼变了画风。以前是拉杆箱、咖啡券、几十万积分，现在不少银行改送 AI 算力：新户刷满几笔，给你几十亿 Token，或者大模型会员。行业里把这件事叫“消费即算力”。</p>
+      <p>这轮变化今年 6 月开始集中爆发。招商银行动手最早，2025 年 12 月就发了运通工程师信用卡，今年 6 月 12 日上线专属 AI 权益，新户消费达标后可在三档“AI Plan”里选一个，最高每月 18 亿 Token 的 M3 用量。</p>
+      <p class="muted">（正文示意，实际为完整文章）</p>
+    </div>
+
+    <div class="command-bar">
+      <div class="command-box">
+        <input id="cmdInput" placeholder="告诉 Hermes 你想怎么处理这篇内容…" />
+        <button id="cmdSend">交给 Hermes</button>
+      </div>
+      <div class="chips" id="chips">
+        <button data-c="润色文章">✍️ 润色</button>
+        <button data-c="为全文生成 3 张配图，风格统一">🖼 配图</button>
+        <button data-c="把本文做成 6 页 PPT">📊 PPT</button>
+        <button data-c="按公众号风格排版并发布到草稿箱">📰 排版</button>
+        <button data-c="发布为飞书云文档">📄 发飞书</button>
+      </div>
+
+      <div class="task-strip" id="taskStrip" style="display:none">
+        <div class="row" id="taskRow">
+          <span class="dot queued" id="taskDot"></span>
+          <span class="label" id="taskLabel">润色文章</span>
+          <span class="state" id="taskState">排队中</span>
+          <span class="chev">▾</span>
+        </div>
+        <div class="task-detail" id="taskDetail" style="display:none">
+          <div id="taskMsg">已提交到 Hermes 任务队列，排队等待执行。</div>
+          <div class="acts">
+            <button>移到队首</button>
+            <button>取消</button>
+            <button>优先级：普通</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="toast" id="toast">已提交任务</div>
+  </div>
+
+<script>
+  const input = document.getElementById('cmdInput');
+  const send = document.getElementById('cmdSend');
+  const strip = document.getElementById('taskStrip');
+  const dot = document.getElementById('taskDot');
+  const label = document.getElementById('taskLabel');
+  const state = document.getElementById('taskState');
+  const detail = document.getElementById('taskDetail');
+  const msg = document.getElementById('taskMsg');
+  const toast = document.getElementById('toast');
+
+  document.getElementById('chips').addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    document.querySelectorAll('#chips button').forEach(b => b.classList.remove('sel'));
+    btn.classList.add('sel');
+    input.value = btn.dataset.c;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+
+  function showToast(text) {
+    toast.textContent = text;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 1600);
+  }
+
+  function startTask(requirement) {
+    const act = (requirement || '').slice(0, 12) || '内容处理';
+    label.textContent = act;
+    strip.style.display = 'block';
+    dot.className = 'dot queued';
+    state.textContent = '排队中';
+    msg.textContent = '已提交到 Hermes 任务队列，排队等待执行。';
+    detail.style.display = 'none';
+    showToast('已提交任务');
+    setTimeout(() => {
+      dot.className = 'dot running';
+      state.textContent = '执行中…';
+      msg.textContent = 'Hermes 正在处理：调用 Skill、生成产物、写回页面。';
+    }, 1500);
+    setTimeout(() => {
+      dot.className = 'dot done';
+      state.textContent = '已完成 ✓';
+      msg.textContent = '已完成：正文已润色并写回页面（revision 8）。点击查看差异。';
+    }, 4200);
+  }
+
+  send.addEventListener('click', () => {
+    const value = input.value.trim();
+    if (!value) return;
+    input.value = '';
+    startTask(value);
+  });
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') send.click(); });
+  input.addEventListener('input', () => { send.disabled = !input.value.trim(); });
+  send.disabled = true;
+
+  document.getElementById('taskRow').addEventListener('click', () => {
+    const open = detail.style.display === 'block';
+    detail.style.display = open ? 'none' : 'block';
+    document.querySelector('#taskRow .chev').textContent = open ? '▾' : '▸';
+  });
+  detail.querySelector('.acts').addEventListener('click', (e) => {
+    if (e.target.textContent === '取消') {
+      state.textContent = '已取消';
+      dot.className = 'dot failed';
+      msg.textContent = '任务已取消（排队中取消不会产生任何副作用）。';
+      showToast('已取消');
+    } else if (e.target.textContent === '移到队首') {
+      showToast('已移到队首');
+    }
+  });
+</script>
+</body>
+</html>

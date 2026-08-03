@@ -6,6 +6,7 @@ import { cowriteFetch } from './apiClient'
 import { SkillManager } from './SkillManager'
 import { ProjectWorkspace } from './ProjectWorkspace'
 import { TaskCenter } from './TaskCenter'
+import { EditorCommandBar } from './CommandBar'
 import './App.css'
 
 type PageMeta = Omit<Page, 'content'>
@@ -20,66 +21,6 @@ const api = async <T,>(path: string, options?: RequestInit): Promise<T> => {
   return result as T
 }
 
-const HERMES_ACTIONS: Array<{ value: TaskAction; label: string }> = [
-  { value: 'polish', label: '润色文章' },
-  { value: 'illustrate', label: '文章配图' },
-  { value: 'feng-ip', label: '峰峰 IP 配图' },
-  { value: 'slides', label: '制作 PPT' },
-  { value: 'wechat-layout', label: '公众号排版' },
-  { value: 'xiaohongshu', label: '小红书图组' },
-  { value: 'feishu-doc', label: '发布飞书文档' },
-  { value: 'knowledge-base', label: '存入峰峰知识库' },
-  { value: 'video', label: '制作视频' },
-]
-
-function HermesTaskPanel({ page, notify }: { page: Page; notify: (message: string) => void }) {
-  const [action, setAction] = useState<TaskAction>('polish')
-  const [requirements, setRequirements] = useState('')
-  const [tasks, setTasks] = useState<CowriteTask[]>([])
-  const [submitting, setSubmitting] = useState(false)
-
-  const refresh = useCallback(async () => {
-    const all = await api<CowriteTask[]>('/api/tasks')
-    setTasks(all.filter((task) => task.pageId === page.id).slice(0, 5))
-  }, [page.id])
-
-  useEffect(() => {
-    refresh().catch(() => undefined)
-    const timer = setInterval(() => refresh().catch(() => undefined), 3000)
-    return () => clearInterval(timer)
-  }, [refresh])
-
-  const submit = async () => {
-    setSubmitting(true)
-    try {
-      const created = await api<CowriteTask>('/api/tasks', {
-        method: 'POST',
-        body: JSON.stringify({ action, pageId: page.id, requirements: requirements.trim() || undefined, delivery: 'cowrite' }),
-      })
-      setTasks((current) => [created, ...current].slice(0, 5))
-      setRequirements('')
-      notify(`Hermes 任务已入队：${created.id}`)
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  return <section className="hermes-task-panel" aria-label="Hermes 内容生产">
-    <div className="hermes-task-controls">
-      <b><span className="mcp-dot" /> Hermes 内容生产</b>
-      <select value={action} onChange={(event) => setAction(event.target.value as TaskAction)}>
-        {HERMES_ACTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-      </select>
-      <input value={requirements} placeholder="补充要求（可选）" onChange={(event) => setRequirements(event.target.value)} />
-      <button className="primary" disabled={submitting} onClick={submit}>{submitting ? '提交中…' : '交给 Hermes'}</button>
-    </div>
-    {tasks.length > 0 && <div className="hermes-task-list">
-      {tasks.map((task) => <span key={task.id} className={`task-${task.status}`} title={task.result?.message || task.error || task.id}>
-        {HERMES_ACTIONS.find((option) => option.value === task.action)?.label || task.action} · {{ queued: '排队中', running: '执行中', succeeded: '已完成', failed: '失败', cancelled: '已取消' }[task.status]}
-      </span>)}
-    </div>}
-  </section>
-}
 
 function NewPageModal({ onClose, onCreated, notify }: {
   onClose: () => void
@@ -166,163 +107,6 @@ function NewPageModal({ onClose, onCreated, notify }: {
           {mode === 'import' ? '导入页面' : prompt.trim() ? '创建并发送任务' : '创建空白页'}
         </button>
       </div>
-    </div>
-  </div>
-}
-
-function LayoutModal({ onClose, onChoose }: {
-  onClose: () => void
-  onChoose: (format: 'wechat' | 'xhs') => void
-}) {
-  return <div className="modal-mask" onClick={onClose}>
-    <div className="modal slide-modal" onClick={(event) => event.stopPropagation()}>
-      <div className="slide-modal-head">
-        <h2>选择排版</h2>
-        <button className="modal-close" title="关闭" onClick={onClose}>×</button>
-      </div>
-      <div className="slide-options">
-        <button className="slide-option" onClick={() => onChoose('wechat')}>
-          <b>公众号排版</b><small>可复制富 HTML</small>
-        </button>
-        <button className="slide-option" onClick={() => onChoose('xhs')}>
-          <b>小红书排版</b><small>ApiYi 生图</small>
-        </button>
-      </div>
-      <p className="slide-footnote">选择后由 Hermes 弹窗确认，再发送任务。</p>
-    </div>
-  </div>
-}
-
-function ArticleIllustrationModal({ page, onClose, onConfirm }: {
-  page: Page
-  onClose: () => void
-  onConfirm: () => void
-}) {
-  return <div className="modal-mask" onClick={onClose}>
-    <div className="modal illustration-modal" onClick={(event) => event.stopPropagation()}>
-      <div className="slide-modal-head">
-        <h2>整篇配图</h2>
-        <button className="modal-close" title="关闭" onClick={onClose}>×</button>
-      </div>
-      <div className="illustration-page"><span>当前页面</span><b>{page.title}</b></div>
-      <div className="illustration-specs">
-        <div><span>规划</span><b>自动选择 2-6 处</b></div>
-        <div><span>模型</span><b>Hermes · ApiYi</b></div>
-        <div><span>画幅</span><b>16:9 · 高清</b></div>
-        <div><span>风格</span><b>全文统一匹配</b></div>
-      </div>
-      <p className="slide-footnote">Agent 会按文章结构生成配图，并分别插入对应段落，不改动正文。</p>
-      <div className="modal-actions">
-        <button onClick={onClose}>取消</button>
-        <button className="primary" onClick={onConfirm}>发送配图任务</button>
-      </div>
-    </div>
-  </div>
-}
-
-function CowriteModal({ page, onClose, onUsePage, onSubmit }: {
-  page: Page
-  onClose: () => void
-  onUsePage: () => void
-  onSubmit: (requirement: string) => void
-}) {
-  const [mode, setMode] = useState<'choose' | 'page'>('choose')
-  const [requirement, setRequirement] = useState('')
-  return <div className="modal-mask" onClick={onClose}>
-    <div className="modal cowrite-modal" onClick={(event) => event.stopPropagation()}>
-      <div className="slide-modal-head">
-        <h2>Cowrite</h2>
-        <button className="modal-close" title="关闭" onClick={onClose}>×</button>
-      </div>
-      {mode === 'choose' ? <>
-        <div className="cowrite-options">
-          <button className="cowrite-mode" onClick={onUsePage}>
-            <b>按页面内容为要求创作</b>
-            <small>直接复制当前页面全文</small>
-          </button>
-          <button className="cowrite-mode" onClick={() => setMode('page')}>
-            <b>输入自定义创作要求</b>
-            <small>填写你的具体创作任务</small>
-          </button>
-        </div>
-        <p className="slide-footnote">二选一，任务会交给 Hermes 确认后发送。</p>
-      </> : <>
-        <div className="cowrite-current-page">
-          <span>当前页面</span>
-          <b>{page.title}</b>
-        </div>
-        <textarea autoFocus value={requirement} placeholder="请输入创作要求" onChange={(event) => setRequirement(event.target.value)} />
-        <div className="modal-actions cowrite-actions">
-          <button onClick={() => setMode('choose')}>返回</button>
-          <span />
-          <button onClick={onClose}>取消</button>
-          <button className="primary" disabled={!requirement.trim()} onClick={() => onSubmit(requirement.trim())}>发送到 Hermes</button>
-        </div>
-      </>}
-    </div>
-  </div>
-}
-
-function SlideModal({ onClose, onChoose }: {
-  onClose: () => void
-  onChoose: (format: 'pptx' | 'html') => void
-}) {
-  return <div className="modal-mask" onClick={onClose}>
-    <div className="modal slide-modal" onClick={(event) => event.stopPropagation()}>
-      <div className="slide-modal-head">
-        <h2>生成 Slides</h2>
-        <button className="modal-close" title="关闭" onClick={onClose}>×</button>
-      </div>
-      <div className="slide-options">
-        <button className="slide-option" onClick={() => onChoose('pptx')}>
-          <b>PPTX</b><small>可编辑文件 + 浏览器预览</small>
-        </button>
-        <button className="slide-option" onClick={() => onChoose('html')}>
-          <b>HTML</b><small>网页幻灯片</small>
-        </button>
-      </div>
-      <p className="slide-footnote">选择格式后由 Hermes 弹窗确认，完成后自动回写链接。</p>
-    </div>
-  </div>
-}
-
-function SendModal({ page, onClose, onSendLark }: {
-  page: Page
-  onClose: () => void
-  onSendLark: () => void
-}) {
-  const [target, setTarget] = useState<'choose' | 'lark'>('choose')
-  return <div className="modal-mask" onClick={onClose}>
-    <div className="modal send-modal" onClick={(event) => event.stopPropagation()}>
-      <div className="slide-modal-head">
-        <h2>发送</h2>
-        <button className="modal-close" title="关闭" onClick={onClose}>×</button>
-      </div>
-      {target === 'choose' ? <>
-        <div className="send-options">
-          <button className="slide-option" onClick={() => setTarget('lark')}>
-            <b>飞书</b><small>通过 lark-cli 创建云文档</small>
-          </button>
-          <button className="slide-option pending" disabled>
-            <b>公众号 <em>用任务面板</em></b><small>请用下方「Hermes 内容生产 → 公众号排版」</small>
-          </button>
-          <button className="slide-option pending" disabled>
-            <b>知乎 <em>待完善</em></b><small>暂未开放</small>
-          </button>
-        </div>
-        <p className="slide-footnote">选择要发送的社交媒体。</p>
-      </> : <>
-        <div className="send-confirm">
-          <b>发送到飞书？</b>
-          <p>将当前页面“{page.title}”作为一篇新的飞书云文档推送。</p>
-        </div>
-        <div className="modal-actions cowrite-actions">
-          <button onClick={() => setTarget('choose')}>返回</button>
-          <span />
-          <button onClick={onClose}>取消</button>
-          <button className="primary" onClick={onSendLark}>发送任务到 Hermes</button>
-        </div>
-      </>}
     </div>
   </div>
 }
@@ -564,12 +348,7 @@ function App() {
   const [workspaceView, setWorkspaceView] = useState<'page' | 'project' | 'skill-manager' | 'tasks'>('page')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
-  const [cowriteOpen, setCowriteOpen] = useState(false)
-  const [layoutOpen, setLayoutOpen] = useState(false)
-  const [illustrationOpen, setIllustrationOpen] = useState(false)
-  const [slideOpen, setSlideOpen] = useState(false)
-  const [sendOpen, setSendOpen] = useState(false)
-  const [deleteTarget, setDeleteTarget] = useState<PageMeta | null>(null)
+            const [deleteTarget, setDeleteTarget] = useState<PageMeta | null>(null)
   const [deletePendingTasks, setDeletePendingTasks] = useState(0)
   const [saveState, setSaveState] = useState<'saved' | 'dirty'>('saved')
   const [toast, setToast] = useState('')
@@ -645,41 +424,6 @@ function App() {
 
   const sendPendingCommand = async () => {
     await enqueuePageTask('polish', activePage?.prompt || '根据当前页面的创作要求完成初稿')
-  }
-
-  const sendPageCreationCommand = async (requirement: string) => {
-    const sent = await enqueuePageTask('polish', requirement)
-    if (sent) setCowriteOpen(false)
-  }
-
-  const sendCurrentPageCreationCommand = async () => {
-    await sendPageCreationCommand('以当前页面全文作为创作要求，围绕其中的主题、信息和结构进行创作。')
-  }
-
-  const sendSlideCommand = async (format: 'pptx' | 'html') => {
-    const sent = await enqueuePageTask('slides', `输出格式：${format}`)
-    if (sent) setSlideOpen(false)
-  }
-
-  const sendWechatLayoutCommand = async () => {
-    const sent = await enqueuePageTask('wechat-layout')
-    if (sent) setLayoutOpen(false)
-  }
-
-  const sendLayoutCommand = async (format: 'wechat' | 'xhs') => {
-    if (format === 'wechat') return sendWechatLayoutCommand()
-    const sent = await enqueuePageTask('xiaohongshu')
-    if (sent) setLayoutOpen(false)
-  }
-
-  const sendArticleIllustrationCommand = async () => {
-    const sent = await enqueuePageTask('illustrate')
-    if (sent) setIllustrationOpen(false)
-  }
-
-  const sendLarkCommand = async () => {
-    const sent = await enqueuePageTask('feishu-doc')
-    if (sent) setSendOpen(false)
   }
 
   if (!pages) return <div className="loading"><span>C</span><p>正在打开 Cowrite…</p></div>
@@ -760,17 +504,10 @@ function App() {
               placeholder="未命名页面"
               onBlur={(event) => { if (event.target.value.trim()) renameTitle(event.target.value.trim()) }}
             />
-            <div className="topbar-right">
-              <span className={`save-state ${saveState}`}>{saveState === 'saved' ? '已保存' : '保存中…'}</span>
-              <button onClick={() => setIllustrationOpen(true)} title="使用 Hermes 内置模型为整篇文章配图">配图</button>
-              <button onClick={() => setLayoutOpen(true)} title="把当前 Page 排版为公众号或小红书内容">排版</button>
-              <button onClick={() => setSlideOpen(true)} title="把当前 Page 转换为 PPT 或 HTML">Slide</button>
-              <button onClick={() => setCowriteOpen(true)} title="根据当前 Page 内容继续创作">Cowrite</button>
-              <button onClick={() => setSendOpen(true)} title="把当前 Page 发送到社交媒体">发送</button>
-            </div>
+            <span className={`save-state ${saveState}`}>{saveState === 'saved' ? '已保存' : '保存中…'}</span>
           </>}
         </div>
-        {activePage && <HermesTaskPanel page={activePage} notify={notify} />}
+        {activePage && <EditorCommandBar page={activePage} notify={notify} />}
         {activePage?.prompt && activePage.revision === 1 && <div className="prompt-banner">
           <div><b>等待 Agent 创作</b><p>{activePage.prompt}</p></div>
           <button onClick={sendPendingCommand}>发送到 Hermes</button>
@@ -785,30 +522,6 @@ function App() {
       onClose={() => setModalOpen(false)}
       onCreated={async (page) => { setModalOpen(false); setWorkspaceView('page'); await refreshList(); setActiveId(page.id) }}
       notify={notify}
-    />}
-    {slideOpen && activePage && <SlideModal
-      onClose={() => setSlideOpen(false)}
-      onChoose={sendSlideCommand}
-    />}
-    {layoutOpen && activePage && <LayoutModal
-      onClose={() => setLayoutOpen(false)}
-      onChoose={sendLayoutCommand}
-    />}
-    {illustrationOpen && activePage && <ArticleIllustrationModal
-      page={activePage}
-      onClose={() => setIllustrationOpen(false)}
-      onConfirm={sendArticleIllustrationCommand}
-    />}
-    {cowriteOpen && activePage && <CowriteModal
-      page={activePage}
-      onClose={() => setCowriteOpen(false)}
-      onUsePage={sendCurrentPageCreationCommand}
-      onSubmit={sendPageCreationCommand}
-    />}
-    {sendOpen && activePage && <SendModal
-      page={activePage}
-      onClose={() => setSendOpen(false)}
-      onSendLark={sendLarkCommand}
     />}
     {deleteTarget && <DeletePageModal
       page={deleteTarget}

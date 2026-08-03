@@ -243,3 +243,55 @@
 @media (max-width: 760px) {
   .delete-pending-tasks { font-size: 13px; }
 }
+
+/* ===== Editor command bar (sketch A) ===== */
+.editor-command { width: min(820px, calc(100% - 32px)); margin: 10px auto 0; }
+.command-bar { background: #fff; border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 4px 18px #0000000d; padding: 10px; display: grid; gap: 8px; }
+.command-box { display: flex; align-items: center; gap: 8px; background: #f6f7f9; border: 1px solid #e3e8ef; border-radius: 10px; padding: 3px 3px 3px 14px; }
+.command-box input { flex: 1; min-width: 0; border: 0; background: transparent; font-size: 14px; padding: 9px 0; outline: none; color: #222; }
+.command-box .primary { border: 0; background: #16324f; color: #fff; border-radius: 8px; padding: 9px 16px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.command-box .primary:disabled { background: #b9c4cf; cursor: default; }
+.command-chips { display: flex; gap: 7px; overflow-x: auto; scrollbar-width: none; }
+.command-chips::-webkit-scrollbar { display: none; }
+.command-chips button { flex: none; border: 1px solid #e2e7ee; background: #fff; border-radius: 999px; padding: 6px 13px; font-size: 12px; color: #2c3e50; cursor: pointer; }
+.command-chips button:hover { background: #f0f5ff; border-color: #a9bce7; }
+.command-chips .more-chip { color: #667; }
+.command-more { display: flex; flex-wrap: wrap; gap: 7px; padding: 6px 2px 2px; border-top: 1px dashed #e6eaf0; }
+.command-more button { border: 1px solid #e2e7ee; background: #fbfcfd; border-radius: 999px; padding: 6px 13px; font-size: 12px; color: #2c3e50; cursor: pointer; }
+
+/* task strip */
+.task-strip { margin-top: 8px; border: 1px solid #e4e8ed; border-radius: 12px; background: #fff; box-shadow: 0 3px 14px #0000000d; overflow: hidden; }
+.task-strip-row { display: flex; align-items: center; gap: 9px; padding: 11px 12px; cursor: pointer; user-select: none; }
+.task-strip-row:hover { background: #f8fafc; }
+.task-strip .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.task-strip .dot.queued { background: #c9c9c9; }
+.task-strip .dot.running { background: #2f7de1; animation: task-pulse 1.2s ease-in-out infinite; }
+.task-strip .dot.succeeded { background: #2fa96b; }
+.task-strip .dot.failed { background: #d54343; }
+.task-strip .dot.cancelled { background: #b7b7b7; }
+@keyframes task-pulse { 50% { opacity: .3; } }
+.task-strip-label { flex: 1; font-size: 13px; color: #222; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 500; }
+.task-strip-state { font-size: 12px; flex: none; color: #667; }
+.task-strip-state.state-running { color: #2f7de1; }
+.task-strip-state.state-succeeded { color: #2fa96b; }
+.task-strip-state.state-failed { color: #d54343; }
+.task-strip .chev { color: #aab3bd; font-size: 11px; }
+.task-strip-detail { border-top: 1px dashed #e4e8ed; padding: 10px 12px; font-size: 12px; color: #444; line-height: 1.7; background: #fbfcfd; display: grid; gap: 6px; }
+.task-strip-detail .detail-line { margin: 0; }
+.task-strip-detail .detail-ok { color: #1d7a4f; }
+.task-strip-detail .detail-err { color: #b02a2a; }
+.task-strip-actions { display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap; align-items: center; }
+.task-strip-actions button { border: 1px solid #d8e1ea; background: #fff; border-radius: 8px; padding: 6px 12px; font-size: 12px; color: #2c3e50; cursor: pointer; }
+.task-strip-actions button:hover { background: #f0f5ff; }
+.task-strip-actions select { border: 1px solid #d8e1ea; border-radius: 8px; padding: 6px 8px; font-size: 12px; color: #2c3e50; background: #fff; }
+
+/* mobile: fixed bottom command bar */
+@media (max-width: 760px) {
+  .editor-command { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; width: 100%; margin: 0; padding: 8px 10px calc(8px + env(safe-area-inset-bottom)); background: #fffffff2; backdrop-filter: blur(8px); border-top: 1px solid #e6eaf0; box-shadow: 0 -6px 20px #00000010; }
+  .editor-command .command-bar { box-shadow: none; border: 1px solid #dfe5ee; }
+  .command-box input { font-size: 13px; }
+  .command-chips button { padding: 6px 11px; font-size: 12px; }
+  .task-strip { margin-top: 6px; }
+  .task-strip-detail { max-height: 40vh; overflow-y: auto; }
+  .page-workspace .editor-holder { margin-bottom: 200px !important; }
+}

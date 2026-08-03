@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>草图 B · 极简收纳</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #eef1f5; color: #1a1a1a; display: grid; place-items: center; min-height: 100vh; padding: 24px;
+  }
+  .stage-hint { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); background: #fff; border: 1px solid #dde3ea; border-radius: 999px; padding: 5px 14px; font-size: 12px; color: #667; z-index: 50; box-shadow: 0 2px 8px #00000012; }
+  .phone {
+    width: 390px; height: 844px; background: #fff; border-radius: 34px; overflow: hidden; position: relative;
+    box-shadow: 0 24px 80px #1a2b3c40; display: flex; flex-direction: column; border: 8px solid #111;
+  }
+  .status-bar { height: 28px; background: #fff; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; font-size: 12px; font-weight: 600; color: #222; flex: none; }
+  .topbar { height: 52px; display: flex; align-items: center; gap: 10px; padding: 0 14px; border-bottom: 1px solid #eef0f3; flex: none; }
+  .topbar .back { font-size: 18px; color: #3d4b57; background: none; border: 0; cursor: pointer; width: 32px; height: 32px; border-radius: 8px; }
+  .topbar .back:hover { background: #f1f4f7; }
+  .topbar .title { flex: 1; font-size: 14px; font-weight: 600; color: #222; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .content { flex: 1; overflow-y: auto; padding: 18px 20px 130px; }
+  .content h1 { font-size: 18px; margin: 4px 0 12px; }
+  .content p { font-size: 14px; line-height: 1.8; color: #333; margin-bottom: 12px; }
+  .content .muted { color: #999; font-size: 13px; }
+
+  /* floating action button */
+  .fab { position: absolute; right: 20px; bottom: 96px; width: 58px; height: 58px; border-radius: 50%; border: 0; background: #16324f; color: #fff; font-size: 26px; box-shadow: 0 10px 28px #16324f55; cursor: pointer; z-index: 30; transition: transform .18s; }
+  .fab.open { transform: rotate(45deg); background: #b4483e; }
+
+  /* action sheet */
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; background: #fff; border-radius: 22px 22px 0 0; box-shadow: 0 -12px 40px #00000026; padding: 12px 16px calc(18px + env(safe-area-inset-bottom)); transform: translateY(105%); transition: transform .22s ease; z-index: 25; }
+  .sheet.open { transform: translateY(0); }
+  .sheet .grab { width: 42px; height: 4px; border-radius: 2px; background: #d5dbe2; margin: 2px auto 12px; }
+  .sheet .sheet-title { font-size: 13px; color: #667; margin: 0 4px 10px; }
+  .sheet .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .sheet .act { display: flex; align-items: center; gap: 10px; border: 1px solid #e4e8ed; background: #fff; border-radius: 12px; padding: 13px 12px; cursor: pointer; text-align: left; }
+  .sheet .act:hover { background: #f5f8fc; border-color: #a9bce7; }
+  .sheet .act .ico { font-size: 18px; width: 26px; height: 26px; display: grid; place-items: center; background: #f1f4f8; border-radius: 8px; }
+  .sheet .act b { display: block; font-size: 13px; color: #222; }
+  .sheet .act small { display: block; font-size: 10px; color: #98a2ad; margin-top: 1px; }
+  .sheet .custom { margin-top: 8px; display: flex; gap: 8px; }
+  .sheet .custom input { flex: 1; border: 1px solid #dde3ea; border-radius: 10px; padding: 10px 12px; font-size: 13px; outline: none; }
+  .sheet .custom input:focus { border-color: #2f7de1; }
+
+  /* task strip */
+  .task-strip { position: absolute; left: 14px; right: 14px; bottom: 22px; border: 1px solid #e4e8ed; border-radius: 14px; background: #fff; box-shadow: 0 6px 24px #00000018; overflow: hidden; z-index: 20; }
+  .task-strip .row { display: flex; align-items: center; gap: 9px; padding: 11px 12px; cursor: pointer; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .dot.queued { background: #c9c9c9; }
+  .dot.running { background: #2f7de1; animation: pulse 1.2s ease-in-out infinite; }
+  .dot.done { background: #2fa96b; }
+  .dot.failed { background: #d54343; }
+  @keyframes pulse { 50% { opacity: .3; } }
+  .task-strip .label { flex: 1; font-size: 12px; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .task-strip .state { font-size: 11px; color: #667; flex: none; }
+  .task-strip .chev { color: #aab3bd; font-size: 11px; }
+  .task-detail { border-top: 1px dashed #e4e8ed; padding: 10px 12px; font-size: 12px; color: #444; line-height: 1.7; background: #fbfcfd; }
+  .task-detail .acts { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+  .task-detail .acts button { border: 1px solid #d8e1ea; background: #fff; border-radius: 8px; padding: 6px 12px; font-size: 12px; color: #2c3e50; cursor: pointer; }
+  .mask { position: absolute; inset: 0; background: #00000033; opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 24; }
+  .mask.open { opacity: 1; pointer-events: auto; }
+  .toast { position: absolute; left: 50%; bottom: 200px; transform: translateX(-50%); background: #37352f; color: #fff; padding: 8px 16px; border-radius: 999px; font-size: 12px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 40; }
+  .toast.show { opacity: 1; }
+  @media (max-width: 430px) {
+    body { padding: 0; background: #fff; }
+    .stage-hint { display: none; }
+    .phone { width: 100vw; height: 100vh; border: 0; border-radius: 0; }
+  }
+</style>
+</head>
+<body>
+  <div class="stage-hint">草图 B · 极简收纳（可在手机宽度下直接预览）</div>
+  <div class="phone">
+    <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+    <div class="topbar">
+      <button class="back">☰</button>
+      <span class="title">关于最新的信用卡和AI结合发卡</span>
+    </div>
+
+    <div class="content">
+      <h1>2026 年信用卡开卡礼：送 Token 还是送会员？</h1>
+      <p>2026 年的信用卡开卡礼变了画风。以前是拉杆箱、咖啡券、几十万积分，现在不少银行改送 AI 算力：新户刷满几笔，给你几十亿 Token，或者大模型会员。</p>
+      <p>这轮变化今年 6 月开始集中爆发。招商银行动手最早，2025 年 12 月就发了运通工程师信用卡，今年 6 月 12 日上线专属 AI 权益。</p>
+      <p class="muted">（正文示意，实际为完整文章）</p>
+    </div>
+
+    <div class="mask" id="mask"></div>
+    <button class="fab" id="fab" title="让 Hermes 处理">✦</button>
+
+    <div class="sheet" id="sheet">
+      <div class="grab"></div>
+      <div class="sheet-title">让 Hermes 处理这篇内容</div>
+      <div class="grid">
+        <button class="act" data-c="润色文章"><span class="ico">✍️</span><span><b>润色文章</b><small>优化表达，不改事实</small></span></button>
+        <button class="act" data-c="为全文生成 3 张配图"><span class="ico">🖼</span><span><b>生成配图</b><small>按文章结构插入</small></span></button>
+        <button class="act" data-c="把本文做成 6 页 PPT"><span class="ico">📊</span><span><b>制作 PPT</b><small>可编辑文件</small></span></button>
+        <button class="act" data-c="公众号排版并发布草稿"><span class="ico">📰</span><span><b>公众号排版</b><small>发布到草稿箱</small></span></button>
+        <button class="act" data-c="发布为飞书云文档"><span class="ico">📄</span><span><b>发布飞书</b><small>创建云文档</small></span></button>
+        <button class="act" data-c="存入峰峰知识库"><span class="ico">📚</span><span><b>知识库</b><small>归档到峰峰 KB</small></span></button>
+      </div>
+      <div class="custom">
+        <input id="customInput" placeholder="自定义要求，例如：把第二段改得更口语化…" />
+      </div>
+    </div>
+
+    <div class="task-strip" id="taskStrip" style="display:none">
+      <div class="row" id="taskRow">
+        <span class="dot queued" id="taskDot"></span>
+        <span class="label" id="taskLabel">润色文章</span>
+        <span class="state" id="taskState">排队中</span>
+        <span class="chev">▾</span>
+      </div>
+      <div class="task-detail" id="taskDetail" style="display:none">
+        <div id="taskMsg">已提交到 Hermes 任务队列。</div>
+        <div class="acts">
+          <button>移到队首</button>
+          <button>取消</button>
+        </div>
+      </div>
+    </div>
+    <div class="toast" id="toast">已提交任务</div>
+  </div>
+
+<script>
+  const fab = document.getElementById('fab');
+  const sheet = document.getElementById('sheet');
+  const mask = document.getElementById('mask');
+  const toast = document.getElementById('toast');
+  const strip = document.getElementById('taskStrip');
+  const dot = document.getElementById('taskDot');
+  const label = document.getElementById('taskLabel');
+  const state = document.getElementById('taskState');
+  const detail = document.getElementById('taskDetail');
+  const msg = document.getElementById('taskMsg');
+  const customInput = document.getElementById('customInput');
+
+  function closeSheet() {
+    sheet.classList.remove('open'); mask.classList.remove('open'); fab.classList.remove('open');
+  }
+  fab.addEventListener('click', () => {
+    const open = sheet.classList.contains('open');
+    if (open) closeSheet(); else { sheet.classList.add('open'); mask.classList.add('open'); fab.classList.add('open'); }
+  });
+  mask.addEventListener('click', closeSheet);
+
+  function showToast(text) {
+    toast.textContent = text; toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 1600);
+  }
+
+  function startTask(requirement) {
+    label.textContent = (requirement || '').slice(0, 12) || '内容处理';
+    strip.style.display = 'block';
+    dot.className = 'dot queued'; state.textContent = '排队中';
+    msg.textContent = '已提交到 Hermes 任务队列，排队等待执行。';
+    detail.style.display = 'none';
+    showToast('已提交任务');
+    setTimeout(() => { dot.className = 'dot running'; state.textContent = '执行中…'; msg.textContent = 'Hermes 正在处理：调用 Skill、生成产物、写回页面。'; }, 1500);
+    setTimeout(() => { dot.className = 'dot done'; state.textContent = '已完成 ✓'; msg.textContent = '已完成：正文已润色并写回页面（revision 8）。'; }, 4200);
+  }
+
+  sheet.querySelector('.grid').addEventListener('click', (e) => {
+    const act = e.target.closest('.act');
+    if (!act) return;
+    closeSheet();
+    startTask(act.dataset.c);
+  });
+  customInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && customInput.value.trim()) {
+      const v = customInput.value.trim(); customInput.value = ''; closeSheet(); startTask(v);
+    }
+  });
+
+  document.getElementById('taskRow').addEventListener('click', () => {
+    const open = detail.style.display === 'block';
+    detail.style.display = open ? 'none' : 'block';
+    document.querySelector('#taskRow .chev').textContent = open ? '▾' : '▸';
+  });
+  detail.querySelector('.acts').addEventListener('click', (e) => {
+    if (e.target.textContent === '取消') {
+      state.textContent = '已取消'; dot.className = 'dot failed';
+      msg.textContent = '任务已取消（排队中取消不会产生任何副作用）。';
+      showToast('已取消');
+    } else if (e.target.textContent === '移到队首') showToast('已移到队首');
+  });
+</script>
+</body>
+</html>
