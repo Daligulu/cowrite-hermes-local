@@ -161,11 +161,13 @@ export function ActionConfigManager({ page, notify }: { page: { id: string; titl
     return <div className="action-config-loading">加载动作配置…</div>
   }
 
-  const toggleSkill = (skill: string) => {
+  const skillName = (folder: string) => folder.split('/').pop() ?? folder
+
+  const toggleSkill = (name: string) => {
     if (!selected) return
-    const exists = selected.skills.includes(skill)
+    const exists = selected.skills.includes(name)
     updateSelected({
-      skills: exists ? selected.skills.filter((item) => item !== skill) : [...selected.skills, skill],
+      skills: exists ? selected.skills.filter((item) => item !== name) : [...selected.skills, name],
     })
   }
 
@@ -287,20 +289,23 @@ export function ActionConfigManager({ page, notify }: { page: { id: string; titl
                 <button onClick={addCustomSkill}>添加</button>
               </div>
               <div className="skill-grid">
-                {availableSkills.map((skill) => (
-                  <label key={skill} className={`skill-chip ${selected.skills.includes(skill) ? 'on' : ''}`}>
-                    <input
-                      type="checkbox"
-                      checked={selected.skills.includes(skill)}
-                      onChange={() => toggleSkill(skill)}
-                    />
-                    {skill}
-                  </label>
-                ))}
+                {availableSkills.map((folder) => {
+                  const name = skillName(folder)
+                  return (
+                    <label key={folder} className={`skill-chip ${selected.skills.includes(name) ? 'on' : ''}`}>
+                      <input
+                        type="checkbox"
+                        checked={selected.skills.includes(name)}
+                        onChange={() => toggleSkill(name)}
+                      />
+                      {folder}
+                    </label>
+                  )
+                })}
               </div>
-              {selected.skills.filter((skill) => !availableSkills.includes(skill)).length > 0 && (
+              {selected.skills.filter((skill) => !availableSkills.some((folder) => skillName(folder) === skill)).length > 0 && (
                 <div className="skill-warning">
-                  自定义技能（不在已装列表）：{selected.skills.filter((skill) => !availableSkills.includes(skill)).join(', ')}
+                  自定义技能（不在已装列表）：{selected.skills.filter((skill) => !availableSkills.some((folder) => skillName(folder) === skill)).join(', ')}
                 </div>
               )}
             </div>
