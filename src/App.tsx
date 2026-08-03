@@ -146,6 +146,8 @@ function Editor({ page, onDirty, onSaved, notify }: {
   const holderRef = useRef<HTMLDivElement>(null)
   const vditorRef = useRef<Vditor | null>(null)
   const revisionRef = useRef(page.revision)
+  const assetBase = `${window.location.origin}${window.location.pathname.replace(/\/+$/, '/')}`
+  const fixAssetLinks = (markdown: string) => markdown.replace(/(\]\()\/assets\//g, `](${assetBase}assets/`)
   const dirtyRef = useRef(false)
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
   const [selectionBar, setSelectionBar] = useState<{ x: number; y: number; text: string } | null>(null)
@@ -194,7 +196,6 @@ function Editor({ page, onDirty, onSaved, notify }: {
     const holder = holderRef.current
     if (!holder) return
     let disposed = false
-    const assetBase = `${window.location.origin}${window.location.pathname.replace(/\/+$/, '/')}`
     const rewriteAssetLinks = () => {
       try {
         holder.querySelectorAll('a[href^="/assets/"]').forEach((anchor) => {
@@ -214,7 +215,7 @@ function Editor({ page, onDirty, onSaved, notify }: {
     const observer = new MutationObserver(rewriteAssetLinks)
     const editor = new Vditor(holder, {
       mode: 'ir',
-      value: page.content,
+      value: fixAssetLinks(page.content),
       placeholder: '开始写作，或把口令粘贴给 Hermes 让它来写……',
       cache: { enable: false },
       toolbar: [],
@@ -286,7 +287,7 @@ function Editor({ page, onDirty, onSaved, notify }: {
         const latest = await api<Page>(`/api/pages/${pageId}`)
         if (latest.revision !== revisionRef.current && !dirtyRef.current) {
           revisionRef.current = latest.revision
-          vditorRef.current?.setValue(latest.content)
+          vditorRef.current?.setValue(fixAssetLinks(latest.content))
           onSaved(latest)
           notify('Agent 已更新这个页面')
         }
