@@ -194,6 +194,24 @@ function Editor({ page, onDirty, onSaved, notify }: {
     const holder = holderRef.current
     if (!holder) return
     let disposed = false
+    const assetBase = `${window.location.origin}${window.location.pathname.replace(/\/+$/, '/')}`
+    const rewriteAssetLinks = () => {
+      try {
+        holder.querySelectorAll('a[href^="/assets/"]').forEach((anchor) => {
+          const href = anchor.getAttribute('href')
+          if (!href) return
+          anchor.setAttribute('href', assetBase + href.slice(1))
+          anchor.setAttribute('target', '_blank')
+          anchor.setAttribute('rel', 'noopener')
+        })
+        holder.querySelectorAll('img[src^="/assets/"]').forEach((image) => {
+          const src = image.getAttribute('src')
+          if (!src) return
+          image.setAttribute('src', assetBase + src.slice(1))
+        })
+      } catch { /* 忽略渲染期 DOM 变化 */ }
+    }
+    const observer = new MutationObserver(rewriteAssetLinks)
     const editor = new Vditor(holder, {
       mode: 'ir',
       value: page.content,
@@ -201,7 +219,11 @@ function Editor({ page, onDirty, onSaved, notify }: {
       cache: { enable: false },
       toolbar: [],
       counter: { enable: false },
-      after: () => { if (disposed) editor.destroy() },
+      after: () => {
+        if (disposed) { editor.destroy(); return }
+        observer.observe(holder, { childList: true, subtree: true })
+        rewriteAssetLinks()
+      },
       input: () => scheduleSave(),
     })
     vditorRef.current = editor
@@ -249,6 +271,7 @@ function Editor({ page, onDirty, onSaved, notify }: {
     return () => {
       disposed = true
       clearTimeout(timerRef.current)
+      try { observer.disconnect() } catch { /* 忽略 */ }
       holder.removeEventListener('paste', pasteImages, true)
       try { editor.destroy() } catch { /* 未完成初始化时忽略 */ }
       vditorRef.current = null
