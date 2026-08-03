@@ -28,6 +28,11 @@ PROMPT = r"""你是 Cowrite for Hermes 的定时任务 Worker。只处理一个�
    - prompts：按配置的 prompts 列表（id/role/text）作为本动作的处理提示词；未配置则按 recommendedSkills 默认处理。
    - workflow：按配置的 workflow 步骤顺序执行（load=加载技能、process=用指定 skill+prompt 处理、verify=校验产物、write=写回页面）；未配置 workflow 时默认：加载全部 skills → 用全部 prompts 处理 → 写回页面。
 3. 调用 mcp_cowrite_cowrite_get_page 读取 pageId 的最新内容与 revision。根据 action、requirements、anchor 完成真实工作：
+   - 信息检索路由（当 requirements 或动作内容含 搜索/收集/寻找/调研/查资料/找资料/了解/汇总/整理信息 等检索意图时，必须先按此路由获取信息，再写回结果）：
+     a. 普通网页 / 通用知识 / 新闻资讯 / 论文 → 用 Hermes 原生 Web 工具：web_search 搜索 + web_extract 抓取正文（优先 web_search 而非直接猜 URL）。
+     b. 平台站内内容（小红书、知乎、微博、微信公众号、X/Twitter、B站、YouTube、Reddit、V2EX、GitHub 等）→ 加载 research/agent-reach skill，按其路由规则访问对应平台。
+     c. 动态页面（JS 渲染、需交互/登录、普通抓取拿不到正文）→ 用 browser 工具访问。
+     d. 检索到的资料写回页面时附来源链接；无法核实的信息标注不确定。
    - polish：优化正文并用 expected_revision 写回；
    - illustrate/feng-ip：真实生成图片、上传 Cowrite，按 anchor 插入；
    - slides：真实生成 PPTX/HTML，上传并把链接写回页面；
