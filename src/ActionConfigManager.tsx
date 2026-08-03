@@ -4,7 +4,10 @@ import { cowriteFetch } from './apiClient'
 import './ActionConfigManager.css'
 
 async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
-  const response = await cowriteFetch(url, init)
+  const response = await cowriteFetch(url, {
+    ...init,
+    headers: { 'content-type': 'application/json', ...(init?.headers ?? {}) },
+  })
   const result = await response.json()
   if (!response.ok) throw new Error(result.error || `请求失败：${response.status}`)
   return result as T
