@@ -112,7 +112,7 @@ export function EditorCommandBar({ page, notify }: { page: Page; notify: (messag
 
   const chip = (value: TaskAction) => {
     setText(ACTION_LABELS[value] ?? value)
-    submit(value, '')
+    inputRef.current?.focus()
   }
 
   const actOn = async (taskId: string, path: string, body?: unknown) => {
