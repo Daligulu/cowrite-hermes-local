@@ -117,7 +117,7 @@
 
 .field { display: block; margin-bottom: 16px; }
 .field > span { display: block; font-size: 12px; font-weight: 600; color: #3a4754; margin-bottom: 6px; }
-.field input[type='text'], .field input:not([type]), .field input {
+.field input:not([type='checkbox']):not([type='radio']) {
   width: 100%;
   box-sizing: border-box;
   border: 1px solid #ccd3da;
