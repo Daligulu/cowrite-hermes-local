@@ -39,6 +39,8 @@ export function ActionConfigManager({ page, notify }: { page: { id: string; titl
   const [config, setConfig] = useState<ActionConfigFile | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [catalog, setCatalog] = useState<LocalSkill[]>([])
+  const [catalogLoading, setCatalogLoading] = useState(true)
+  const [catalogError, setCatalogError] = useState('')
   const [skillCategory, setSkillCategory] = useState('全部')
   const [skillQuery, setSkillQuery] = useState('')
   const [saving, setSaving] = useState(false)
@@ -60,9 +62,24 @@ export function ActionConfigManager({ page, notify }: { page: { id: string; titl
 
   useEffect(() => {
     refresh().catch(() => undefined)
-    requestJson<{ skills: LocalSkill[] }>('/api/skilldeck/catalog')
-      .then((data) => setCatalog(data.skills))
-      .catch(() => undefined)
+    let disposed = false
+    const loadCatalog = async () => {
+      setCatalogLoading(true)
+      setCatalogError('')
+      try {
+        const data = await requestJson<{ skills: LocalSkill[] }>('/api/skilldeck/catalog')
+        if (disposed) return
+        setCatalog(data.skills)
+      } catch (loadError) {
+        if (disposed) return
+        setCatalog([])
+        setCatalogError(loadError instanceof Error ? loadError.message : '技能列表加载失败')
+      } finally {
+        if (!disposed) setCatalogLoading(false)
+      }
+    }
+    void loadCatalog()
+    return () => { disposed = true }
   }, [refresh])
 
   const selected = useMemo(
@@ -328,6 +345,25 @@ export function ActionConfigManager({ page, notify }: { page: { id: string; titl
                   onChange={(event) => setSkillQuery(event.target.value)}
                 />
               </div>
+              {catalogLoading && <div className="skill-empty">技能列表加载中…</div>}
+              {!catalogLoading && catalogError && (
+                <div className="skill-empty error">
+                  <span>技能列表加载失败：{catalogError}</span>
+                  <button
+                    type="button"
+                    className="ghost small"
+                    onClick={() => {
+                      setCatalogLoading(true)
+                      setCatalogError('')
+                      requestJson<{ skills: LocalSkill[] }>('/api/skilldeck/catalog')
+                        .then((data) => setCatalog(data.skills))
+                        .catch((loadError) => setCatalogError(loadError instanceof Error ? loadError.message : '技能列表加载失败'))
+                        .finally(() => setCatalogLoading(false))
+                    }}
+                  >重试</button>
+                </div>
+              )}
+              {!catalogLoading && !catalogError && (
               <div className="skill-list">
                 {visibleSkills.map((skill) => {
                   const name = skillName(skill.folder)
@@ -340,8 +376,18 @@ export function ActionConfigManager({ page, notify }: { page: { id: string; titl
                     </label>
                   )
                 })}
-                {visibleSkills.length === 0 && <div className="skill-empty">没有匹配的技能</div>}
+                {visibleSkills.length === 0 && (
+                  <div className="skill-empty">
+                    {skillQuery.trim()
+                      ? <>没有匹配「{skillQuery.trim()}」的技能，试试<button type="button" className="ghost small" onClick={() => setSkillQuery('')}>清除搜索</button>或切换分类。</>
+                      : <>「{skillCategory}」分类下暂无技能，试试<button type="button" className="ghost small" onClick={() => setSkillCategory('全部')}>查看全部</button>。</>}
+                  </div>
+                )}
               </div>
+              )}
+              {!catalogLoading && !catalogError && catalog.length === 0 && !visibleSkills.length && (
+                <div className="skill-empty">本地未发现可用的 Skill，请检查 Hermes 技能目录。</div>
+              )}
               {selected.skills.filter((skill) => !catalog.some((entry) => skillName(entry.folder) === skill)).length > 0 && (
                 <div className="skill-warning">
                   自定义技能（不在已装列表）：{selected.skills.filter((skill) => !catalog.some((entry) => skillName(entry.folder) === skill)).join(', ')}

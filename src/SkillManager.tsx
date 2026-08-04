@@ -508,7 +508,13 @@ export function SkillManager({ sidebarOpen, onOpenSidebar }: {
               </div>
             </article>)}
           </div>
-          : <div className="skill-load-state"><b>没有匹配的 Skill</b><p>换一个关键词或分类试试。</p></div>}
+          : <div className="skill-load-state"><b>没有匹配的 Skill</b>
+            <p>{query.trim() ? <>没有匹配「{query.trim()}」的技能，试试清除搜索或切换分类。</> : <>「{category}」分类下暂无技能，试试切换分类。</>}</p>
+            <div className="skill-empty-actions">
+              {query.trim() && <button className="ghost small" onClick={() => setQuery('')}>清除搜索</button>}
+              {category !== '全部' && <button className="ghost small" onClick={() => setCategory('全部')}>查看全部</button>}
+            </div>
+          </div>}
       </>}
 
       {!error && !loading && catalog && view === 'experts' && <>

@@ -314,7 +314,13 @@ function ProjectSkillPickerModal({ projectPath, currentSkills, onClose, onAdd }:
       <div className="project-skill-selection-note">
         {loading ? <><span className="skill-loader" />正在扫描本地 Skill…</>
           : error ? <span className="error">{error}</span>
-            : !filteredSkills.length ? <span>没有符合当前筛选条件的 Skill</span>
+            : !filteredSkills.length ? <><span>没有符合当前筛选条件的 Skill</span>
+              {(query.trim() || categoryFilter !== 'all' || sourceFilter !== 'all') && <button
+                type="button"
+                className="ghost small"
+                onClick={() => { setQuery(''); setCategoryFilter('all'); setSourceFilter('all') }}
+              >清除筛选</button>}
+            </>
               : <><b>{selected?.name}</b><span>{selected?.oneLine}</span></>}
       </div>
       <div className="project-skill-project-path"><span>关联项目</span><code>{projectPath}</code></div>

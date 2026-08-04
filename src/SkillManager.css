@@ -72,6 +72,7 @@
 .skill-load-state { min-height: 240px; display: grid; place-items: center; align-content: center; gap: 7px; border: 1px dashed #deded9; border-radius: 9px; color: var(--muted); text-align: center; }
 .skill-load-state b { color: var(--text); font-size: 13px; }
 .skill-load-state p { margin: 0; max-width: 620px; font-size: 11px; line-height: 1.6; }
+.skill-empty-actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
 .skill-load-state.error { border-color: #e4c9c5; background: #fffafa; color: #97574e; }
 .skill-loader { width: 18px; height: 18px; border: 2px solid #deded9; border-top-color: #77746d; border-radius: 50%; animation: skill-spin .65s linear infinite; }
 @keyframes skill-spin { to { transform: rotate(360deg); } }
