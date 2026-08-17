@@ -368,11 +368,41 @@ function Editor({ page, onDirty, onSaved, notify }: {
   </>
 }
 
+type WorkspaceView = 'home' | 'page' | 'project' | 'skill-manager' | 'action-config' | 'tasks'
+
+function MobileTabBar({ view, onNavigate }: {
+  view: WorkspaceView
+  onNavigate: (view: WorkspaceView) => void
+}) {
+  const tabs: Array<{ id: WorkspaceView; icon: string; label: string }> = [
+    { id: 'home', icon: '⌂', label: '工作台' },
+    { id: 'tasks', icon: '◫', label: '任务' },
+    { id: 'page', icon: '✎', label: '编辑' },
+    { id: 'skill-manager', icon: '🧩', label: '技能' },
+    { id: 'action-config', icon: '⚙', label: '配置' },
+  ]
+  return (
+    <nav className="mobile-tabbar" aria-label="移动端导航">
+      {tabs.map((tab) => (
+        <button
+          key={tab.id}
+          className={`tab ${view === tab.id ? 'active' : ''}`}
+          aria-current={view === tab.id ? 'page' : undefined}
+          onClick={() => onNavigate(tab.id)}
+        >
+          <span className="tab-ico" aria-hidden="true">{tab.icon}</span>
+          <span className="tab-txt">{tab.label}</span>
+        </button>
+      ))}
+    </nav>
+  )
+}
+
 function App() {
   const [pages, setPages] = useState<PageMeta[] | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [activePage, setActivePage] = useState<Page | null>(null)
-  const [workspaceView, setWorkspaceView] = useState<'home' | 'page' | 'project' | 'skill-manager' | 'action-config' | 'tasks'>('home')
+  const [workspaceView, setWorkspaceView] = useState<WorkspaceView>('home')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
   const [newPageMode, setNewPageMode] = useState<'write' | 'import'>('write')
@@ -534,6 +564,7 @@ function App() {
         onImportPage={() => { setWorkspaceView('page'); setNewPageMode('import'); setModalOpen(true) }}
         onOpenProject={() => { setWorkspaceView('project'); setSidebarOpen(false) }}
         onOpenTasks={() => { setWorkspaceView('tasks'); setSidebarOpen(false) }}
+        onOpenSkills={() => { setWorkspaceView('skill-manager'); setSidebarOpen(false) }}
       />}
       {workspaceView === 'skill-manager' && <SkillManager
         sidebarOpen={sidebarOpen}
@@ -577,6 +608,17 @@ function App() {
           ? <Editor key={activePage.id} page={activePage} onDirty={onDirty} onSaved={onSaved} notify={notify} />
           : <div className="empty-state"><p>没有页面。</p><button className="primary" onClick={() => setModalOpen(true)}>＋ 新建页面</button></div>}
       </div>
+
+      <MobileTabBar view={workspaceView} onNavigate={(view) => {
+        if (view === 'page') {
+          // 编辑 tab：有活动页直接打开，否则先保证有页面可编辑
+          if (activeId) { setWorkspaceView('page'); return }
+          setNewPageMode('write'); setModalOpen(true)
+          return
+        }
+        setWorkspaceView(view)
+        setSidebarOpen(false)
+      }} />
     </main>
 
     {modalOpen && <NewPageModal

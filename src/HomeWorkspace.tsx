@@ -37,12 +37,14 @@ export function HomeWorkspace({
   onImportPage,
   onOpenProject,
   onOpenTasks,
+  onOpenSkills,
 }: {
   onOpenPage: (pageId: string) => void
   onNewPage: () => void
   onImportPage: () => void
   onOpenProject: () => void
   onOpenTasks: () => void
+  onOpenSkills: () => void
 }) {
   const [pages, setPages] = useState<Page[] | null>(null)
   const [tasks, setTasks] = useState<CowriteTask[] | null>(null)
@@ -106,6 +108,10 @@ export function HomeWorkspace({
         <button className="home-card" onClick={onOpenProject}>
           <span className="home-card-icon">🗂</span>
           <span><b>打开项目</b><small>连接本地文件夹批量编辑</small></span>
+        </button>
+        <button className="home-card home-card-skill" onClick={onOpenSkills}>
+          <span className="home-card-icon">🧩</span>
+          <span><b>技能管理</b><small>查看和使用 223 个本地技能</small></span>
         </button>
       </section>
 

@@ -240,6 +240,10 @@
 
 @media (max-width: 760px) {
   .task-center { padding: 12px 12px 40px; }
+  .task-filters { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; margin: 0 -12px 12px; padding: 0 12px; }
+  .task-filters::-webkit-scrollbar { display: none; }
+  .task-filters > * + * { margin-left: 6px; }
+  .task-filters button { flex: 0 0 auto; padding: 8px 14px; font-size: 13px; min-height: 38px; }
   .task-item-main { padding: 10px; }
   .task-item-main > * + * { margin-left: 8px; }
   .task-badge { font-size: 10px; padding: 2px 7px; }
@@ -318,6 +322,21 @@
   .task-strip { margin-top: 6px; }
   .task-strip-detail { max-height: 40vh; overflow-y: auto; }
   .page-workspace .editor-holder { margin-bottom: 200px !important; }
+
+  /* 更多动作：底部弹层（prototype-confirmed） */
+  .command-more {
+    position: fixed; left: 8px; right: 8px; bottom: calc(58px + env(safe-area-inset-bottom, 0px));
+    z-index: 46; background: #fff; border: 1px solid #e4e8ed; border-radius: 18px;
+    box-shadow: 0 -8px 30px #0000001f; padding: 14px 14px 16px;
+    display: grid; grid-template-columns: repeat(3, 1fr); grid-gap: 10px; gap: 10px;
+    max-height: 45vh; overflow-y: auto;
+  }
+  .command-more button {
+    margin: 0; border: 1px solid #e2e7ee; background: #fbfcfd; border-radius: 12px;
+    padding: 12px 8px; font-size: 13px; color: #2c3e50; cursor: pointer;
+    min-height: 44px; display: flex; align-items: center; justify-content: center; text-align: center;
+  }
+  .command-more button:active { background: #eef2f7; }
 }
 /* ===== Home workspace ===== */
 .home-workspace { width: min(880px, calc(100% - 32px)); margin: 0 auto; padding: 28px 0 60px; display: grid; grid-gap: 26px; gap: 26px }
@@ -370,11 +389,43 @@
 @media (max-width: 760px) {
   .home-workspace { padding: 20px 0 30px; grid-gap: 20px; gap: 20px; }
   .home-head { flex-direction: column; }
-  .home-start { grid-template-columns: 1fr; }
-  .home-card { padding: 14px; }
+  .home-start { grid-template-columns: 1fr 1fr; }
+  .home-card { padding: 14px; flex-direction: column; align-items: flex-start; }
+  .home-card > * + * { margin-left: 0; margin-top: 8px; }
   .home-card small { font-size: 12px; }
   .home-row { padding: 13px; }
   .home-row-title b { font-size: 14px; }
   .home-row-title small { font-size: 12px; }
-  .home-queue-chip { margin-top: 2px; }
+  .home-queue-chip { margin-top: 2px; width: 100%; justify-content: center; }
+  .home-card-icon { width: 34px; height: 34px; font-size: 17px; border-radius: 9px; }
+}
+
+/* ===== Mobile bottom tab bar (prototype-confirmed) ===== */
+.mobile-tabbar { display: none; }
+@media (max-width: 760px) {
+  .mobile-tabbar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 45;
+    display: flex;
+    background: #ffffff;
+    border-top: 1px solid #e6eaf0;
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -4px 16px #0000000d;
+  }
+  .mobile-tabbar .tab {
+    flex: 1; border: 0; background: transparent; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    padding: 5px 0; font-family: inherit;
+  }
+  .mobile-tabbar .tab-ico { font-size: 19px; line-height: 1; color: #8a94a6; }
+  .mobile-tabbar .tab-txt { font-size: 10px; color: #8a94a6; font-weight: 500; }
+  .mobile-tabbar .tab.active .tab-ico { color: #1e4d7c; }
+  .mobile-tabbar .tab.active .tab-txt { color: #1e4d7c; font-weight: 700; }
+  .mobile-tabbar .tab:active .tab-ico { transform: scale(.92); }
+
+  /* 内容底部预留，避免被 tabbar 遮挡 */
+  .workspace { padding-bottom: calc(62px + env(safe-area-inset-bottom, 0px)); }
+  .page-workspace { min-height: calc(100vh - 62px); }
+  /* 编辑器页命令栏与 tabbar 共存：命令栏底部上移 */
+  .editor-command { bottom: calc(58px + env(safe-area-inset-bottom, 0px)); }
+  .page-workspace .editor-holder { margin-bottom: 240px !important; }
 }
