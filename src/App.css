@@ -64,6 +64,15 @@
 .prompt-banner button { border: 0; background: #37352f; color: #fff; border-radius: 5px; padding: 7px 12px; font-size: 12px; white-space: nowrap; }
 
 .editor-holder { flex: 1; width: min(760px, calc(100% - 48px)) !important; margin: 4px auto 40px; }
+.editor-toolbar { width: min(760px, calc(100% - 48px)); margin: 6px auto 0; display: flex; align-items: center; flex-wrap: wrap; }
+.editor-toolbar > * + * { margin-left: 8px; }
+.editor-toolbar .editor-tool, .editor-toolbar .editor-save { flex: 0 0 auto; border: 1px solid #e3e2df; background: #ffffff; color: #37352f; border-radius: 6px; padding: 6px 12px; font-size: 13px; line-height: 1; cursor: pointer; min-height: 32px; }
+.editor-toolbar .editor-tool:hover:not(:disabled), .editor-toolbar .editor-save:hover:not(:disabled) { background: #f7f7f5; }
+.editor-toolbar .editor-tool:disabled { opacity: .4; cursor: default; }
+.editor-toolbar .editor-save { border-color: #16324f; background: linear-gradient(135deg, #16324f, #1e4d7c); color: #ffffff; font-weight: 600; }
+.editor-toolbar .editor-save:hover:not(:disabled) { filter: brightness(1.1); }
+.editor-toolbar .editor-save:disabled { opacity: .6; cursor: default; }
+.editor-toolbar .editor-toolbar-spacer { flex: 1; }
 .editor-holder.vditor, .editor-holder .vditor-content, .editor-holder .vditor-ir, .editor-holder .vditor-ir pre.vditor-reset { border: none !important; box-shadow: none !important; background: transparent !important; }
 .editor-holder .vditor-toolbar { display: none; }
 .editor-holder .vditor-ir .vditor-reset { font-family: 'Noto Sans SC', sans-serif; font-size: 15.5px; line-height: 1.9; padding: 14px 10px 140px !important; }

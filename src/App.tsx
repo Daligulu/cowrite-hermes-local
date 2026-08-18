@@ -150,7 +150,14 @@ function Editor({ page, onDirty, onSaved, notify }: {
   const assetBase = `${window.location.origin}${window.location.pathname.replace(/\/+$/, '/')}`
   const fixAssetLinks = (markdown: string) => markdown.replace(/(\]\()\/assets\//g, `](${assetBase}assets/`)
   const dirtyRef = useRef(false)
-  const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const undoStackRef = useRef<string[]>([])
+  const redoStackRef = useRef<string[]>([])
+  const prevValueRef = useRef(page.content)
+  const lastPushRef = useRef(0)
+  const restoringRef = useRef(false)
+  const [canUndo, setCanUndo] = useState(false)
+  const [canRedo, setCanRedo] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [selectionBar, setSelectionBar] = useState<{ x: number; y: number; text: string } | null>(null)
   const pageId = page.id
 
@@ -171,7 +178,8 @@ function Editor({ page, onDirty, onSaved, notify }: {
 
   const save = useCallback(async () => {
     const editor = vditorRef.current
-    if (!editor || !dirtyRef.current) return
+    if (!editor) return
+    setSaving(true)
     const content = editor.getValue()
     try {
       const updated = await api<Page>(`/api/pages/${pageId}`, {
@@ -181,17 +189,75 @@ function Editor({ page, onDirty, onSaved, notify }: {
       revisionRef.current = updated.revision
       dirtyRef.current = false
       onSaved(updated)
+      notify('已保存')
     } catch (reason) {
       notify(String(reason instanceof Error ? reason.message : reason))
+    } finally {
+      setSaving(false)
     }
   }, [pageId, onSaved, notify])
 
-  const scheduleSave = useCallback((delay = 800) => {
+  // 手动编辑历史栈：每次输入只记一步（合并 600ms 内的连续输入），可撤销/恢复
+  const pushHistory = useCallback(() => {
+    const editor = vditorRef.current
+    if (!editor || restoringRef.current) return
+    const current = editor.getValue()
+    const now = Date.now()
+    if (undoStackRef.current.length === 0 || now - lastPushRef.current >= 600) {
+      // 新的一步：记录“本次输入前”的快照
+      undoStackRef.current.push(prevValueRef.current)
+      if (undoStackRef.current.length > 100) undoStackRef.current.shift()
+      redoStackRef.current = []
+      setCanUndo(true)
+      setCanRedo(false)
+    }
+    // 无论是否合并，都推进基准与时间戳，保证下一步快照是“当前值”
+    prevValueRef.current = current
+    lastPushRef.current = now
+  }, [])
+
+  const markDirty = useCallback(() => {
     dirtyRef.current = true
     onDirty()
-    clearTimeout(timerRef.current)
-    timerRef.current = setTimeout(save, delay)
-  }, [onDirty, save])
+  }, [onDirty])
+
+  const undo = useCallback(() => {
+    const editor = vditorRef.current
+    if (!editor || !undoStackRef.current.length) return
+    const current = editor.getValue()
+    redoStackRef.current.push(current)
+    const previous = undoStackRef.current.pop()!
+    prevValueRef.current = previous
+    restoringRef.current = true
+    editor.setValue(previous)
+    restoringRef.current = false
+    setCanUndo(undoStackRef.current.length > 0)
+    setCanRedo(true)
+    markDirty()
+    notify('已回退')
+  }, [markDirty, notify])
+
+  const redo = useCallback(() => {
+    const editor = vditorRef.current
+    if (!editor || !redoStackRef.current.length) return
+    const current = editor.getValue()
+    undoStackRef.current.push(current)
+    const next = redoStackRef.current.pop()!
+    prevValueRef.current = next
+    restoringRef.current = true
+    editor.setValue(next)
+    restoringRef.current = false
+    setCanUndo(true)
+    setCanRedo(redoStackRef.current.length > 0)
+    markDirty()
+    notify('已恢复')
+  }, [markDirty, notify])
+
+  // 编辑内容变化：只标记未保存 + 记录历史，不再自动保存
+  const handleInput = useCallback(() => {
+    pushHistory()
+    markDirty()
+  }, [pushHistory, markDirty])
 
   useEffect(() => {
     const holder = holderRef.current
@@ -226,7 +292,7 @@ function Editor({ page, onDirty, onSaved, notify }: {
         observer.observe(holder, { childList: true, subtree: true })
         rewriteAssetLinks()
       },
-      input: () => scheduleSave(),
+      input: () => handleInput(),
     })
     vditorRef.current = editor
     const pasteImages = async (event: ClipboardEvent) => {
@@ -263,7 +329,7 @@ function Editor({ page, onDirty, onSaved, notify }: {
         }
         editor.focus()
         editor.insertValue(`${markdown.join('\n')}\n`)
-        scheduleSave(200)
+        handleInput()
         notify(files.length > 1 ? `${files.length} 张图片已插入` : '图片已插入')
       } catch (reason) {
         notify(String(reason instanceof Error ? reason.message : reason))
@@ -272,7 +338,6 @@ function Editor({ page, onDirty, onSaved, notify }: {
     holder.addEventListener('paste', pasteImages, true)
     return () => {
       disposed = true
-      clearTimeout(timerRef.current)
       try { observer.disconnect() } catch { /* 忽略 */ }
       holder.removeEventListener('paste', pasteImages, true)
       try { editor.destroy() } catch { /* 未完成初始化时忽略 */ }
@@ -288,7 +353,9 @@ function Editor({ page, onDirty, onSaved, notify }: {
         const latest = await api<Page>(`/api/pages/${pageId}`)
         if (latest.revision !== revisionRef.current && !dirtyRef.current) {
           revisionRef.current = latest.revision
+          restoringRef.current = true
           vditorRef.current?.setValue(fixAssetLinks(latest.content))
+          restoringRef.current = false
           onSaved(latest)
           notify('Agent 已更新这个页面')
         }
@@ -322,6 +389,43 @@ function Editor({ page, onDirty, onSaved, notify }: {
     }
   }, [pageId])
 
+  // 撤销/恢复快捷键：Ctrl+Z 回退，Ctrl+Y / Ctrl+Shift+Z 恢复
+  useEffect(() => {
+    const holder = holderRef.current
+    if (!holder) return
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.isComposing) return
+      const mod = event.ctrlKey || event.metaKey
+      if (!mod) return
+      const key = event.key.toLowerCase()
+      if (key === 'z') {
+        event.preventDefault()
+        if (event.shiftKey) {
+          redo()
+        } else {
+          undo()
+        }
+      } else if (key === 'y') {
+        event.preventDefault()
+        redo()
+      }
+    }
+    holder.addEventListener('keydown', onKeyDown)
+    return () => holder.removeEventListener('keydown', onKeyDown)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [undo, redo])
+
+  // 刷新/关闭页面时，若有未保存修改则提示
+  useEffect(() => {
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!dirtyRef.current) return
+      event.preventDefault()
+      event.returnValue = ''
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [])
+
   // 在 Markdown 原文中定位选中文字并包裹格式（避免操作 DOM 选区带来的段落错位）
   const wrapSelection = (before: string, after: string) => {
     const editor = vditorRef.current
@@ -333,7 +437,7 @@ function Editor({ page, onDirty, onSaved, notify }: {
     if (index === -1) { notify('没有在正文中找到选中文字，请重新选择'); return }
     const wrapped = markdown.slice(0, index) + before + text + after + markdown.slice(index + text.length)
     editor.setValue(wrapped)
-    scheduleSave(400)
+    handleInput()
   }
 
   const sendAi = async (action: TaskAction, requirements: string, sentHint: string) => {
@@ -350,6 +454,12 @@ function Editor({ page, onDirty, onSaved, notify }: {
   }
 
   return <>
+    <div className="editor-toolbar">
+      <button type="button" className="editor-tool" onClick={undo} disabled={!canUndo} title="回退（Ctrl+Z）">↶ 回退</button>
+      <button type="button" className="editor-tool" onClick={redo} disabled={!canRedo} title="恢复（Ctrl+Y）">↷ 恢复</button>
+      <span className="editor-toolbar-spacer" />
+      <button type="button" className="editor-save" onClick={save} disabled={saving}>{saving ? '保存中…' : '保存'}</button>
+    </div>
     <div className="editor-holder" ref={holderRef} />
     {selectionBar && <div className="selection-bar" style={{ left: selectionBar.x, top: selectionBar.y }}>
       <>
@@ -442,6 +552,14 @@ function App() {
     setPages((current) => current?.map((item) => item.id === updated.id ? { ...item, title: updated.title, revision: updated.revision, updatedAt: updated.updatedAt } : item) ?? null)
   }, [])
   const onDirty = useCallback(() => setSaveState('dirty'), [])
+
+  // 切换页面会卸载编辑器，若当前页有未保存修改需先确认
+  const openPageGuarded = useCallback((pageId: string) => {
+    if (saveState === 'dirty' && !window.confirm('当前页面有未保存的修改，切换后将丢失，确定继续吗？')) return
+    setWorkspaceView('page')
+    setActiveId(pageId)
+    setSidebarOpen(false)
+  }, [saveState])
 
   const renameTitle = async (title: string) => {
     if (!activePage || title === activePage.title) return
@@ -537,7 +655,7 @@ function App() {
       <button className="new-page" onClick={() => { setWorkspaceView('page'); setNewPageMode('write'); setModalOpen(true) }}>＋ 新建页面</button>
       <nav>
         {pages.map((page) => <div key={page.id} className={`sidebar-page ${workspaceView === 'page' && page.id === activeId ? 'active' : ''}`}>
-          <button className="sidebar-page-select" onClick={() => { setWorkspaceView('page'); setActiveId(page.id) }}>
+          <button className="sidebar-page-select" onClick={() => openPageGuarded(page.id)}>
             <span className="doc-icon">▤</span>
             <span className="doc-title">{page.title}</span>
             {page.prompt && page.revision === 1 && <span className="pending-dot" title="等待 Agent 创作" />}
@@ -559,7 +677,7 @@ function App() {
 
     <main className="workspace">
       {workspaceView === 'home' && <HomeWorkspace
-        onOpenPage={(pageId) => { setWorkspaceView('page'); setActiveId(pageId); setSidebarOpen(false) }}
+        onOpenPage={(pageId) => openPageGuarded(pageId)}
         onNewPage={() => { setWorkspaceView('page'); setNewPageMode('write'); setModalOpen(true) }}
         onImportPage={() => { setWorkspaceView('page'); setNewPageMode('import'); setModalOpen(true) }}
         onOpenProject={() => { setWorkspaceView('project'); setSidebarOpen(false) }}
@@ -596,7 +714,7 @@ function App() {
               placeholder="未命名页面"
               onBlur={(event) => { if (event.target.value.trim()) renameTitle(event.target.value.trim()) }}
             />
-            <span className={`save-state ${saveState}`}>{saveState === 'saved' ? '已保存' : '保存中…'}</span>
+            <span className={`save-state ${saveState}`}>{saveState === 'saved' ? '已保存' : '未保存'}</span>
           </>}
         </div>
         {activePage && <EditorCommandBar page={activePage} notify={notify} />}
