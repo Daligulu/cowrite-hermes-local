@@ -145,6 +145,30 @@ export const DEFAULT_ACTIONS: ActionConfig[] = [
     ],
     workflow: [],
   },
+  {
+    id: 'wechat-sticker',
+    label: '微信贴图',
+    enabled: true,
+    chip: true,
+    keywords: ['贴图', '微信贴图', '贴纸'],
+    skills: ['wechat-sticker-publisher', 'apiyi-image-generation', 'humanizer-zh'],
+    prompts: [
+      { id: 'main', role: 'system', text: '制作微信贴图草稿。固定执行顺序：① 按用户主题搜索相关内容（信息检索路由）；② 先写 280-320 字文案（分段，加 ①②③ 编号，用 humanizer-zh 润色）；③ 根据文案用 ApiYi 真实文生图生成 3:4 竖版贴图（推荐 1080×1440，四边留 ~80px 安全区，新海诚系清新明亮）；④ 新建独立页面《贴图草稿·主题》（命名带「贴图草稿·」前缀），顶部嵌图 + 正文为文案。只建草稿页，不发布、不群发。' },
+    ],
+    workflow: [],
+  },
+  {
+    id: 'publish-sticker',
+    label: '发布贴图',
+    enabled: true,
+    chip: false,
+    keywords: ['发布贴图', '贴图发布', '发布贴纸'],
+    skills: ['wechat-sticker-publisher'],
+    prompts: [
+      { id: 'main', role: 'system', text: '发布当前贴图草稿页到微信公众号草稿箱。规则：① 校验当前页面标题带「贴图草稿·」前缀，否则拒绝；② 提取第一张图片（校验 3:4 竖版，推荐 1080×1440），正文去标题作为文案；③ 微信贴图标题 = 页面标题去掉「贴图草稿·」前缀；④ 用 wechat-sticker-publisher 的 publish_sticker.py 以 --mode newspic 发布到草稿箱（不群发）；⑤ 账号由 requirements 中的【账号】指定（读 /root/.cowrite/wechat-accounts.json 凭据）；⑥ 发布成功后把 media_id 与草稿链接写回页面末尾。' },
+    ],
+    workflow: [],
+  },
 ]
 
 function isMissingFile(error: unknown): boolean {

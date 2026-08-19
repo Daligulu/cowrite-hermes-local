@@ -293,6 +293,22 @@
 .command-more button { margin: 0 7px 7px 0; }
 .command-more button { border: 1px solid #e2e7ee; background: #fbfcfd; border-radius: 999px; padding: 6px 13px; font-size: 12px; color: #2c3e50; cursor: pointer; }
 
+/* sticker style / account choice modals */
+.sticker-style-modal, .sticker-account-modal { width: min(440px, calc(100% - 40px)); grid-gap: 12px; }
+.modal-hint { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.sticker-style-options, .sticker-account-options { display: flex; flex-direction: column; }
+.sticker-style-option, .sticker-account-option {
+  display: flex; align-items: center; justify-content: space-between;
+  border: 1px solid #e2e7ee; background: #fff; border-radius: 10px; padding: 10px 12px;
+  font-size: 13px; cursor: pointer; text-align: left; width: 100%;
+}
+.sticker-style-option + .sticker-style-option, .sticker-account-option + .sticker-account-option { margin-top: 6px; }
+.sticker-style-option:hover, .sticker-account-option:hover { border-color: #a9bce7; background: #f5f9ff; }
+.sticker-style-option.on, .sticker-account-option.on { border-color: #1e4d7c; background: #eef5ff; box-shadow: inset 0 0 0 1px #1e4d7c; }
+.sticker-style-label, .sticker-account-label { font-weight: 600; color: #24313e; }
+.sticker-style-desc, .sticker-account-id { color: var(--muted); font-size: 12px; }
+.sticker-account-empty { padding: 14px; text-align: center; color: var(--muted); font-size: 12px; }
+
 /* task strip */
 .task-strip { margin-top: 8px; border: 1px solid #e4e8ed; border-radius: 12px; background: #fff; box-shadow: 0 3px 14px #0000000d; overflow: hidden; }
 .task-strip-row { display: flex; align-items: center; padding: 11px 12px; cursor: pointer; user-select: none; }

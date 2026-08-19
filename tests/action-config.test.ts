@@ -15,9 +15,9 @@ beforeEach(async () => {
 afterEach(async () => rm(directory, { recursive: true, force: true }))
 
 describe('Action config', () => {
-  it('exposes the 9 default actions matching the legacy hardcoded skill map', async () => {
+  it('exposes the 11 default actions matching the legacy hardcoded skill map', async () => {
     const config = await store.load()
-    expect(config.actions).toHaveLength(9)
+    expect(config.actions).toHaveLength(11)
     const byId = Object.fromEntries(config.actions.map((action) => [action.id, action]))
     expect(byId['polish'].skills).toEqual(['humanizer-zh'])
     expect(byId['illustrate'].skills).toEqual(['apiyi-image-generation'])
@@ -79,7 +79,7 @@ describe('Action config', () => {
   it('backs up a corrupt file and falls back to defaults', async () => {
     await writeFile(path.join(directory, 'action-config.json'), '{{{ not json', 'utf8')
     const config = await store.load()
-    expect(config.actions).toHaveLength(9)
+    expect(config.actions).toHaveLength(11)
     const { readdir } = await import('node:fs/promises')
     const entries = await readdir(directory)
     const backup = entries.find((name) => name.startsWith('action-config.json.corrupt-'))

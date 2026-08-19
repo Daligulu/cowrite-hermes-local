@@ -6,6 +6,8 @@ import { fileURLToPath } from 'node:url'
 import { z } from 'zod'
 import { assetsDir, buildCreateCommand, CowriteService } from './service.js'
 import { ActionConfigStore, actionConfigFileSchema } from './actionConfig.js'
+import { WechatAccountsStore } from './wechatAccounts.js'
+import type { WechatAccountInput } from './wechatAccounts.js'
 import { LocalSkillLibrary } from './skilldeck.js'
 import { JsonStore } from './store.js'
 import { LocalProjectService } from './projectWorkspace.js'
@@ -19,6 +21,7 @@ export function createApp(
   projectService = new LocalProjectService(),
   taskStore = new TaskStore(),
   actionConfig = new ActionConfigStore(),
+  wechatAccounts = new WechatAccountsStore(),
 ) {
   const app = express()
   const sessionToken = randomBytes(32).toString('base64url')
@@ -69,6 +72,7 @@ export function createApp(
   app.get('/api/session', (_request, response) => response.json({ token: sessionToken }))
   app.get('/api/bridge-session', (_request, response) => response.json({ token: bridgeToken }))
   app.get('/api/action-config', async (_request, response) => response.json({ config: await actionConfig.load() }))
+  app.get('/api/wechat-accounts', async (_request, response) => response.json({ accounts: await wechatAccounts.toViews() }))
   app.use('/api', (request, response, next) => {
     if (['GET', 'HEAD', 'OPTIONS'].includes(request.method)) {
       next()
@@ -88,6 +92,20 @@ export function createApp(
   })
   app.post('/api/action-config/reset', async (_request, response) => {
     response.json({ config: await actionConfig.reset() })
+  })
+  app.put('/api/wechat-accounts', async (request, response) => {
+    const input = z.object({ accounts: z.array(z.object({
+      id: z.string().min(1).max(80),
+      label: z.string().min(1).max(100),
+      appId: z.string().min(1).max(200),
+      secret: z.string().max(500).optional(),
+    })).min(1) }).strict().parse(request.body) as { accounts: WechatAccountInput[] }
+    response.json({ accounts: (await wechatAccounts.saveInput(input.accounts)).accounts.map((account) => ({
+      id: account.id,
+      label: account.label,
+      appId: account.appId,
+      secretSet: Boolean(account.secret),
+    })) })
   })
   app.get('/api/skilldeck/config', async (_request, response) => response.json(await skillLibrary.getConfig()))
   app.get('/api/skilldeck/catalog', async (request, response) => {

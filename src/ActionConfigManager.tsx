@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ActionConfig, ActionConfigFile, ActionPrompt, CowriteTask, LocalSkill, WorkflowStep } from '../shared/types'
 import { cowriteFetch } from './apiClient'
 import { filterLocalSkills } from './skillManagerModel'
+import { WechatAccountsPanel } from './WechatAccountsPanel'
 import './ActionConfigManager.css'
 
 async function requestJson<T>(url: string, init?: RequestInit): Promise<T> {
@@ -241,6 +242,8 @@ export function ActionConfigManager({ page, notify }: { page: { id: string; titl
           </button>
         </div>
       </header>
+
+      <WechatAccountsPanel notify={notify} />
 
       <div className="action-config-body">
         <aside className="action-config-list">

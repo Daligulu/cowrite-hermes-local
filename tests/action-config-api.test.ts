@@ -37,8 +37,10 @@ describe('action config API', () => {
   it('returns the default action config on GET', async () => {
     const app = testApp()
     const response = await request(app).get('/api/action-config').expect(200)
-    expect(response.body.config.actions).toHaveLength(9)
+    expect(response.body.config.actions).toHaveLength(11)
     expect(response.body.config.actions[0]).toMatchObject({ id: 'polish', skills: ['humanizer-zh'] })
+    expect(response.body.config.actions.map((action: any) => action.id)).toContain('wechat-sticker')
+    expect(response.body.config.actions.map((action: any) => action.id)).toContain('publish-sticker')
   })
 
   it('rejects PUT without a session token', async () => {

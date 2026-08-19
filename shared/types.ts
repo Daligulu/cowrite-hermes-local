@@ -85,6 +85,28 @@ export interface ActionConfigFile {
   actions: ActionConfig[]
 }
 
+/** 微信公众号账号（贴图/排版发布用） */
+export interface WechatAccount {
+  id: string
+  label: string
+  appId: string
+  secret: string
+}
+
+export interface WechatAccountsFile {
+  version: 1
+  updatedAt?: string
+  accounts: WechatAccount[]
+}
+
+/** 前端可读的账号视图（secret 打码，不返回明文） */
+export interface WechatAccountView {
+  id: string
+  label: string
+  appId: string
+  secretSet: boolean
+}
+
 export interface CowriteTaskInput {
   action: TaskAction
   pageId?: string

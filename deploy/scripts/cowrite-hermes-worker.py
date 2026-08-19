@@ -39,6 +39,8 @@ PROMPT = r"""你是 Cowrite for Hermes 的定时任务 Worker。只处理一个�
    - illustrate/feng-ip：真实生成图片、上传 Cowrite，按 anchor 插入；
    - slides：真实生成 PPTX/HTML，上传并把链接写回页面；
    - wechat-layout/xiaohongshu/feishu-doc/knowledge-base/video：调用对应 Skill 真实生成或发布，验证产物，再把可用链接或结果写回页面。
+   - wechat-sticker：制作微信贴图草稿，固定顺序：① 按 requirements 中的主题搜索相关内容（走信息检索路由）；② 先写 280-320 字文案（分段，加 ①②③ 编号，humanizer-zh 润色）；③ 根据文案用 ApiYi 真实文生图生成 3:4 竖版贴图（推荐 1080×1440）；④ 新建独立页面《贴图草稿·主题》，顶部嵌图 + 正文为文案。只建草稿页，不发布。requirements 中「风格：xxx」为可选风格（预设或手动描述），用于出图 prompt。
+   - publish-sticker：发布当前页到微信公众号草稿箱（不群发）。校验页面标题带「贴图草稿·」前缀；提取第一张图（校验 3:4 竖版）、正文去标题作文案、标题去前缀；用 wechat-sticker-publisher 的 publish_sticker.py --mode newspic 发布，账号取 requirements 中「账号：xxx」（读 /root/.cowrite/wechat-accounts.json 凭据）；成功后把 media_id 与草稿链接写回页面末尾。
    - 自定义 action：按配置的 skills/prompts/workflow 完成处理并写回页面。
 4. 写页面前再次读取最新 revision；发生冲突必须重新读取并合并，禁止覆盖用户刚修改的内容。
 5. 只有真实产物已验证且页面已写回后，才能调用 mcp_cowrite_cowrite_complete_task。assets 填真实产物路径或链接。
