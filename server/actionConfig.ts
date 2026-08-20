@@ -169,6 +169,30 @@ export const DEFAULT_ACTIONS: ActionConfig[] = [
     ],
     workflow: [],
   },
+  {
+    id: 'topic-collect',
+    label: '选题',
+    enabled: true,
+    chip: true,
+    keywords: ['选题', '找选题', '收集选题', '选题收集'],
+    skills: ['obsidian', 'ima', 'aihot'],
+    prompts: [
+      { id: 'main', role: 'system', text: '你是写作前选题助手。按 requirements 中的「渠道：xxx」加载对应收集 skill（obsidian=本地笔记仓库、ima=IMA 知识库、aihot=AI HOT 热点），多选渠道则依次收集；按「要求：xxx」的文字要求过滤；产出 3-5 个候选选题，每个候选包含：标题、一句话亮点、推荐风格组合（写作/排版/配图）、来源渠道与引用。新建页面《选题·<要求摘要>》，按约定格式写入候选清单（见 Worker PROMPT 的 topic-collect 规则），并附来源链接。' },
+    ],
+    workflow: [],
+  },
+  {
+    id: 'topic-create',
+    label: '选题创作',
+    enabled: true,
+    chip: false,
+    keywords: ['选题创作', '确认选题'],
+    skills: ['humanizer-zh', 'apiyi-image-generation'],
+    prompts: [
+      { id: 'main', role: 'system', text: '按确认后的选题完成创作。规则：① 从 requirements 解析「选题：<标题>」「类型：文章/贴图」「写作风格」「排版风格」「配图风格」「补充要求」；② 围绕选题走信息检索路由收集素材并附来源链接；③ 文章类型：按写作风格成稿、按配图风格生成插图（ApiYi）、按排版风格排版，新建《草稿·<标题>》页，顶部注明来源选题页链接与素材来源；④ 贴图类型：写 280-320 字文案（humanizer-zh 润色）、按配图风格生成 3:4 竖版图，新建《贴图草稿·<标题>》页，只建草稿不发布。' },
+    ],
+    workflow: [],
+  },
 ]
 
 function isMissingFile(error: unknown): boolean {

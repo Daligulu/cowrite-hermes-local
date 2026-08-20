@@ -8,6 +8,7 @@ import { ActionConfigManager } from './ActionConfigManager'
 import { ProjectWorkspace } from './ProjectWorkspace'
 import { TaskCenter } from './TaskCenter'
 import { EditorCommandBar } from './CommandBar'
+import { TopicConfirmPanel } from './TopicConfirmPanel'
 import { HomeWorkspace } from './HomeWorkspace'
 import './App.css'
 
@@ -722,6 +723,7 @@ function App() {
           <div><b>等待 Agent 创作</b><p>{activePage.prompt}</p></div>
           <button onClick={sendPendingCommand}>发送到 Hermes</button>
         </div>}
+        {activePage && activePage.title.startsWith('选题·') && <TopicConfirmPanel page={activePage} notify={notify} />}
         {activePage
           ? <Editor key={activePage.id} page={activePage} onDirty={onDirty} onSaved={onSaved} notify={notify} />
           : <div className="empty-state"><p>没有页面。</p><button className="primary" onClick={() => setModalOpen(true)}>＋ 新建页面</button></div>}

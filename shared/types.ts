@@ -107,6 +107,40 @@ export interface WechatAccountView {
   secretSet: boolean
 }
 
+/** 选题渠道（写作前选题：obsidian / ima / aihot 等，可配置扩展） */
+export type ChannelType = 'local-files' | 'openapi-script' | 'public-api'
+export interface ChannelConfig {
+  id: string
+  label: string
+  type: ChannelType
+  enabled: boolean
+  description?: string
+  params: Record<string, string>
+}
+export interface ChannelConfigFile {
+  version: 1
+  updatedAt?: string
+  channels: ChannelConfig[]
+}
+
+/** 风格库（写作/排版/配图三类预设，可配置扩展） */
+export type StyleCategory = 'writing' | 'layout' | 'image'
+export interface StylePreset {
+  id: string
+  label: string
+  description?: string
+}
+export interface StyleConfig {
+  writing: StylePreset[]
+  layout: StylePreset[]
+  image: StylePreset[]
+}
+export interface StyleConfigFile {
+  version: 1
+  updatedAt?: string
+  styles: StyleConfig
+}
+
 export interface CowriteTaskInput {
   action: TaskAction
   pageId?: string

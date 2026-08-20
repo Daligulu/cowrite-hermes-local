@@ -6,6 +6,8 @@ import { fileURLToPath } from 'node:url'
 import { z } from 'zod'
 import { assetsDir, buildCreateCommand, CowriteService } from './service.js'
 import { ActionConfigStore, actionConfigFileSchema } from './actionConfig.js'
+import { ChannelConfigStore, channelConfigFileSchema } from './channelConfig.js'
+import { StyleConfigStore, styleConfigFileSchema } from './styleConfig.js'
 import { WechatAccountsStore } from './wechatAccounts.js'
 import type { WechatAccountInput } from './wechatAccounts.js'
 import { LocalSkillLibrary } from './skilldeck.js'
@@ -22,6 +24,8 @@ export function createApp(
   taskStore = new TaskStore(),
   actionConfig = new ActionConfigStore(),
   wechatAccounts = new WechatAccountsStore(),
+  channelConfig = new ChannelConfigStore(),
+  styleConfig = new StyleConfigStore(),
 ) {
   const app = express()
   const sessionToken = randomBytes(32).toString('base64url')
@@ -73,6 +77,8 @@ export function createApp(
   app.get('/api/bridge-session', (_request, response) => response.json({ token: bridgeToken }))
   app.get('/api/action-config', async (_request, response) => response.json({ config: await actionConfig.load() }))
   app.get('/api/wechat-accounts', async (_request, response) => response.json({ accounts: await wechatAccounts.toViews() }))
+  app.get('/api/channel-config', async (_request, response) => response.json({ config: await channelConfig.load() }))
+  app.get('/api/style-config', async (_request, response) => response.json({ config: await styleConfig.load() }))
   app.use('/api', (request, response, next) => {
     if (['GET', 'HEAD', 'OPTIONS'].includes(request.method)) {
       next()
@@ -92,6 +98,20 @@ export function createApp(
   })
   app.post('/api/action-config/reset', async (_request, response) => {
     response.json({ config: await actionConfig.reset() })
+  })
+  app.put('/api/channel-config', async (request, response) => {
+    const input = channelConfigFileSchema.parse(request.body)
+    response.json({ config: await channelConfig.save(input) })
+  })
+  app.post('/api/channel-config/reset', async (_request, response) => {
+    response.json({ config: await channelConfig.reset() })
+  })
+  app.put('/api/style-config', async (request, response) => {
+    const input = styleConfigFileSchema.parse(request.body)
+    response.json({ config: await styleConfig.save(input) })
+  })
+  app.post('/api/style-config/reset', async (_request, response) => {
+    response.json({ config: await styleConfig.reset() })
   })
   app.put('/api/wechat-accounts', async (request, response) => {
     const input = z.object({ accounts: z.array(z.object({

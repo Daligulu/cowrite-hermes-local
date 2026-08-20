@@ -454,3 +454,54 @@
   .editor-command { bottom: calc(58px + env(safe-area-inset-bottom, 0px)); }
   .page-workspace .editor-holder { margin-bottom: 240px !important; }
 }
+
+/* ===== Topic (写作前选题) ===== */
+.topic-confirm { width: min(820px, calc(100% - 32px)); margin: 10px auto 0; background: #fff; border: 1px solid #e2e7ee; border-radius: 12px; box-shadow: 0 4px 18px #0000000d; padding: 14px; }
+.topic-confirm-head { display: flex; flex-direction: column; margin-bottom: 10px; }
+.topic-confirm-title { font-size: 15px; font-weight: 700; color: #16324f; }
+.topic-confirm-hint { margin-top: 3px; font-size: 12px; color: var(--muted); }
+.topic-candidate-list { display: flex; flex-direction: column; }
+.topic-candidate {
+  display: flex; align-items: flex-start;
+  border: 1px solid #e2e7ee; background: #fff; border-radius: 10px; padding: 10px 12px;
+  font-size: 13px; cursor: pointer; text-align: left; width: 100%; margin-bottom: 8px;
+}
+.topic-candidate.on { border-color: #1e4d7c; background: #f3f7fc; box-shadow: 0 0 0 1px #1e4d7c inset; }
+.topic-candidate-check {
+  flex: 0 0 auto; width: 20px; height: 20px; margin-right: 10px; margin-top: 1px;
+  border: 1.5px solid #c6ccd6; border-radius: 5px; display: grid; place-items: center;
+  font-size: 13px; color: #fff; background: #fff;
+}
+.topic-candidate.on .topic-candidate-check { background: #1e4d7c; border-color: #1e4d7c; }
+.topic-candidate-body { display: flex; flex-direction: column; min-width: 0; }
+.topic-candidate-title { font-weight: 600; color: #1a1a1a; }
+.topic-candidate-highlight { margin-top: 3px; font-size: 12px; color: #555f6d; line-height: 1.6; }
+.topic-candidate-meta { display: flex; flex-wrap: wrap; margin-top: 6px; }
+.topic-meta-chip { margin-right: 6px; margin-bottom: 4px; padding: 2px 8px; border-radius: 999px; background: #eef2f7; color: #4a5a70; font-size: 11px; }
+.topic-confirm-btn { margin-top: 4px; width: 100%; border: 0; background: var(--blue); color: #fff; border-radius: 8px; padding: 11px 16px; font-size: 14px; cursor: pointer; min-height: 44px; }
+.topic-confirm-btn:disabled { opacity: .5; cursor: not-allowed; }
+.topic-modal, .topic-create-modal { width: min(520px, calc(100% - 40px)); grid-gap: 12px; gap: 12px; max-height: 86vh; overflow-y: auto; }
+.topic-channel-options { display: flex; flex-direction: column; }
+.topic-channel-option {
+  display: flex; align-items: center;
+  border: 1px solid #e2e7ee; background: #fff; border-radius: 10px; padding: 10px 12px;
+  font-size: 13px; cursor: pointer; text-align: left; width: 100%; margin-bottom: 8px;
+}
+.topic-channel-option.on { border-color: #1e4d7c; background: #f3f7fc; box-shadow: 0 0 0 1px #1e4d7c inset; }
+.topic-channel-check {
+  flex: 0 0 auto; width: 20px; height: 20px; margin-right: 10px;
+  border: 1.5px solid #c6ccd6; border-radius: 5px; display: grid; place-items: center;
+  font-size: 13px; color: #fff; background: #fff;
+}
+.topic-channel-option.on .topic-channel-check { background: #1e4d7c; border-color: #1e4d7c; }
+.topic-channel-label { font-weight: 600; }
+.topic-channel-desc { margin-left: 8px; color: #7a8494; font-size: 12px; }
+.topic-type-options { display: grid; grid-template-columns: 1fr 1fr; padding: 3px; border-radius: 7px; background: #f2f2ef; }
+.topic-type-option { border: 0; border-radius: 5px; padding: 8px 10px; background: transparent; color: var(--muted); font-size: 12.5px; cursor: pointer; min-height: 36px; }
+.topic-type-option.on { background: #fff; color: var(--text); font-weight: 600; box-shadow: 0 1px 4px #00000012; }
+.topic-style-options { display: flex; flex-wrap: wrap; }
+.topic-style-option { margin-right: 6px; margin-bottom: 6px; border: 1px solid #dde3ea; background: #fff; border-radius: 999px; padding: 5px 12px; font-size: 12px; cursor: pointer; color: #3c4654; }
+.topic-style-option.on { border-color: #1e4d7c; background: #eaf1f9; color: #1e4d7c; font-weight: 600; }
+.topic-style-custom { margin-top: 2px; }
+.topic-selected-titles { display: flex; flex-wrap: wrap; }
+.topic-selected-chip { margin-right: 6px; margin-bottom: 6px; padding: 4px 10px; border-radius: 999px; background: #eef2f7; color: #33404f; font-size: 12px; }
