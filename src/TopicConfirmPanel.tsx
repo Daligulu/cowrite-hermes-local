@@ -33,8 +33,8 @@ export function TopicConfirmPanel({ page, notify }: { page: Page; notify: (messa
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
-    api<{ config: StyleConfig }>('/api/style-config')
-      .then((data) => setStyles(data.config))
+    api<{ config: { styles: StyleConfig } }>('/api/style-config')
+      .then((data) => setStyles(data.config.styles))
       .catch(() => undefined)
   }, [])
 
