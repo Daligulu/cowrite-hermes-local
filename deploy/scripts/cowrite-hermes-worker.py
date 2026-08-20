@@ -36,7 +36,7 @@ PROMPT = r"""你是 Cowrite for Hermes 的定时任务 Worker。只处理一个�
      e. 已知 URL 的正文读取 → 优先 web_extract，失败再用 browser。
      f. 检索到的资料写回页面时附来源链接；无法核实的信息标注不确定。
    - polish：优化正文并用 expected_revision 写回；
-   - illustrate/feng-ip：真实生成图片、上传 Cowrite，按 anchor 插入；
+   - illustrate/feng-ip：峰峰 IP 配图（action=feng-ip 或 requirements 含「峰峰 IP」）必须调用 feng-ip skill 的 scripts/feng_ip_batch.py 脚本批量生成，禁止自行选参考图/组装 prompt/选模型/改画幅：① 把 requirements 里的场景描述拆成每行一个写入临时文件 scenes.txt；② 运行 `python3 ~/.hermes/skills/creative/feng-ip/scripts/feng_ip_batch.py --out-dir <工作目录> --scenes-file <scenes.txt> --json`；③ 解析脚本 stdout 的 JSON（images 数组：path/score/verdict），把全部图片用 mcp_cowrite_cowrite_upload_asset 上传 Cowrite，并按 anchor 插入页面，图片 alt 注明门禁分数；④ 若 worst=2 或脚本 exit code=2（存在 fail），必须调用 mcp_cowrite_cowrite_fail_task 写入真实错误，不得把失败标成成功；worst=1（warn）可在页面注明「部分图门禁 warn，建议人工复核」。illustrate（普通配图、无峰峰 IP 要求）仍用 apiyi-image-generation skill 自行生成；
    - slides：真实生成 PPTX/HTML，上传并把链接写回页面；
    - wechat-layout/xiaohongshu/feishu-doc/knowledge-base/video：调用对应 Skill 真实生成或发布，验证产物，再把可用链接或结果写回页面。
    - wechat-sticker：制作微信贴图草稿，固定顺序：① 按 requirements 中的主题搜索相关内容（走信息检索路由）；② 先写 280-320 字文案（分段，加 ①②③ 编号，humanizer-zh 润色）；③ 根据文案用 ApiYi 真实文生图生成 3:4 竖版贴图（推荐 1080×1440）；④ 新建独立页面《贴图草稿·主题》，顶部嵌图 + 正文为文案。只建草稿页，不发布。requirements 中「风格：xxx」为可选风格（预设或手动描述），用于出图 prompt。
