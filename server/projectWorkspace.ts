@@ -69,6 +69,11 @@ function sortNodes(nodes: ProjectFileNode[]): ProjectFileNode[] {
   })
 }
 
+export function resolveDefaultProjectsRoot(): string {
+  return process.env.COWRITE_PROJECTS_ROOT
+    || path.join(process.env.COWRITE_HOME || path.join(process.env.HOME || '.', '.cowrite'), 'projects')
+}
+
 interface RegisteredProject {
   id: string
   name: string
@@ -78,29 +83,33 @@ interface RegisteredProject {
 export class LocalProjectService {
   private readonly projects = new Map<string, RegisteredProject>()
   private readonly allowedRoots: string[]
+  private readonly defaultRoot: string
 
   constructor(
     private readonly directoryPicker: DirectoryPicker = pickLocalDirectory,
     allowedRoots = (process.env.COWRITE_ALLOWED_PROJECT_ROOTS || '')
       .split(path.delimiter).map((value) => value.trim()).filter(Boolean),
+    defaultRoot = resolveDefaultProjectsRoot(),
   ) {
+    this.defaultRoot = path.resolve(defaultRoot)
     this.allowedRoots = allowedRoots.map((root) => path.resolve(root))
   }
 
   async openProject(selectedDirectory?: string): Promise<LocalProject> {
-    const selected = (selectedDirectory ?? await this.directoryPicker()).trim()
+    const explicit = (selectedDirectory?.trim() || '').length > 0
+    const selected = (selectedDirectory?.trim() || this.defaultRoot).trim()
     if (!selected) throw new Error('已取消选择文件夹')
+    await mkdir(selected, { recursive: true })
     const root = await realpath(selected).catch(() => undefined)
     if (!root || !(await stat(root).catch(() => undefined))?.isDirectory()) {
       throw new Error('选择的项目文件夹不存在或不可读取')
     }
-    if (this.allowedRoots.length) {
+    // 显式传入的目录按配置的 allowed roots 校验；默认项目根目录始终允许打开
+    if (explicit && this.allowedRoots.length) {
       const allowed = await Promise.all(this.allowedRoots.map(async (candidate) => realpath(candidate).catch(() => candidate)))
       if (!allowed.some((candidate) => root === candidate || isWithin(candidate, root))) {
         throw new Error('Project is outside COWRITE_ALLOWED_PROJECT_ROOTS allowed root')
       }
-    } else if (process.env.NODE_ENV === 'production') {
-      throw new Error('COWRITE_ALLOWED_PROJECT_ROOTS must be configured in production')
     }
     const project: RegisteredProject = {
       id: `project_${nanoid(10)}`,

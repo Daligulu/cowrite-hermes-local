@@ -684,6 +684,7 @@ function App() {
         onOpenProject={() => { setWorkspaceView('project'); setSidebarOpen(false) }}
         onOpenTasks={() => { setWorkspaceView('tasks'); setSidebarOpen(false) }}
         onOpenSkills={() => { setWorkspaceView('skill-manager'); setSidebarOpen(false) }}
+        notify={notify}
       />}
       {workspaceView === 'skill-manager' && <SkillManager
         sidebarOpen={sidebarOpen}

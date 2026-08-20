@@ -29,8 +29,10 @@ async function mutationToken(app: ReturnType<typeof createApp>): Promise<string>
 
 describe('local project workspace', () => {
   it('authorizes a chosen folder and builds a Markdown-only tree', async () => {
-    const projectService = new LocalProjectService(async () => directory)
-    const project = await projectService.openProject()
+    const projectService = new LocalProjectService(async () => {
+      throw new Error('picker should not run')
+    })
+    const project = await projectService.openProject(directory)
 
     expect(project.path).toBe(await realpath(directory))
     expect(project.markdownFiles).toEqual([
@@ -42,9 +44,19 @@ describe('local project workspace', () => {
     expect(JSON.stringify(project.tree)).not.toContain('node_modules')
   })
 
+  it('opens the default projects root when no directory is given, without the system picker', async () => {
+    const projectService = new LocalProjectService(async () => {
+      throw new Error('picker should not run')
+    }, [], directory)
+    const project = await projectService.openProject()
+
+    expect(project.path).toBe(await realpath(directory))
+    expect(project.markdownFiles).toContain('README.md')
+  })
+
   it('reads and saves selected Markdown with conflict protection', async () => {
     const projectService = new LocalProjectService(async () => directory)
-    const project = await projectService.openProject()
+    const project = await projectService.openProject(directory)
     const file = await projectService.getMarkdown(project.id, 'notes/idea.markdown')
     expect(file.content).toContain('First draft')
 
@@ -63,7 +75,7 @@ describe('local project workspace', () => {
 
   it('rejects traversal, non-Markdown files, and unknown project ids', async () => {
     const projectService = new LocalProjectService(async () => directory)
-    const project = await projectService.openProject()
+    const project = await projectService.openProject(directory)
     await expect(projectService.getMarkdown(project.id, '../outside.md')).rejects.toThrow(/项目文件夹内/)
     await expect(projectService.getMarkdown(project.id, 'notes/plain.txt')).rejects.toThrow(/只支持 Markdown/)
     await expect(projectService.getProject('missing')).rejects.toThrow(/not found/)
@@ -82,7 +94,7 @@ describe('local project workspace', () => {
     const opened = await request(app)
       .post('/api/projects/open')
       .set('X-Cowrite-Token', token)
-      .send({})
+      .send({ directory })
       .expect(201)
     const file = await request(app)
       .get(`/api/projects/${opened.body.id}/file`)

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { CowriteTask, Page, TaskStatus } from '../shared/types'
 import { cowriteFetch } from './apiClient'
+import { TopicCollectModal } from './TopicCollectModal'
 
 const api = async <T,>(path: string, options?: RequestInit): Promise<T> => {
   const response = await cowriteFetch(path, {
@@ -38,6 +39,7 @@ export function HomeWorkspace({
   onOpenProject,
   onOpenTasks,
   onOpenSkills,
+  notify,
 }: {
   onOpenPage: (pageId: string) => void
   onNewPage: () => void
@@ -45,9 +47,11 @@ export function HomeWorkspace({
   onOpenProject: () => void
   onOpenTasks: () => void
   onOpenSkills: () => void
+  notify: (text: string) => void
 }) {
   const [pages, setPages] = useState<Page[] | null>(null)
   const [tasks, setTasks] = useState<CowriteTask[] | null>(null)
+  const [showTopicModal, setShowTopicModal] = useState(false)
 
   const refresh = useCallback(async () => {
     try {
@@ -83,6 +87,7 @@ export function HomeWorkspace({
   if (!pages || !tasks) return <div className="loading"><span>C</span><p>正在打开工作台…</p></div>
 
   return (
+    <>
     <div className="home-workspace" aria-label="工作台">
       <header className="home-head">
         <div className="home-head-text">
@@ -100,6 +105,10 @@ export function HomeWorkspace({
         <button className="home-card home-card-primary" onClick={onNewPage}>
           <span className="home-card-icon">✍️</span>
           <span><b>从想法创作</b><small>输入标题和要求，Hermes 帮你写初稿</small></span>
+        </button>
+        <button className="home-card home-card-topic" onClick={() => setShowTopicModal(true)}>
+          <span className="home-card-icon">🎯</span>
+          <span><b>开始选题</b><small>多渠道收集候选选题，确认后自动创作</small></span>
         </button>
         <button className="home-card" onClick={onImportPage}>
           <span className="home-card-icon">📥</span>
@@ -168,5 +177,13 @@ export function HomeWorkspace({
         )}
       </section>
     </div>
+    <TopicCollectModal
+      open={showTopicModal}
+      pageId={undefined}
+      onClose={() => setShowTopicModal(false)}
+      onSubmitted={() => void refresh()}
+      notify={notify}
+    />
+    </>
   )
 }

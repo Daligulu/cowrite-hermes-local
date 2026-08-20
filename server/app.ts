@@ -155,7 +155,10 @@ export function createApp(
     anchor: z.string().min(1).max(4000).optional(),
     requirements: z.string().max(20_000).optional(),
     delivery: z.string().max(200).optional(),
-  }).strict().refine((value) => value.pageId || value.projectPath, 'pageId or projectPath is required')
+  }).strict().refine(
+    (value) => value.pageId || value.projectPath || value.action === 'topic-collect',
+    'pageId or projectPath is required',
+  )
   app.post('/api/tasks', async (request, response) => {
     response.status(201).json(await taskStore.create(taskInput.parse(request.body)))
   })
