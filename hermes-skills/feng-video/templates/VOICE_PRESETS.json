@@ -1,0 +1,76 @@
+{
+  "schema_version": "1.0",
+  "default_profile_id": "feng-yunxi",
+  "profiles": {
+    "feng-yunxi": {
+      "profile_id": "feng-yunxi",
+      "display_name": "云希·轻松明快",
+      "description": "峰峰知识视频默认男声：清晰、悦耳、自然、阳光、轻松明快。",
+      "provider": "edge",
+      "adapter": "edge",
+      "voice_id": "zh-CN-YunxiNeural",
+      "language": "zh-CN",
+      "speed": 1.08,
+      "pitch_hz": 0,
+      "style": "自然、清晰、悦耳、轻松明快的知识分享",
+      "authorization": {
+        "type": "provider_preset",
+        "clone": false,
+        "identity_claim": false
+      },
+      "output": {
+        "sample_rate": 48000,
+        "channels": 1,
+        "target_lufs": -16.0,
+        "true_peak_dbtp": -1.0,
+        "preview_bitrate": "192k"
+      },
+      "fallback_profile_id": "feng-yunxi"
+    },
+    "feng-yunyang": {
+      "profile_id": "feng-yunyang",
+      "display_name": "云扬·专业可靠",
+      "description": "清晰、稳定、专业，适合技术教程和正式知识解说。",
+      "provider": "edge",
+      "adapter": "edge",
+      "voice_id": "zh-CN-YunyangNeural",
+      "language": "zh-CN",
+      "speed": 1.08,
+      "pitch_hz": 0,
+      "style": "清晰、稳定、专业、可靠",
+      "authorization": {"type": "provider_preset", "clone": false, "identity_claim": false},
+      "output": {"sample_rate": 48000, "channels": 1, "target_lufs": -16.0, "true_peak_dbtp": -1.0, "preview_bitrate": "192k"},
+      "fallback_profile_id": "feng-yunxi"
+    },
+    "feng-yunjian": {
+      "profile_id": "feng-yunjian",
+      "display_name": "云健·热情有力",
+      "description": "推动感与激情更强，适合Hook、观点和高能段落。",
+      "provider": "edge",
+      "adapter": "edge",
+      "voice_id": "zh-CN-YunjianNeural",
+      "language": "zh-CN",
+      "speed": 1.08,
+      "pitch_hz": 0,
+      "style": "有力、热情、清晰、富有推动感",
+      "authorization": {"type": "provider_preset", "clone": false, "identity_claim": false},
+      "output": {"sample_rate": 48000, "channels": 1, "target_lufs": -16.0, "true_peak_dbtp": -1.0, "preview_bitrate": "192k"},
+      "fallback_profile_id": "feng-yunxi"
+    },
+    "feng-yunxia": {
+      "profile_id": "feng-yunxia",
+      "display_name": "云夏·年轻活泼",
+      "description": "更年轻活泼、亲和，适合轻内容和活泼段落。",
+      "provider": "edge",
+      "adapter": "edge",
+      "voice_id": "zh-CN-YunxiaNeural",
+      "language": "zh-CN",
+      "speed": 1.08,
+      "pitch_hz": 0,
+      "style": "年轻、活泼、亲和、轻快",
+      "authorization": {"type": "provider_preset", "clone": false, "identity_claim": false},
+      "output": {"sample_rate": 48000, "channels": 1, "target_lufs": -16.0, "true_peak_dbtp": -1.0, "preview_bitrate": "192k"},
+      "fallback_profile_id": "feng-yunxi"
+    }
+  }
+}

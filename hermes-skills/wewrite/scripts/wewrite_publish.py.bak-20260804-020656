@@ -1,0 +1,372 @@
+#!/usr/bin/env python3
+"""WeWrite local publisher: professional-clean render + WeChat draft API.
+
+Secrets are loaded from /root/.hermes/.env or process environment and are never
+printed. Use --dry-run for layout/account verification without creating drafts.
+"""
+from __future__ import annotations
+
+import argparse
+import html
+import json
+import mimetypes
+import os
+import re
+import sys
+import urllib.parse
+import urllib.request
+from pathlib import Path
+
+EXPECTED_DOG_APPID = "wx27855f8407f2c81c"
+TOKEN_URL = "https://api.weixin.qq.com/cgi-bin/token"
+UPLOAD_URL = "https://api.weixin.qq.com/cgi-bin/material/add_material"
+UPLOADIMG_URL = "https://api.weixin.qq.com/cgi-bin/media/uploadimg"
+DRAFT_URL = "https://api.weixin.qq.com/cgi-bin/draft/add"
+DEFAULT_ENV = "/root/.hermes/.env"
+
+FORBIDDEN = ["本文由", "分钟阅读", "素材来源", "编辑锚点", "峰峰，可以", "这里可以加", "TODO", "PLACEHOLDER"]
+
+ACCOUNTS = {
+    "dog": {
+        "name": "狗狗生活小百科",
+        "appid": EXPECTED_DOG_APPID,
+        "secret_env": "DOG_WECHAT_SECRET",
+    },
+    "default": {
+        "name": "峰AI路",
+        "appid": os.environ.get("WECHAT_APP_ID_DEFAULT", "") or os.environ.get("WECHAT_APP_ID", "") or "wx42b46ea46863a720",
+        "secret_env": "WECHAT_APP_SECRET_DEFAULT",
+    },
+    "feng": {
+        "name": "峰AI路",
+        "appid": os.environ.get("WECHAT_APP_ID_DEFAULT", "") or os.environ.get("WECHAT_APP_ID", "") or "wx42b46ea46863a720",
+        "secret_env": "WECHAT_APP_SECRET_DEFAULT",
+    },
+}
+
+
+def die(msg: str, code: int = 2) -> None:
+    print(json.dumps({"ok": False, "error": msg}, ensure_ascii=False, indent=2), file=sys.stderr)
+    raise SystemExit(code)
+
+
+def load_default_env(env_path: str = DEFAULT_ENV) -> None:
+    p = Path(env_path)
+    if not p.exists():
+        return
+    for raw in p.read_text(encoding="utf-8", errors="ignore").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key and key not in os.environ:
+            os.environ[key] = value
+
+
+def resolve_account(account: str | None, appid: str | None, secret: str | None) -> tuple[str, str, str]:
+    if account:
+        if account not in ACCOUNTS:
+            die(f"Unknown account alias: {account}. Known: {', '.join(ACCOUNTS)}")
+        cfg = ACCOUNTS[account]
+        resolved_appid = appid or cfg["appid"] or os.environ.get("DOG_WECHAT_APPID", "")
+        resolved_secret = secret or os.environ.get(cfg["secret_env"], "")
+        return cfg["name"], resolved_appid, resolved_secret
+    resolved_appid = appid or os.environ.get("DOG_WECHAT_APPID", "")
+    resolved_secret = secret or os.environ.get("DOG_WECHAT_SECRET", "")
+    return "custom", resolved_appid, resolved_secret
+
+
+def request_json(url: str, *, method: str = "GET", data: bytes | None = None, headers: dict | None = None) -> dict:
+    req = urllib.request.Request(url, data=data, method=method, headers=headers or {})
+    with urllib.request.urlopen(req, timeout=90) as resp:
+        raw = resp.read().decode("utf-8", errors="replace")
+    try:
+        obj = json.loads(raw)
+    except json.JSONDecodeError:
+        die(f"Non-JSON response from WeChat API: {raw[:500]}")
+    if obj.get("errcode") not in (None, 0):
+        die(f"WeChat API error: {obj}", code=3)
+    return obj
+
+
+def get_access_token(appid: str, secret: str) -> tuple[str, dict]:
+    qs = urllib.parse.urlencode({"grant_type": "client_credential", "appid": appid, "secret": secret})
+    obj = request_json(f"{TOKEN_URL}?{qs}")
+    token = obj.get("access_token")
+    if not token:
+        die(f"access_token missing: {obj}")
+    return token, {"expires_in": obj.get("expires_in"), "access_token_received": True}
+
+
+def encode_multipart(fields: dict[str, str], files: dict[str, Path]) -> tuple[bytes, str]:
+    boundary = "----HermesWeWriteBoundary7MA4YWxkTrZu0gW"
+    chunks: list[bytes] = []
+    for name, value in fields.items():
+        chunks.append(f"--{boundary}\r\n".encode())
+        chunks.append(f'Content-Disposition: form-data; name="{name}"\r\n\r\n'.encode())
+        chunks.append(str(value).encode())
+        chunks.append(b"\r\n")
+    for name, path in files.items():
+        ctype = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
+        chunks.append(f"--{boundary}\r\n".encode())
+        chunks.append(f'Content-Disposition: form-data; name="{name}"; filename="{path.name}"\r\n'.encode())
+        chunks.append(f"Content-Type: {ctype}\r\n\r\n".encode())
+        chunks.append(path.read_bytes())
+        chunks.append(b"\r\n")
+    chunks.append(f"--{boundary}--\r\n".encode())
+    return b"".join(chunks), boundary
+
+
+def upload_thumb(token: str, cover: Path) -> str:
+    if not cover.exists() or not cover.is_file():
+        die(f"Cover image not found: {cover}")
+    qs = urllib.parse.urlencode({"access_token": token, "type": "thumb"})
+    body, boundary = encode_multipart({}, {"media": cover})
+    obj = request_json(f"{UPLOAD_URL}?{qs}", method="POST", data=body, headers={"Content-Type": f"multipart/form-data; boundary={boundary}"})
+    media_id = obj.get("media_id")
+    if not media_id:
+        die(f"thumb media_id missing: {obj}")
+    return media_id
+
+
+def upload_article_image(token: str, image: Path) -> str:
+    """Upload a local body image for use inside WeChat article content HTML."""
+    if not image.exists() or not image.is_file():
+        die(f"Article image not found: {image}")
+    qs = urllib.parse.urlencode({"access_token": token})
+    body, boundary = encode_multipart({}, {"media": image})
+    obj = request_json(f"{UPLOADIMG_URL}?{qs}", method="POST", data=body, headers={"Content-Type": f"multipart/form-data; boundary={boundary}"})
+    url = obj.get("url")
+    if not url:
+        die(f"article image url missing: {obj}")
+    return url
+
+
+def collect_markdown_images(md: str, base_dir: Path) -> dict[str, Path]:
+    """Collect local Markdown image references like ![alt](relative.png)."""
+    images: dict[str, Path] = {}
+    for m in re.finditer(r"!\[[^\]]*\]\(([^)]+)\)", md):
+        raw = m.group(1).strip().strip('"').strip("'")
+        if not raw or raw.startswith(("http://", "https://", "data:")):
+            continue
+        path = Path(raw)
+        if not path.is_absolute():
+            path = base_dir / path
+        images[raw] = path
+    return images
+
+
+def inline(text: str) -> str:
+    safe = html.escape(text)
+    safe = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", safe)
+    safe = re.sub(r"`(.+?)`", r"<code style='background:#f6f6f6;border-radius:4px;padding:1px 4px;color:#8a5a35;'>\1</code>", safe)
+    return safe
+
+
+def render_professional_clean(md: str, image_url_map: dict[str, str] | None = None) -> tuple[str, str]:
+    lines = md.splitlines()
+    title = "微信公众号文章"
+    body: list[str] = []
+    pending_ul: list[str] = []
+    para: list[str] = []
+    image_url_map = image_url_map or {}
+
+    def flush_para() -> None:
+        nonlocal para
+        if para:
+            text = " ".join(x.strip() for x in para if x.strip())
+            body.append(
+                "<p style=\"margin: 14px 0; color:#3f3f3f; font-size:16px; line-height:1.85; letter-spacing:0.2px;\">"
+                + inline(text)
+                + "</p>"
+            )
+            para = []
+
+    def flush_ul() -> None:
+        nonlocal pending_ul
+        if pending_ul:
+            items = "".join(
+                "<li style=\"margin:8px 0;color:#4b4b4b;font-size:15px;line-height:1.75;\">"
+                "<span style=\"color:#d48a45;font-weight:700;\">✓</span> "
+                + inline(item)
+                + "</li>"
+                for item in pending_ul
+            )
+            body.append(
+                "<section style=\"margin:18px 0;padding:12px 16px;background:#fffaf3;border-radius:12px;border:1px solid #f1dfc8;\">"
+                f"<ul style=\"padding-left:0;list-style:none;margin:0;\">{items}</ul></section>"
+            )
+            pending_ul = []
+
+    for raw in lines:
+        line = raw.rstrip()
+        if not line.strip():
+            flush_para(); flush_ul(); continue
+        img = re.match(r"^!\[([^\]]*)\]\(([^)]+)\)\s*$", line.strip())
+        if img:
+            flush_para(); flush_ul()
+            alt = img.group(1).strip()
+            raw_src = img.group(2).strip().strip('"').strip("'")
+            src = image_url_map.get(raw_src, raw_src)
+            # Body images use Markdown alt text for accessibility/context only.
+            # Do not render visible captions in WeChat drafts: writing workflows
+            # historically inserted descriptive alt text such as "正文配图：...",
+            # and exposing it below the image looks like an editor note in the
+            # published article. Also strip that editor prefix from the alt attr.
+            alt_attr = re.sub(r"^(正文配图|配图说明)\s*[：:]\s*", "", alt).strip()
+            body.append(
+                "<figure style=\"margin:22px 0;text-align:center;\">"
+                f"<img src=\"{html.escape(src, quote=True)}\" alt=\"{html.escape(alt_attr, quote=True)}\" "
+                "style=\"max-width:100%;border-radius:14px;display:block;margin:0 auto;box-shadow:0 6px 18px rgba(95,55,27,0.08);\"/>"
+                + "</figure>"
+            )
+            continue
+        if line.startswith("# "):
+            if title == "微信公众号文章":
+                title = line[2:].strip()[:64]
+            continue
+        if line.startswith("## "):
+            flush_para(); flush_ul()
+            heading = line[3:].strip()
+            body.append(
+                "<section style=\"margin:28px 0 14px;padding:0 0 0 12px;border-left:4px solid #d48a45;\">"
+                f"<h2 style=\"margin:0;color:#7a4b24;font-size:19px;line-height:1.5;font-weight:700;\">{inline(heading)}</h2></section>"
+            )
+            continue
+        if line.startswith("### "):
+            flush_para(); flush_ul()
+            heading = line[4:].strip()
+            body.append(f"<h3 style=\"margin:20px 0 8px;color:#8a5a35;font-size:17px;line-height:1.6;\">{inline(heading)}</h3>")
+            continue
+        if line.startswith(">"):
+            flush_para(); flush_ul()
+            quote = line.lstrip("> ").strip()
+            body.append(
+                "<blockquote style=\"margin:18px 0;padding:12px 16px;background:#f8f4ee;border-left:4px solid #d9b98c;color:#6a5a48;line-height:1.8;border-radius:8px;\">"
+                + inline(quote) + "</blockquote>"
+            )
+            continue
+        m = re.match(r"^[-*]\s+(.+)$", line)
+        if m:
+            flush_para()
+            pending_ul.append(m.group(1).strip())
+            continue
+        para.append(line)
+    flush_para(); flush_ul()
+    content = (
+        "<section style=\"max-width:100%;margin:0 auto;padding:4px 0 12px;background:#ffffff;\">"
+        + "<section style=\"margin:0 0 20px;padding:16px 18px;background:linear-gradient(135deg,#fff7ec,#ffffff);border-radius:14px;border:1px solid #f1dfc8;\">"
+        + f"<h1 style=\"margin:0;color:#5f371b;font-size:22px;line-height:1.45;font-weight:800;\">{inline(title)}</h1>"
+        + "</section>"
+        + "".join(body)
+        + "</section>"
+    )
+    return title, content
+
+
+def add_draft(token: str, *, title: str, author: str, digest: str, content_html: str, thumb_media_id: str, source_url: str = "") -> dict:
+    payload = {
+        "articles": [
+            {
+                "title": title[:64],
+                "author": author[:8] if author else "",
+                "digest": digest[:120] if digest else "",
+                "content": content_html,
+                "content_source_url": source_url,
+                "thumb_media_id": thumb_media_id,
+                "need_open_comment": 0,
+                "only_fans_can_comment": 0,
+            }
+        ]
+    }
+    qs = urllib.parse.urlencode({"access_token": token})
+    return request_json(f"{DRAFT_URL}?{qs}", method="POST", data=json.dumps(payload, ensure_ascii=False).encode("utf-8"), headers={"Content-Type": "application/json; charset=utf-8"})
+
+
+def main() -> int:
+    load_default_env()
+    ap = argparse.ArgumentParser(description="WeWrite professional-clean WeChat draft publisher")
+    ap.add_argument("markdown", type=Path, nargs="?", help="Article markdown")
+    ap.add_argument("cover", type=Path, nargs="?", help="Local cover image")
+    ap.add_argument("--account", default="dog", help="Account alias, default: dog")
+    ap.add_argument("--appid", default=None)
+    ap.add_argument("--secret", default=None)
+    ap.add_argument("--author", default="狗狗生活小百科")
+    ap.add_argument("--digest", default="给铲屎官的一份实用提醒")
+    ap.add_argument("--source-url", default="")
+    ap.add_argument("--html-out", type=Path, default=None, help="Write rendered HTML to this file")
+    ap.add_argument("--dry-run", action="store_true", help="Render and validate token/account, but do not upload cover or create draft")
+    ap.add_argument("--allow-non-dog-appid", action="store_true")
+    args = ap.parse_args()
+
+    if not args.markdown:
+        ap.print_help()
+        return 0
+    account_name, appid, secret = resolve_account(args.account, args.appid, args.secret)
+    if not appid:
+        die("Missing appid. Use --appid or DOG_WECHAT_APPID/account alias.")
+    if not secret:
+        die("Missing secret. Use --secret or account secret env var.")
+    if appid != EXPECTED_DOG_APPID and not args.allow_non_dog_appid:
+        die(f"Refusing to publish to non-dog appid {appid}; expected {EXPECTED_DOG_APPID}.")
+    if not args.markdown.exists():
+        die(f"Markdown file not found: {args.markdown}")
+    if not args.dry_run and (not args.cover or not args.cover.exists()):
+        die(f"Cover image not found: {args.cover}")
+
+    md = args.markdown.read_text(encoding="utf-8")
+    hits = [x for x in FORBIDDEN if x in md]
+    if hits:
+        die("Forbidden publish text found: " + ", ".join(hits))
+
+    local_images = collect_markdown_images(md, args.markdown.parent)
+    token, token_meta = get_access_token(appid, secret)
+    image_url_map: dict[str, str] = {}
+    if args.dry_run:
+        # Render local paths in dry-run so layout can be inspected without upload side effects.
+        image_url_map = {raw: str(path) for raw, path in local_images.items()}
+    else:
+        image_url_map = {raw: upload_article_image(token, path) for raw, path in local_images.items()}
+
+    title, content_html = render_professional_clean(md, image_url_map)
+    if args.html_out:
+        args.html_out.parent.mkdir(parents=True, exist_ok=True)
+        args.html_out.write_text(content_html, encoding="utf-8")
+
+    if args.dry_run:
+        print(json.dumps({
+            "ok": True,
+            "dry_run": True,
+            "account": account_name,
+            "appid": appid,
+            "title": title,
+            "html_out": str(args.html_out) if args.html_out else None,
+            "html_bytes": len(content_html.encode('utf-8')),
+            "token": token_meta,
+            "article_images": {raw: str(path) for raw, path in local_images.items()},
+        }, ensure_ascii=False, indent=2))
+        return 0
+
+    thumb_media_id = upload_thumb(token, args.cover)
+    draft_resp = add_draft(token, title=title, author=args.author, digest=args.digest, content_html=content_html, thumb_media_id=thumb_media_id, source_url=args.source_url)
+    print(json.dumps({
+        "ok": True,
+        "renderer": "wewrite/professional-clean",
+        "account": account_name,
+        "appid": appid,
+        "title": title,
+        "markdown": str(args.markdown),
+        "cover": str(args.cover),
+        "html_out": str(args.html_out) if args.html_out else None,
+        "article_images": image_url_map,
+        "thumb_media_id": thumb_media_id,
+        "draft_media_id": draft_resp.get("media_id"),
+        "draft_response": draft_resp,
+    }, ensure_ascii=False, indent=2))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

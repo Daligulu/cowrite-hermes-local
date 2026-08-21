@@ -1,0 +1,17 @@
+{
+  "audio": "audio/voiceover.mp3",
+  "captions": "captions/voiceover.srt",
+  "duration": 0,
+  "beats": [
+    {
+      "id": "b001",
+      "start": 0.0,
+      "end": 0.0,
+      "scene_id": "s001",
+      "caption": "",
+      "keyword": "",
+      "visual_action": "reveal",
+      "hold": 0.8
+    }
+  ]
+}

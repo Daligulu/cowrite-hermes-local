@@ -1,0 +1,28 @@
+{
+  "schema_version": "1.0",
+  "profile_id": "{{VOICE_PROFILE_ID}}",
+  "owner": "self_or_authorized",
+  "status": "awaiting_recording",
+  "cloud_upload_authorized": false,
+  "provider": null,
+  "provider_voice_id": null,
+  "raw_samples": [],
+  "cleaned_samples": [],
+  "retention": {
+    "raw_samples": "local_private_only",
+    "public_project_export": false,
+    "public_voice_library": false
+  },
+  "qa": {
+    "duration_seconds": null,
+    "effective_speech_seconds": null,
+    "sample_rate": null,
+    "channels": null,
+    "noise_floor_db": null,
+    "clipping_detected": null,
+    "reverb_assessment": null,
+    "pronunciation_coverage": [],
+    "accepted": false,
+    "notes": []
+  }
+}

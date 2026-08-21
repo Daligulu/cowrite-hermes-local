@@ -1,0 +1,42 @@
+# WeWrite Local Config Example
+# Copy to /root/.hermes/workspace/wewrite/config.yaml and set secrets in /root/.hermes/.env.
+
+accounts:
+  dog:
+    name: 狗狗生活小百科
+    appid: wx27855f8407f2c81c
+    secret_env: DOG_WECHAT_SECRET
+
+theme: professional-clean
+
+image:
+  timeout: 300
+  output_dir: /root/.hermes/workspace/wewrite/output
+  providers:
+    - provider: apiyi
+      enabled: true
+      base_url: https://api.apiyi.com/v1
+      endpoint: /images/generations
+      model: chatgpt-image-latest
+      api_key_env: APIYI_API_KEY
+      response_format: auto
+      size: "1024x1024"
+    - provider: doubao
+      enabled: true
+      base_url: https://ark.cn-beijing.volces.com/api/v3
+      endpoint: /images/generations
+      model: doubao-seedream-5-0
+      api_key_env: DOUBAO_API_KEY
+      response_format: auto
+      size: "2048x2048"
+
+cover:
+  default_prompt_template: >-
+    暖色调治愈系公众号封面插画，一只健康可爱的狗狗在温馨家庭环境中，主题是「{topic}」，柔和自然光，干净留白，适合中文公众号首图，专业但亲切，不要文字，不要水印，不要夸张表情，高清插画
+  output_size: "900x383"
+  fallback_local: false
+
+# Secrets expected in /root/.hermes/.env:
+# APIYI_API_KEY=...
+# DOUBAO_API_KEY=...
+# DOG_WECHAT_SECRET=...

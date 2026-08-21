@@ -1,0 +1,50 @@
+{
+  "schema_version": "2.1",
+  "title": "{{TITLE}}",
+  "resolution": {"width": 1920, "height": 1080},
+  "fps": 30,
+  "voice": "zh-CN-YunxiNeural",
+  "voice_rate": "+10%",
+  "scenes": [
+    {
+      "id": "s001",
+      "title": "Hook",
+      "start": 0.0,
+      "end": 6.0,
+      "narration": "{{HOOK_NARRATION}}",
+      "caption": "{{HOOK_CAPTION}}",
+      "source_span": {"unit_index": 0, "excerpt": "{{SOURCE_EXCERPT}}"},
+      "visual_template": "hook",
+      "asset_mode": "code",
+      "visual_job": "在前几秒建立冲突和悬念",
+      "main_object": "{{MAIN_OBJECT}}",
+      "actions": ["reveal", "emphasize"],
+      "feng_role": "question",
+      "feng_asset": "assets/feng/hook.png",
+      "interaction_mode": "gaze-gesture",
+      "motion_strategy": "static-overlay",
+      "action_phase_timebase": "scene-relative",
+      "action_phases": [
+        {"name": "anticipation", "start": 0.0, "end": 0.9, "contact": false},
+        {"name": "contact", "start": 0.9, "end": 1.8, "contact": false},
+        {"name": "manipulation", "start": 1.8, "end": 4.2, "contact": false},
+        {"name": "release", "start": 4.2, "end": 5.1, "contact": false},
+        {"name": "result", "start": 5.1, "end": 6.0, "contact": false}
+      ],
+      "interaction_contract": {
+        "actor": "Feng",
+        "intent": "建立悬念并引导注意",
+        "action": "提问并看向主物件",
+        "target": "{{MAIN_OBJECT}}",
+        "contact_points": [],
+        "motion_or_force": "视线与手势指向主物件",
+        "body_response": "头部、眼神和手势方向一致",
+        "object_response": "主物件进入强调状态",
+        "occlusion": "none",
+        "result_state": "观众注意力被引导到核心冲突"
+      },
+      "screen_source": null,
+      "transition": "object-handoff"
+    }
+  ]
+}

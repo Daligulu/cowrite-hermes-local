@@ -1,0 +1,18 @@
+{
+  "keyword_chain": [],
+  "relay_object": "",
+  "direction_map": [],
+  "scenes": [
+    {
+      "scene_id": "s001",
+      "action_object": "",
+      "state_changes": [
+        {"at": 0.0, "type": "reveal", "target": ""}
+      ],
+      "transition_in": "fade",
+      "transition_out": "object-handoff",
+      "readable_hold": 0.8,
+      "anti_ppt_note": ""
+    }
+  ]
+}
