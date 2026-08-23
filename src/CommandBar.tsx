@@ -47,6 +47,7 @@ function detectAction(text: string, actions: ActionConfig[]): { action: string; 
 export function EditorCommandBar({ page, notify }: { page: Page; notify: (message: string) => void }) {
   const [text, setText] = useState('')
   const [moreOpen, setMoreOpen] = useState(false)
+  const [selectorOpen, setSelectorOpen] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [tasks, setTasks] = useState<CowriteTask[]>([])
   const [expanded, setExpanded] = useState(false)
@@ -185,7 +186,7 @@ export function EditorCommandBar({ page, notify }: { page: Page; notify: (messag
 
   const statusDot = (status: TaskStatus) => `dot ${status}`
   const statusLabel = (status: TaskStatus) => STATUS_LABELS[status] ?? status
-  const chipActions = actions.filter((action) => action.enabled && action.chip)
+  const selectableActions = actions.filter((action) => action.enabled)
   const moreActions = actions.filter((action) => action.enabled && !action.chip)
 
   return (
@@ -205,11 +206,18 @@ export function EditorCommandBar({ page, notify }: { page: Page; notify: (messag
           </button>
         </div>
         <div className="command-chips">
-          {chipActions.map((option) => (
-            <button key={option.id} disabled={submitting} onClick={() => chip(option.id)}>
-              {option.label}
-            </button>
-          ))}
+          <div className="command-selector">
+            <button className="selector-toggle" disabled={submitting} onClick={() => setSelectorOpen((open) => !open)}>选择动作 ▾</button>
+            {selectorOpen && (
+              <div className="selector-list">
+                {selectableActions.map((option) => (
+                  <button key={option.id} disabled={submitting} onClick={() => { setSelectorOpen(false); chip(option.id) }}>
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <button className="more-chip" onClick={() => setMoreOpen((open) => !open)}>更多 ▾</button>
         </div>
         {moreOpen && (

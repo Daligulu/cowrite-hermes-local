@@ -193,6 +193,54 @@ export const DEFAULT_ACTIONS: ActionConfig[] = [
     ],
     workflow: [],
   },
+  {
+    id: 'toutiao-micro-draft',
+    label: '微头条草稿',
+    enabled: true,
+    chip: false,
+    keywords: ['微头条', '发微头条', '微头条草稿'],
+    skills: ['humanizer-zh'],
+    prompts: [
+      { id: 'main', role: 'system', text: '把当前页面内容整理为「微头条草稿」并通知手机创建。规则：① 读取当前页面正文（标题 + 内容）；② 提炼 280-320 字微头条短文案（保留核心观点，分段，humanizer-zh 润色去 AI 味；若页面含配图，选 1-3 张最相关的图一并附上）；③ 用 agent-queue-post.py 投递任务到 Memos 信箱，收件人 @openminis，内容含：目标平台=今日头条微头条、标题（可选）、正文=短文案、配图 URL、操作指引=打开头条号 App/网页版「发布-微头条」创建草稿（不发布，只存草稿）；④ 在页面末尾追加「【已通知手机创建微头条草稿】时间 + 信箱 memo 链接」；⑤ 不得直接调用头条 API（服务器无权限），投递信箱后即算完成。' },
+    ],
+    workflow: [],
+  },
+  {
+    id: 'toutiao-article-draft',
+    label: '头条文章草稿',
+    enabled: true,
+    chip: false,
+    keywords: ['头条文章', '发头条文章', '头条文章草稿'],
+    skills: [],
+    prompts: [
+      { id: 'main', role: 'system', text: '把当前页面内容整理为「头条文章草稿」并通知手机创建。规则：① 读取当前页面正文（标题 + 内容，配图保留原文位置）；② 头条文章正文 = 页面全文（标题 + 段落 + 配图），必要时做平台适配（分段、小标题）；③ 用 agent-queue-post.py 投递任务到 Memos 信箱，收件人 @openminis，内容含：目标平台=今日头条头条号文章、标题=页面标题、正文=全文、配图 URL、操作指引=打开头条号 App/网页版「创作-文章」创建草稿（不发布，只存草稿）；④ 在页面末尾追加「【已通知手机创建头条文章草稿】时间 + 信箱 memo 链接」；⑤ 不得直接调用头条 API，投递信箱后即算完成。' },
+    ],
+    workflow: [],
+  },
+  {
+    id: 'zhihu-article-draft',
+    label: '知乎文章草稿',
+    enabled: true,
+    chip: false,
+    keywords: ['知乎文章', '发知乎文章', '知乎文章草稿'],
+    skills: [],
+    prompts: [
+      { id: 'main', role: 'system', text: '把当前页面内容整理为「知乎文章草稿」并通知手机创建。规则：① 读取当前页面正文（标题 + 内容）；② 知乎文章正文 = 页面全文（标题 + 段落），保留配图；③ 用 agent-queue-post.py 投递任务到 Memos 信箱，收件人 @openminis，内容含：目标平台=知乎文章、标题=页面标题、正文=全文、配图 URL、操作指引=打开知乎 App/网页版「创作-写文章」创建草稿（不发布，只存草稿）；④ 在页面末尾追加「【已通知手机创建知乎文章草稿】时间 + 信箱 memo 链接」；⑤ 不得直接调用知乎 API，投递信箱后即算完成。' },
+    ],
+    workflow: [],
+  },
+  {
+    id: 'zhihu-idea-draft',
+    label: '知乎想法草稿',
+    enabled: true,
+    chip: false,
+    keywords: ['知乎想法', '发知乎想法', '知乎想法草稿'],
+    skills: ['humanizer-zh'],
+    prompts: [
+      { id: 'main', role: 'system', text: '把当前页面内容整理为「知乎想法草稿」并通知手机创建。规则：① 读取当前页面正文；② 提炼 ≤140 字知乎想法短文案（humanizer-zh 润色，可含 1 张配图）；③ 用 agent-queue-post.py 投递任务到 Memos 信箱，收件人 @openminis，内容含：目标平台=知乎想法、正文=短文案、配图 URL（可选）、操作指引=打开知乎 App「发布想法」创建草稿（不发布，只存草稿）；④ 在页面末尾追加「【已通知手机创建知乎想法草稿】时间 + 信箱 memo 链接」；⑤ 不得直接调用知乎 API，投递信箱后即算完成。' },
+    ],
+    workflow: [],
+  },
 ]
 
 function isMissingFile(error: unknown): boolean {
