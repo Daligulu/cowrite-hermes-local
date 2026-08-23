@@ -373,6 +373,7 @@
 }
 /* ===== Home workspace ===== */
 .home-workspace { width: 100%; max-width: 880px; margin: 0 auto; padding: 28px 16px 60px; box-sizing: border-box; display: grid; grid-gap: 26px; gap: 26px; min-width: 0; }
+.home-workspace > * { min-width: 0; }
 .home-head { display: flex; align-items: flex-start; justify-content: space-between; }
 .home-head > * + * { margin-left: 16px; }
 .home-head > * { min-width: 0; }
