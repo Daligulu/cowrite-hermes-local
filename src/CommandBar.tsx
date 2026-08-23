@@ -46,8 +46,8 @@ function detectAction(text: string, actions: ActionConfig[]): { action: string; 
 
 export function EditorCommandBar({ page, notify }: { page: Page; notify: (message: string) => void }) {
   const [text, setText] = useState('')
-  const [moreOpen, setMoreOpen] = useState(false)
   const [selectorOpen, setSelectorOpen] = useState(false)
+  const [selectorPos, setSelectorPos] = useState<{ left: number; bottom: number } | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [tasks, setTasks] = useState<CowriteTask[]>([])
   const [expanded, setExpanded] = useState(false)
@@ -187,7 +187,16 @@ export function EditorCommandBar({ page, notify }: { page: Page; notify: (messag
   const statusDot = (status: TaskStatus) => `dot ${status}`
   const statusLabel = (status: TaskStatus) => STATUS_LABELS[status] ?? status
   const selectableActions = actions.filter((action) => action.enabled)
-  const moreActions = actions.filter((action) => action.enabled && !action.chip)
+
+  const toggleSelector = (event: React.MouseEvent<HTMLButtonElement>) => {
+    if (selectorOpen) {
+      setSelectorOpen(false)
+      return
+    }
+    const rect = event.currentTarget.getBoundingClientRect()
+    setSelectorPos({ left: rect.left, bottom: window.innerHeight - rect.top + 6 })
+    setSelectorOpen(true)
+  }
 
   return (
     <div className="editor-command">
@@ -207,9 +216,9 @@ export function EditorCommandBar({ page, notify }: { page: Page; notify: (messag
         </div>
         <div className="command-chips">
           <div className="command-selector">
-            <button className="selector-toggle" disabled={submitting} onClick={() => setSelectorOpen((open) => !open)}>选择动作 ▾</button>
-            {selectorOpen && (
-              <div className="selector-list">
+            <button className="selector-toggle" disabled={submitting} onClick={toggleSelector}>选择动作 ▾</button>
+            {selectorOpen && selectorPos && (
+              <div className="selector-list" style={{ left: selectorPos.left, bottom: selectorPos.bottom }}>
                 {selectableActions.map((option) => (
                   <button key={option.id} disabled={submitting} onClick={() => { setSelectorOpen(false); chip(option.id) }}>
                     {option.label}
@@ -218,17 +227,7 @@ export function EditorCommandBar({ page, notify }: { page: Page; notify: (messag
               </div>
             )}
           </div>
-          <button className="more-chip" onClick={() => setMoreOpen((open) => !open)}>更多 ▾</button>
         </div>
-        {moreOpen && (
-          <div className="command-more">
-            {moreActions.map((option) => (
-              <button key={option.id} disabled={submitting} onClick={() => { setMoreOpen(false); chip(option.id) }}>
-                {option.label}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
       {latest && (
