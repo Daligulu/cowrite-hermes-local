@@ -521,6 +521,7 @@ function App() {
   const [deletePendingTasks, setDeletePendingTasks] = useState(0)
   const [saveState, setSaveState] = useState<'saved' | 'dirty'>('saved')
   const [toast, setToast] = useState('')
+  const [toastLeaving, setToastLeaving] = useState(false)
 
   const refreshList = useCallback(async () => {
     const list = await api<PageMeta[]>('/api/pages')
@@ -544,9 +545,13 @@ function App() {
     api<Page>(`/api/pages/${activeId}`).then(setActivePage).catch(() => setActivePage(null))
   }, [activeId])
 
-  useEffect(() => { if (!toast) return; const timer = setTimeout(() => setToast(''), 3000); return () => clearTimeout(timer) }, [toast])
+  useEffect(() => {
+    if (!toast) return
+    const timer = setTimeout(() => setToastLeaving(true), 2200)
+    return () => clearTimeout(timer)
+  }, [toast])
 
-  const notify = useCallback((text: string) => setToast(text), [])
+  const notify = useCallback((text: string) => { setToastLeaving(false); setToast(text) }, [])
   const onSaved = useCallback((updated: Page) => {
     setSaveState('saved')
     setActivePage((current) => current?.id === updated.id ? { ...current, ...updated } : current)
@@ -754,7 +759,7 @@ function App() {
       onClose={() => { setDeleteTarget(null); setDeletePendingTasks(0) }}
       onConfirm={() => removePage(deleteTarget)}
     />}
-    {toast && <div className="toast">✓ {toast}</div>}
+    {toast && <div className={`toast ${toastLeaving ? 'is-leaving' : ''}`} onAnimationEnd={() => { if (toastLeaving) { setToast(''); setToastLeaving(false) } }}>✓ {toast}</div>}
   </div>
 }
 
