@@ -380,7 +380,8 @@
 
 .home-head-text h1 { font-size: 24px; font-weight: 700; color: #1c2b3a; margin: 0 0 6px; }
 .home-head-text p { margin: 0; color: #7a8694; font-size: 13px; }
-.home-queue-chip { flex: none; display: inline-flex; align-items: center; border: 1px solid #dce5f0; background: #f4f8ff; color: #24579e; border-radius: 999px; padding: 7px 13px; font-size: 12px; cursor: pointer; max-width: 100%; }
+.home-head-text { flex: 1 1 auto; min-width: 0; }
+.home-queue-chip { flex: 0 1 auto; min-width: 0; display: inline-flex; align-items: center; border: 1px solid #dce5f0; background: #f4f8ff; color: #24579e; border-radius: 999px; padding: 7px 13px; font-size: 12px; cursor: pointer; max-width: 100%; box-sizing: border-box; }
 .home-queue-chip > * + * { margin-left: 7px; }
 
 .home-queue-dot { width: 8px; height: 8px; border-radius: 50%; background: #2f7de1; animation: task-pulse 1.2s ease-in-out infinite; }
