@@ -393,13 +393,15 @@
 .home-card > span:last-child { flex: 1; min-width: 0; }
 .home-card b { display: block; font-size: 14px; color: #222; margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .home-card small { display: block; font-size: 11px; color: #8a94a0; line-height: 1.5; min-width: 0; overflow-wrap: anywhere; word-break: break-word; }
-.home-section { display: grid; grid-gap: 10px; gap: 10px }
+.home-section { display: grid; grid-gap: 10px; gap: 10px; min-width: 0; }
+.home-section > * { min-width: 0; }
 .home-section-head { display: flex; align-items: center; justify-content: space-between; }
 .home-section-head h2 { font-size: 15px; font-weight: 600; color: #2c3e50; margin: 0; }
 .home-link { border: 0; background: transparent; color: #5b7fb5; font-size: 12px; cursor: pointer; padding: 4px 6px; border-radius: 6px; }
 .home-link:hover { background: #f0f5ff; }
-.home-list { list-style: none; margin: 0; padding: 0; display: grid; grid-gap: 6px; gap: 6px }
-.home-row { width: 100%; display: flex; align-items: center; text-align: left; border: 1px solid var(--line); background: #fff; border-radius: 11px; padding: 11px 13px; cursor: pointer; }
+.home-list { list-style: none; margin: 0; padding: 0; display: grid; grid-gap: 6px; gap: 6px; min-width: 0; }
+.home-list > * { min-width: 0; }
+.home-row { width: 100%; min-width: 0; display: flex; align-items: center; text-align: left; border: 1px solid var(--line); background: #fff; border-radius: 11px; padding: 11px 13px; cursor: pointer; box-sizing: border-box; }
 .home-row > * + * { margin-left: 11px; }
 
 .home-row:hover { background: #f8fafd; border-color: #d5dff0; }
