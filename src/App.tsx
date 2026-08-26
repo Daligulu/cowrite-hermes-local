@@ -162,6 +162,21 @@ function Editor({ page, onDirty, onSaved, notify }: {
   const [selectionBar, setSelectionBar] = useState<{ x: number; y: number; text: string } | null>(null)
   const pageId = page.id
 
+  // 公众号排版主题：优先从 /api/style-config 的 layout 预设读取，失败用兜底列表
+  const [gzhThemes, setGzhThemes] = useState<Array<{ id: string; label: string; description?: string }>>([])
+  const [gzhTheme, setGzhTheme] = useState('graphite-minimal')
+  const [gzhThemesState, setGzhThemesState] = useState<'loading' | 'ready'>('loading')
+  useEffect(() => {
+    let mounted = true
+    api<{ config: { styles: { layout?: Array<{ id: string; label: string; description?: string }> } } }>('/api/style-config')
+      .then((data) => {
+        const layout = data?.config?.styles?.layout ?? []
+        if (mounted && layout.length) { setGzhThemes(layout); setGzhThemesState('ready') }
+      })
+      .catch(() => { if (mounted) setGzhThemesState('ready') })
+    return () => { mounted = false }
+  }, [])
+
   const uploadClipboardImage = async (file: File) => {
     if (!['image/png', 'image/jpeg', 'image/gif', 'image/webp'].includes(file.type)) {
       throw new Error('仅支持粘贴 PNG、JPEG、GIF 或 WebP 图片')
@@ -454,8 +469,23 @@ function Editor({ page, onDirty, onSaved, notify }: {
     }
   }
 
+  const applyGzhTheme = () => {
+    const theme = gzhThemes.find((t) => t.id === gzhTheme)
+    const name = theme?.label ?? '石墨极简'
+    void sendAi('gzh-layout', `主题：${gzhTheme}（${name}）；请把当前页面内容按该主题排版成公众号 HTML 初稿并写回页面。`, `已发送「${name}」排版任务，结果将写回当前页面`)
+  }
+
   return <>
     <div className="editor-toolbar">
+      <div className="theme-select">
+        <span className="theme-label">主题</span>
+        <select value={gzhTheme} onChange={(event) => setGzhTheme(event.target.value)} disabled={gzhThemesState === 'loading'}>
+          {gzhThemes.length === 0
+            ? <option value="graphite-minimal">石墨极简</option>
+            : gzhThemes.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+        </select>
+        <button type="button" className="editor-theme-apply" onClick={applyGzhTheme}>排版</button>
+      </div>
       <button type="button" className="editor-tool" onClick={undo} disabled={!canUndo} title="回退（Ctrl+Z）">↶ 回退</button>
       <button type="button" className="editor-tool" onClick={redo} disabled={!canRedo} title="恢复（Ctrl+Y）">↷ 恢复</button>
       <span className="editor-toolbar-spacer" />

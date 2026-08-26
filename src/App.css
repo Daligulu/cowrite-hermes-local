@@ -73,6 +73,11 @@
 .editor-toolbar .editor-save:hover:not(:disabled) { filter: brightness(1.1); }
 .editor-toolbar .editor-save:disabled { opacity: .6; cursor: default; }
 .editor-toolbar .editor-toolbar-spacer { flex: 1; }
+.editor-toolbar .theme-select { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
+.editor-toolbar .theme-label { font-size: 13px; color: #787774; }
+.editor-toolbar .theme-select select { border: 1px solid #e3e2df; background: #ffffff; color: #37352f; border-radius: 6px; padding: 6px 8px; font-size: 13px; line-height: 1; min-height: 32px; max-width: 180px; }
+.editor-toolbar .editor-theme-apply { flex: 0 0 auto; border: 1px solid #d97706; background: #fff7ed; color: #b45309; border-radius: 6px; padding: 6px 12px; font-size: 13px; line-height: 1; cursor: pointer; min-height: 32px; }
+.editor-toolbar .editor-theme-apply:hover { background: #ffedd5; }
 .editor-holder.vditor, .editor-holder .vditor-content, .editor-holder .vditor-ir, .editor-holder .vditor-ir pre.vditor-reset { border: none !important; box-shadow: none !important; background: transparent !important; }
 .editor-holder .vditor-toolbar { display: none; }
 .editor-holder .vditor-ir .vditor-reset { font-family: 'Noto Sans SC', sans-serif; font-size: 15.5px; line-height: 1.9; padding: 14px 10px 140px !important; }

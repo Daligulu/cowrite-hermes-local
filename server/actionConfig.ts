@@ -98,6 +98,18 @@ export const DEFAULT_ACTIONS: ActionConfig[] = [
     workflow: [],
   },
   {
+    id: 'gzh-layout',
+    label: '公众号主题排版',
+    enabled: true,
+    chip: false,
+    keywords: ['主题排版', 'gzh排版', '公众号排版', '版式', '换主题'],
+    skills: ['gzh-design', 'wechat-article-publishing'],
+    prompts: [
+      { id: 'main', role: 'system', text: '把当前页面 Markdown 内容排版为 gzh-design 某一主题的公众号 HTML。步骤：① mcp_cowrite_cowrite_get_page 读取页面最新内容与 revision；② 解析 requirements 中的「主题：xxx」选中对应主题（graphite-minimal=石墨极简/moyu-green=摸鱼绿/red-white=红白/zen-whitespace=留白禅意/moyu-ticket=摸鱼票据/olive-journal=橄榄手记；未指定默认 graphite-minimal）；③ 加载 gzh-design 的 references/theme-<id>.md 组件库与 SKILL.md 排版规范，按该主题把页面内容排版成纯 <section> 正文章节（正文 16px/行高 1.75/段距 24px/每段≤150字，只允许内联 style，不用 style/div/class/position:fixed 等，装饰空元素用 <span leaf=""><br></span> 占位）；④ 用 gzh-design 的 scripts/validate_gzh_html.py 校验完全合规；⑤ 成功后用 mcp_cowrite_cowrite_update_page 把正文写回页面（带 expected_revision，覆盖原 Markdown 为排版 HTML 初稿），失败则 fail_task 写真实错误。\n\n主题对照表（requirements「主题：」后用中文名或 id）：石墨极简=graphite-minimal；摸鱼绿=moyu-green；红白色系=red-white；留白禅意=zen-whitespace；摸鱼票据=moyu-ticket；橄榄手记=olive-journal。' },
+    ],
+    workflow: [],
+  },
+  {
     id: 'xiaohongshu',
     label: '小红书图组',
     enabled: true,

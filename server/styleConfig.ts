@@ -32,10 +32,12 @@ export const DEFAULT_STYLES: StyleConfig = {
     { id: 'brief', label: '极简短讯', description: '短平快、信息密度高、要点前置' },
   ],
   layout: [
-    { id: 'tech-blue', label: '科技蓝', description: '深蓝主色、科技感、适合 AI/科技内容' },
-    { id: 'graphite-minimal', label: '石墨极简', description: '黑白灰极简、留白多、阅读舒适' },
-    { id: 'warm-white', label: '暖白阅读', description: '米白暖色、柔和、适合长文' },
-    { id: 'card', label: '卡片风', description: '卡片式分区、轻快、适合图文混排' },
+    { id: 'graphite-minimal', label: '石墨极简', description: '黑白灰极简、留白多、阅读舒适（默认·16px/行高1.75/段距24px）' },
+    { id: 'moyu-green', label: '摸鱼绿', description: '青绿主色、轻松自然、适合生活/工具类' },
+    { id: 'red-white', label: '红白色系', description: '正红点缀、干净利落、适合活动/产品类' },
+    { id: 'zen-whitespace', label: '留白禅意', description: '墨绿大留白、沉稳安静、适合长文/深度' },
+    { id: 'moyu-ticket', label: '摸鱼票据', description: '票据风、灰底卡片、适合清单/攻略类' },
+    { id: 'olive-journal', label: '橄榄手记', description: '橄榄墨色+橙点缀、手记质感、适合复盘/日记类' },
   ],
   image: [
     { id: 'anime-fresh', label: '日系清新', description: '清新明亮动漫感，自然光线' },
