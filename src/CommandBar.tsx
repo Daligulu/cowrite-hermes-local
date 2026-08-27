@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import type { ActionConfig, CowriteTask, Page, TaskStatus, TaskPriority } from '../shared/types'
 import { cowriteFetch } from './apiClient'
 import { TopicCollectModal } from './TopicCollectModal'
@@ -248,7 +249,7 @@ export function EditorCommandBar({ page, notify }: { page: Page; notify: (messag
               >
                 {group.label} ▾
               </button>
-              {openGroup === group.id && selectorPos && (
+              {openGroup === group.id && selectorPos && createPortal(
                 <div className="selector-list" style={{ left: selectorPos.left, ...(selectorPos.top !== undefined ? { top: selectorPos.top } : { bottom: selectorPos.bottom }) }}>
                   {group.actionIds.map((id) => {
                     const option = selectableActions.find((action) => action.id === id)
@@ -259,7 +260,8 @@ export function EditorCommandBar({ page, notify }: { page: Page; notify: (messag
                       </button>
                     )
                   })}
-                </div>
+                </div>,
+                document.body
               )}
             </div>
           ))}
