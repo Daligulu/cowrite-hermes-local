@@ -197,6 +197,104 @@ find /root /home /srv /mnt /data /media -maxdepth 6 -name ".obsidian" -type d 2>
 4. **验收**：CDP 断言——正常态 `rows=223`、搜索+切分类后 `rows=0` 且空态含「清除搜索」按钮、点按钮后 `rows=42`（回到「图片/设计」全量）且 query 清空
 教训：过滤函数正确≠体验正确；「选 X 后没有结果」类问题优先查静默失败 + 组合过滤残留，别只盯着过滤逻辑本身。
 
+## 手机通知草稿功能 + 快捷键选择器（2026-08-23 落地）
+
+**需求**：Cowrite 新增 4 个「通知手机创建草稿」动作（微头条/头条文章/知乎文章/知乎想法），服务器无头条/知乎权限，Worker 整理内容后投递 Memos 信箱 @openminis，手机端 OpenMinis 建草稿、写回 [DONE]；同时编辑页快捷键栏位由平铺 chips 改为选择器。
+
+**实现**（commit 2abf942）：
+- `server/actionConfig.ts` 默认动作 +4：toutiao-micro-draft（280-320字提炼+humanizer-zh）、toutiao-article-draft（全文）、zhihu-article-draft（全文）、zhihu-idea-draft（≤140字提炼）；均 chip=false
+- `deploy/scripts/cowrite-hermes-worker.py` PROMPT +4 动作规则：读页 → 处理内容 → 写 /tmp/cowrite-draft-task.txt → `agent-queue-post.py --file ... --visibility PUBLIC` → 页面末尾追加「【已通知手机创建<平台>草稿】时间+信箱」→ complete（assets 填 memo uid）
+- `~/.hermes/scripts/agent-queue-post.py` 支持 `--file`（长文本投递避免 shell 转义，content 与 --file 二选一）
+- `src/CommandBar.tsx`：`.command-chips` 平铺 → `.command-selector` 选择器（列出全部 enabled 动作，单选 chip(id) 填入输入框，保留更多按钮）；`.selector-list` 向上弹出、行高 ≥44px
+- 测试：默认动作数 13→17，133/133 通过
+
+**坑/要点**：
+- 生产旧 action-config.json 不自动带新动作，需 API merge（GET → 追加 4 动作 → PUT，带 token）
+- worker.py PROMPT 里分隔符是**字面 `\n`（单反斜杠+n）**，patch 时 read_file 显示 `\\n` 是转义显示，用 Python 字节级替换最稳
+- 验收：CDP 断言选择器 17 项 + 单选填入 + 无溢出；真实任务端到端（页面→worker→memo 读回→页面 revision 1→2）
+
+**坑（2026-08-23 用户实测反馈后修复，commit 7c16d91）**：`.command-chips` 有 `overflow-x: auto`，absolute 定位的 `.selector-list` 会被**裁剪不可见**——用户点「选择动作」看不到列表（DOM 存在、CDP 查 DOM 也通过，但渲染被裁剪）；「更多」按钮的 `.command-more` 是兄弟节点不受裁剪所以能显示。**教训：下拉/弹层若挂在 overflow:auto 祖先下必须用 `position: fixed` + JS 取按钮 rect 定位，或移到 overflow 容器外；验收必须断言 `getBoundingClientRect` 在视口内（top≥0、bottom≤innerHeight、height>0），不能只查 DOM 存在**。同 commit 按用户要求去掉「更多 ▾」按钮（选择器已含全部动作）。
+
+## 动效优化（Apple 动效方法论落地，2026-08-23）
+
+**触发**：用户要求用 apple-design / animate 方法论评估 Cowrite 前端，并直接「落地 + 真实验收」。
+
+**审计方法（扫一遍 CSS 即可定位问题，无需运行）**：
+- `grep -rnE "transition|animation|ease|@keyframes|will-change|transform" src/*.css` 列出全部动效点
+- 逐条对照 apple-design 铁律：
+  ① 是否动了**昂贵布局属性**（`width`/`flex-basis`/`height`/`padding`/`margin` → 每帧重新布局并传播到兄弟节点）；② 是否有 `prefers-reduced-motion`；③ 模态/选择器/弹层是否有**轻缩放进场**（scale 0.95→1）；④ toast 是否「怎么进怎么出」（补退场）；⑤ 曲线是否**强 ease-out** `cubic-bezier(0.23,1,0.32,1)`（默认 `ease` 起步偏慢）；⑥ 按钮/卡片是否有 `:active` 按压反馈
+
+**本次落地（commit 936ee3a）**，验证脚本见 `scripts/motion-verify.js`：
+- **侧边栏：width 动画 → fixed + translateX**（唯一不触发整页重排的路径）。`.sidebar` 改 `position:fixed; width:240px 恒定; transform:translateX(-100%)`，展开 `translateX(0)` + 投影；只动画 `transform`
+- **模态轻缩放进场**：`.modal` 加 `modal-in`（0.96 scale + 6px 上移），mask 保留 `fade-in`
+- **选择器/底部弹层进场**：`.selector-list` 加 `list-in`（0.96 scale），`.command-more` 加 `sheet-in`（translateY 16 + 0.98 scale）
+- **toast 补退场**：两段式 state——`toastLeaving`，显示 2.2s 后加 `.is-leaving`（`toast-out` forwards），`onAnimationEnd` 再清空
+- **reduced-motion**：文件末尾全局块 `@media (prefers-reduced-motion: reduce){ *{animation-duration:0.01ms!important; transition-duration:0.01ms!important; ...} }`
+- **强 ease-out**：18 处默认 `ease` → `cubic-bezier(0.23,1,0.32,1)`
+- **卡片按压反馈**：`.home-card`/`.skill-card` 加 `:active`（scale 0.98/0.985）
+
+**坑**：
+- 侧边栏改 `fixed` 后是**覆盖式抽屉**（原推格式），会盖在 workspace 上——若用户要保留「推开内容」观感，用「定宽容器 + transform」方案，别用 width 动画
+- toast 退场**必须 JS 配合**：纯 CSS 无法在退场后自动卸载 DOM，需 `toastLeaving` state + `onAnimationEnd` 两段式
+- CDP 断言动效：`getComputedStyle(el).animationName`/`.transitionProperty`/`.transform`，读 CSS 规则用 `[...document.styleSheets].flatMap(s=>[...s.cssRules])` 过滤 `prefers-reduced-motion` 与曲线；`document.body.scrollWidth > clientWidth` 判横向溢出
+
+## gzh-design 主题排版快捷键（2026-08-26 落地）
+
+**需求**：编辑页顶部加「主题」下拉选择器，选主题一键把当前页 Markdown 排版成 gzh-design 对应主题的 HTML 初稿写回页面；发布（gzh-publish）也支持按主题排版。
+
+**实现**（commit 54a75ac，生产动作 18→19）：
+- `server/styleConfig.ts` DEFAULT_STYLES.layout 对齐 gzh 6 套真实主题（graphite-minimal/moyu-green/red-white/zen-whitespace/moyu-ticket/olive-journal），id 与 gzh-design references/theme-<id>.md 一一对应；styleConfig.load() 无文件时返回 DEFAULT_STYLES（前端可直读）
+- `server/actionConfig.ts` DEFAULT_ACTIONS +1 `gzh-layout`（公众号主题排版，skills=[gzh-design,wechat-article-publishing]，chip=false）
+- `src/App.tsx` Editor：编辑器顶栏（`.editor-toolbar`）新增 `.theme-select`（label+select+排版按钮）；主题列表 useEffect 内 `GET /api/style-config` 读 `config.styles.layout`；`applyGzhTheme()` → `sendAi('gzh-layout', '主题：<id>（name）；请把当前页面内容按该主题排版成公众号 HTML 初稿并写回页面。', hint)`
+- `src/App.css`：`.theme-select/.theme-label/.editor-theme-apply` 样式（toolbar 是 flex-wrap，移动端自动换行不溢出）
+- 生产 action-config：API merge（GET /api/session 取 token → GET /api/action-config → 幂等 append gzh-layout + 升级 gzh-publish 的 prompt 加「主题：xxx」解析 → PUT `{version,actions}` 无 config 包装）→ 19 动作
+
+**排版链路**：worker 领取任务后自动 GET /api/action-config 读 skills/prompts 执行（配置化，worker.py 不改）；agent 按 requirements「主题：xxx」读对应 theme-<id>.md 组件库排版成纯 `<section>` 正文，validate_gzh_html.py 校验完全合规后写回页面。
+
+**端到端验收**（真跑 gzh-layout 任务，摸鱼绿主题 → 测试页 page_LZ0FPrAQ）：status=succeeded、页面 revision 1→2、产物纯 section（无 style/class/div）16px/1.75/24px + 59 处 span leaf、validate_gzh_html 「完全合规」、390px 视觉确认摸鱼绿配色+组件齐全。
+
+**坑**：
+- 动作数断言：默认动作 17→18，`tests/action-config.test.ts` L20/L93 与 `action-config-api.test.ts` L40 三处 `toHaveLength(17)` 必须同步改 18（3 处，其中 action-config.test.ts 有 2 处相同断言需 replace_all 或补上下文）
+- `applyGzhTheme` 引用 `sendAi`（后者是 const 在 464 行定义）——TDZ 风险：必须把 applyGzhTheme 放在 sendAi **之后**定义，否则 tsc 报 Block-scoped used before declaration / 运行时 undefined（实测放在 179 行 state 区会报 TS6133 未使用 + 引用问题，移到 sendAi 后解决）
+- `gzhThemesState` 声明了只用 set 不读 → tsc -b 报 TS6133 未使用；必须实际用上（select disabled={gzhThemesState==='loading'}）或删除
+- 生产 style-config 无独立文件（用代码 DEFAULT_STYLES），无需生产 merge；action-config 独立文件需 API merge
+- 验收任务创建：POST /api/tasks body `{action:'gzh-layout', pageId, requirements, delivery:'cowrite'}`（带 x-cowrite-token）；`/api/tasks` 返回**数组非 `{tasks:[...]}`**，轮询直接遍历；worker 领取有 ~1 分钟延迟
+- gzh-publish 升级要保幂等：仅当 prompt 不含「主题：」才补，避免重复 merge 破坏
+
+## 移动端底部 Tab 图标统一（2026-08-27 落地，commit da237c6）
+
+**触发**：用户看到侧边栏图标已统一后，要求顺手把底部 Tab 栏（MobileTabBar，514-540 行）图标也统一。
+
+**根因**：5 个 Tab 图标 4 个是单色字符（`⌂`/`◫`/`✎`），但「技能」用彩色 emoji `🧩`、「配置」用 `⚙`（部分系统渲染成彩色 emoji）→ 彩色与单色混用、大小不一、悬垂。
+
+**修复**：
+- `src/App.tsx` MobileTabBar tabs：`🧩`→`▤`（技能），`⚙`→`\u2699\uFE0E`（配置，追加 U+FE0E 强制文本变体避免被渲染成彩色 emoji）
+- `src/App.css` `.mobile-tabbar .tab-ico`：加 `display:inline-flex; width:24px; height:24px; align-items:center; justify-content:center`（统一 24×24 居中盒，字符图标垂直居中）
+
+**验证**：CDP 390px 实测 5 个 tab-ico 全部 24×24 居中、`getComputedStyle` color 全部单色（未选中 `#8A94A6` / 激活 `#1E4D7C`）、截图确认无彩色 emoji、图标与文字对齐。133/133 测试全绿、build 通过、已部署生产。
+
+**教训**：移动端 Tab / 工具栏图标同样别用彩色 emoji——统一用单色符号 + 追加 `\uFE0E` 文本变体 + 固定尺寸居中盒，才能与侧边栏图标风格一致、跨端（飞书 WebView 等）稳定渲染。
+
+## 侧边栏导航图标统一（2026-08-27 最终落地，全链路 commits d932330→a9f599b）
+
+**优化目标**：Cowrite 左侧边栏「首页/项目/Skill管理/动作配置/任务中心」5 个导航项，图标符号、字号、图标与文字间距，整列完全统一、干净、不标蓝。
+
+**最终结论（导航项图标统一做法，直接照抄可复现）**：
+- **图标全部用同规格内联 SVG**：统一 `<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">`，`stroke=currentColor` 跟随激活/普通色。**不要用内联字符当图标**（字符按文本基线渲染、大小/居中不可控，飞书 WebView 上 emoji 还渲染空白）
+- **图标盒**：`.sidebar-tool-icon { flex:0 0 16px; width:16px; height:16px; display:inline-flex; align-items:center; justify-content:center; line-height:1 }`（统一固定居中盒）；`.sidebar-tool-icon svg { display:block }`
+- **文字包元素**：导航项文字用 `<span class="sidebar-tool-label">` 包裹（裸文本不匹配相邻兄弟选择器，间距选择器会失效）
+- **间距**：`.sidebar-tool { display:flex; align-items:center; gap:7px }`（用 `gap` 而非 `.sidebar-tool > * + *` 的 `margin-left`）
+- **图标符号选型**：首页=书、项目=文件夹、Skill管理=锤子、动作配置=齿轮、任务中心=三横线——**书/锤/齿轮用 SVG 而非 emoji**（📖🔨⚙ 是彩色 emoji 或无单色 Unicode，headless/飞书 WebView 渲染空白/不稳）
+- **用户反馈迭代**：
+  - 「首页符号太小」→ 曾用字符 `⌂` + 放大 font-size(17px)，glyphW 仅 9→11px 仍偏窄——**根本解法是换 SVG**
+  - 「首页/Skill管理加 `primary` 标蓝样式(浅蓝底+左侧竖条)》→ 用户**明确不要标蓝**：整列回归统一的普通导航样式，仅选中项保留正常高亮（`.sidebar-tool.active { color:#2383e2; font-weight:600 }` + hover 灰底），去掉覆盖性的 `.primary` 样式
+  - 「动作配置/任务中心图标」→ 从字符 `⚙`/`☰` 换成同规格 SVG 齿轮/三横线，与书/锤统一
+  - 「项目图标太大」→ 项目原用 CSS 绘制(`position+border` 文件夹 14×14)显得比 SVG 大，**改为同规格 SVG 文件夹**，5 项图标彻底统一
+
+**验证**：CDP `getBoundingClientRect` 实测 5 项图标盒全部 16×16、字号全 13px、图标全部 svg；截图 OCR/vision 确认大小一致、间距均匀、无标蓝。133/133 测试全绿、build 通过、已部署生产。
+
+**教训**：① **导航图标统一用同规格内联 SVG**（字符字形宽度差异无法用字号抹平，emoji 跨端不稳）；② 用户要"统一/干净"时，**别加特殊标蓝/底色强调**，仅保留选中态高亮；③ 测量字符可视尺寸用 `document.createRange().getBoundingClientRect()`（比 getBoundingClientRect 更准，能看到 glyphW/glyphH）；④ 用户区分的"标签字号""图标符号""图标大小"是三个独立诉求，逐个确认，别混成一次改。
+
 ## Pitfalls
 - **Cowrite MCP 写页面/资产的调用约定（2026-08 OpenMinis 文章实测）**：`cowrite_create_page(title, content, prompt=brief)` 一次写入完整 Markdown，返回 `page_xxx` 与 `revision:1`；之后补图/改稿必须 `cowrite_update_page`，参数除 page_id 外**必须带 `expected_revision`（当前 revision）**，漏了会报 missing required argument。`cowrite_upload_asset` 上传本地图片返回 `/assets/<hash>.png`，页面 Markdown 里直接用相对路径 `/assets/<hash>.png`，前端 fixAssetLinks 会按当前入口子路径重写；验证用 `curl -sI` 同时过本地 `127.0.0.1:4320` 与公网子路径入口（均期望 200，非 text/html）。
 - **GitHub 上传 worktree 项目**：`gh repo create --source . --push` 会报 "not a git repository"（gh 不支持 gitfile worktree，`.git` 是 83 字节 gitfile 而非目录）。解法：`gh repo create <name> --private --description ...` 先建空仓库 → `git remote add origin https://github.com/<user>/<name>.git` → `git push -u origin hermes-local-impl`（可连带 `main`/`hermes-adaptation`）→ 默认分支用 `gh repo view owner/repo --json defaultBranchRef` 验证（`gh repo edit --default-branch` 在 worktree 里可能解析错 remote 报 404，但 create 时 HEAD 通常已指向推的第一个分支）。上传前安全扫描：`git log --all --name-only | grep -iE '\.env|data/|assets/'` 查敏感文件、`git log --all -p | grep -iE 'sk-|ghp_|AIza|PRIVATE KEY'` 查密钥值；本仓库 .gitignore 已排除 node_modules/dist/data/*.json*/assets/__pycache__
