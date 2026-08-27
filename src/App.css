@@ -431,7 +431,7 @@
 
 .sidebar-home-link:hover { background: var(--hover); }
 .sidebar-home-link b { flex: 1; font-size: 13px; text-align: left; }
-.home-tool-icon { font-size: 14px; }
+.home-tool-icon { font-size: 17px; }
 .action-tool-icon { font-size: 14px; }
 .task-tool-icon { font-size: 14px; }
 @media (max-width: 760px) {
