@@ -654,7 +654,7 @@ function App() {
         onClick={() => { setWorkspaceView('home'); setSidebarOpen(false) }}
       >
         <span className="sidebar-tool-icon home-tool-icon" aria-hidden="true">⌂</span>
-        <span className="sidebar-tool-label">首页</span>
+        <span className="sidebar-tool-label home-label">首页</span>
       </button>
       <button
         className={`sidebar-tool ${workspaceView === 'project' ? 'active' : ''}`}
