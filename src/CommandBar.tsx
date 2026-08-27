@@ -208,11 +208,16 @@ export function EditorCommandBar({ page, notify }: { page: Page; notify: (messag
     // 水平：跟按钮左对齐，超出右边界时右对齐，避免溢出视口
     const menuWidth = Math.min(320, window.innerWidth - 20)
     const left = Math.max(0, Math.min(rect.left, window.innerWidth - menuWidth - 20))
-    if (rect.top < window.innerHeight * 0.5) {
-      // 按钮在上半屏（桌面顶部命令栏）：下拉向下展开，避免顶出视口上方
+    // 预估下拉高度：每行约 40px + 容器 padding 12，上限 40vh
+    const group = ACTION_GROUPS.find((g) => g.id === groupId)
+    const estHeight = Math.min(window.innerHeight * 0.4, (group?.actionIds.length ?? 2) * 40 + 12)
+    // 先看按钮下方空间是否够放整个下拉：够则向下展开，不够则向上展开
+    const spaceBelow = window.innerHeight - rect.bottom
+    if (spaceBelow >= estHeight) {
+      // 下方空间足够：下拉向下展开（桌面顶部命令栏 / 空间宽裕的场景）
       setSelectorPos({ left, top: rect.bottom + gap })
     } else {
-      // 按钮在下半屏（移动端底部命令栏）：下拉向上展开
+      // 下方放不下：下拉向上展开（移动端底部命令栏等）
       setSelectorPos({ left, bottom: window.innerHeight - rect.top + gap })
     }
     setOpenGroup(groupId)
