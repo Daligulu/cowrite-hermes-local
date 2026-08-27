@@ -21,6 +21,16 @@ const STATUS_LABELS: Record<TaskStatus, string> = {
   cancelled: '已取消',
 }
 
+/** 动作分组：推荐位按 6 大类展示，点分组弹出该组动作下拉 */
+const ACTION_GROUPS: { id: string; label: string; actionIds: string[] }[] = [
+  { id: 'write', label: '写作加工', actionIds: ['polish', 'wechat-layout'] },
+  { id: 'image', label: '配图', actionIds: ['illustrate', 'feng-ip', 'xiaohongshu'] },
+  { id: 'dispatch', label: '内容分发', actionIds: ['feishu-doc', 'knowledge-base'] },
+  { id: 'media', label: '演示视频', actionIds: ['slides', 'video'] },
+  { id: 'gzh', label: '公众号贴图', actionIds: ['wechat-sticker', 'publish-sticker', 'gzh-layout', 'gzh-publish'] },
+  { id: 'topic', label: '选题投稿', actionIds: ['topic-collect', 'topic-create', 'toutiao-micro-draft', 'toutiao-article-draft', 'zhihu-article-draft', 'zhihu-idea-draft'] },
+]
+
 function safeRegex(source: string): RegExp | null {
   try {
     return new RegExp(source, 'i')
@@ -46,7 +56,7 @@ function detectAction(text: string, actions: ActionConfig[]): { action: string; 
 
 export function EditorCommandBar({ page, notify }: { page: Page; notify: (message: string) => void }) {
   const [text, setText] = useState('')
-  const [selectorOpen, setSelectorOpen] = useState(false)
+  const [openGroup, setOpenGroup] = useState<string | null>(null)
   const [selectorPos, setSelectorPos] = useState<{ left: number; bottom: number } | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [tasks, setTasks] = useState<CowriteTask[]>([])
@@ -188,14 +198,14 @@ export function EditorCommandBar({ page, notify }: { page: Page; notify: (messag
   const statusLabel = (status: TaskStatus) => STATUS_LABELS[status] ?? status
   const selectableActions = actions.filter((action) => action.enabled)
 
-  const toggleSelector = (event: React.MouseEvent<HTMLButtonElement>) => {
-    if (selectorOpen) {
-      setSelectorOpen(false)
+  const toggleGroup = (groupId: string, event: React.MouseEvent<HTMLButtonElement>) => {
+    if (openGroup === groupId) {
+      setOpenGroup(null)
       return
     }
     const rect = event.currentTarget.getBoundingClientRect()
     setSelectorPos({ left: rect.left, bottom: window.innerHeight - rect.top + 6 })
-    setSelectorOpen(true)
+    setOpenGroup(groupId)
   }
 
   return (
@@ -215,18 +225,30 @@ export function EditorCommandBar({ page, notify }: { page: Page; notify: (messag
           </button>
         </div>
         <div className="command-chips">
-          <div className="command-selector">
-            <button className="selector-toggle" disabled={submitting} onClick={toggleSelector}>选择动作 ▾</button>
-            {selectorOpen && selectorPos && (
-              <div className="selector-list" style={{ left: selectorPos.left, bottom: selectorPos.bottom }}>
-                {selectableActions.map((option) => (
-                  <button key={option.id} disabled={submitting} onClick={() => { setSelectorOpen(false); chip(option.id) }}>
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          {ACTION_GROUPS.map((group) => (
+            <div key={group.id} className="command-selector">
+              <button
+                className={`selector-toggle ${openGroup === group.id ? 'open' : ''}`}
+                disabled={submitting}
+                onClick={(event) => toggleGroup(group.id, event)}
+              >
+                {group.label} ▾
+              </button>
+              {openGroup === group.id && selectorPos && (
+                <div className="selector-list" style={{ left: selectorPos.left, bottom: selectorPos.bottom }}>
+                  {group.actionIds.map((id) => {
+                    const option = selectableActions.find((action) => action.id === id)
+                    if (!option) return null
+                    return (
+                      <button key={option.id} disabled={submitting} onClick={() => { setOpenGroup(null); chip(option.id) }}>
+                        {option.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       </div>
 

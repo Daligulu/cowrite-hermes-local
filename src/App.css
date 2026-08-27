@@ -297,6 +297,7 @@
 .command-chips button { flex: 0 0 auto; border: 1px solid #e2e7ee; background: #fff; border-radius: 999px; padding: 6px 13px; font-size: 12px; color: #2c3e50; cursor: pointer; }
 .command-chips button:hover { background: #f0f5ff; border-color: #a9bce7; }
 .command-chips .more-chip { color: #667; }
+.selector-toggle.open { background: #2383e2; border-color: #2383e2; color: #fff; }
 .command-selector { position: relative; margin-right: 7px; flex: 0 0 auto; }
 .selector-list { position: fixed; z-index: 60; min-width: 180px; max-width: min(320px, calc(100vw - 20px)); max-height: 40vh; overflow-y: auto; background: #fff; border: 1px solid #e6eaf0; border-radius: 10px; box-shadow: 0 6px 20px #00000018; padding: 6px; transform-origin: top; animation: list-in .13s cubic-bezier(0.23, 1, 0.32, 1); }
 @keyframes list-in { from { opacity: 0; transform: scale(0.96); } }
