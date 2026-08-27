@@ -211,14 +211,15 @@ export function EditorCommandBar({ page, notify }: { page: Page; notify: (messag
     // 预估下拉高度：每行约 40px + 容器 padding 12，上限 40vh
     const group = ACTION_GROUPS.find((g) => g.id === groupId)
     const estHeight = Math.min(window.innerHeight * 0.4, (group?.actionIds.length ?? 2) * 40 + 12)
-    // 先看按钮下方空间是否够放整个下拉：够则向下展开，不够则向上展开
-    const spaceBelow = window.innerHeight - rect.bottom
-    if (spaceBelow >= estHeight) {
-      // 下方空间足够：下拉向下展开（桌面顶部命令栏 / 空间宽裕的场景）
-      setSelectorPos({ left, top: rect.bottom + gap })
-    } else {
-      // 下方放不下：下拉向上展开（移动端底部命令栏等）
+    // 判断按钮「上方」空间（rect.top 到视口顶，无遮挡、真实可用）。
+    // 不要用「下方」空间——命令栏下方还有 fixed 底部 tabbar(58px) 占位，下方看似够实际会被 tabbar 遮挡。
+    const spaceAbove = rect.top
+    if (spaceAbove >= estHeight) {
+      // 上方足够：向上展开（移动端底部命令栏，与历史「选择动作」一致，不侵入底部 tabbar）
       setSelectorPos({ left, bottom: window.innerHeight - rect.top + gap })
+    } else {
+      // 上方放不下（按钮贴近视口顶，桌面顶部命令栏）：向下展开
+      setSelectorPos({ left, top: rect.bottom + gap })
     }
     setOpenGroup(groupId)
   }
