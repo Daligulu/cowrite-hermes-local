@@ -48,6 +48,9 @@ export function ActionConfigManager({ page, notify }: { page: { id: string; titl
   const [testing, setTesting] = useState(false)
   const [dirty, setDirty] = useState(false)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
+  const [autoHideDraft, setAutoHideDraft] = useState('30')
+  const [appConfigLoading, setAppConfigLoading] = useState(true)
+  const [appConfigSaving, setAppConfigSaving] = useState(false)
 
   const refresh = useCallback(async () => {
     try {
@@ -82,6 +85,19 @@ export function ActionConfigManager({ page, notify }: { page: { id: string; titl
     void loadCatalog()
     return () => { disposed = true }
   }, [refresh])
+
+  // 读取应用配置（任务完成提示自动消失时长）
+  useEffect(() => {
+    let disposed = false
+    requestJson<{ config: { autoHideSeconds: number } }>('/api/app-config')
+      .then((data) => {
+        if (disposed) return
+        setAutoHideDraft(String(data.config.autoHideSeconds))
+      })
+      .catch(() => undefined)
+      .finally(() => { if (!disposed) setAppConfigLoading(false) })
+    return () => { disposed = true }
+  }, [])
 
   const selected = useMemo(
     () => config?.actions.find((action) => action.id === selectedId) ?? null,
@@ -167,6 +183,27 @@ export function ActionConfigManager({ page, notify }: { page: { id: string; titl
     }
   }
 
+  const saveAppConfig = async () => {
+    const seconds = Number(autoHideDraft)
+    if (!Number.isInteger(seconds) || seconds < 3 || seconds > 600) {
+      notify('自动消失时长需为 3-600 之间的整数秒')
+      return
+    }
+    setAppConfigSaving(true)
+    try {
+      const data = await requestJson<{ config: { autoHideSeconds: number } }>('/api/app-config', {
+        method: 'PUT',
+        body: JSON.stringify({ version: 1, autoHideSeconds: seconds }),
+      })
+      setAutoHideDraft(String(data.config.autoHideSeconds))
+      notify('任务提示设置已保存')
+    } catch (error) {
+      notify(error instanceof Error ? error.message : '保存失败')
+    } finally {
+      setAppConfigSaving(false)
+    }
+  }
+
   const testRun = async () => {
     if (!selected) return
     if (!page) {
@@ -244,6 +281,32 @@ export function ActionConfigManager({ page, notify }: { page: { id: string; titl
       </header>
 
       <WechatAccountsPanel notify={notify} />
+
+      <section className="task-notice-config">
+        <div className="task-notice-head">
+          <div>
+            <h3>任务提示</h3>
+            <p>任务完成时在屏幕中央弹出提示，到达设定时长后自动消失，也可点击提示立即消失。</p>
+          </div>
+        </div>
+        <div className="task-notice-row">
+          <label className="field">
+            <span>自动消失时长（秒，3-600）</span>
+            <input
+              type="number"
+              min={3}
+              max={600}
+              step={1}
+              value={autoHideDraft}
+              disabled={appConfigLoading}
+              onChange={(event) => setAutoHideDraft(event.target.value)}
+            />
+          </label>
+          <button className="primary task-notice-save" onClick={saveAppConfig} disabled={appConfigSaving || appConfigLoading}>
+            {appConfigSaving ? '保存中…' : '保存'}
+          </button>
+        </div>
+      </section>
 
       <div className="action-config-body">
         <aside className="action-config-list">

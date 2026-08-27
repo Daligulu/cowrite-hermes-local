@@ -141,6 +141,13 @@ export interface StyleConfigFile {
   styles: StyleConfig
 }
 
+/** 通用应用配置（UI 行为设置等，如任务完成提示自动消失时长） */
+export interface AppConfigFile {
+  version: 1
+  updatedAt?: string
+  autoHideSeconds: number
+}
+
 export interface CowriteTaskInput {
   action: TaskAction
   pageId?: string

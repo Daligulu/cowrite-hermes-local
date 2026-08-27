@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Vditor from 'vditor'
 import 'vditor/dist/index.css'
-import type { CowriteTask, Page, TaskAction } from '../shared/types'
+import type { CowriteTask, Page, TaskAction, TaskStatus } from '../shared/types'
 import { cowriteFetch } from './apiClient'
 import { SkillManager } from './SkillManager'
 import { ActionConfigManager } from './ActionConfigManager'
@@ -552,6 +552,11 @@ function App() {
   const [saveState, setSaveState] = useState<'saved' | 'dirty'>('saved')
   const [toast, setToast] = useState('')
   const [toastLeaving, setToastLeaving] = useState(false)
+  // 任务完成居中弹屏（与底部小 toast 独立并存）
+  const [completion, setCompletion] = useState<{ kind: 'success' | 'fail'; text: string } | null>(null)
+  const [completionLeaving, setCompletionLeaving] = useState(false)
+  const [autoHideSeconds, setAutoHideSeconds] = useState(30)
+  const lastTaskStatusRef = useRef<Record<string, TaskStatus>>({})
 
   const refreshList = useCallback(async () => {
     const list = await api<PageMeta[]>('/api/pages')
@@ -580,6 +585,55 @@ function App() {
     const timer = setTimeout(() => setToastLeaving(true), 2200)
     return () => clearTimeout(timer)
   }, [toast])
+
+  // 读取应用配置：任务完成提示自动消失时长（默认 30 秒）
+  useEffect(() => {
+    api<{ config: { autoHideSeconds: number } }>('/api/app-config')
+      .then((data) => setAutoHideSeconds(data.config.autoHideSeconds))
+      .catch(() => undefined)
+  }, [])
+
+  // 全局任务轮询（挂载一次，3s）：检测 running/queued → succeeded/failed 跳变，弹出居中完成提示
+  useEffect(() => {
+    let timer: number
+    const poll = async () => {
+      try {
+        const tasks = await api<CowriteTask[]>('/api/tasks')
+        const newStatuses: Record<string, TaskStatus> = {}
+        let latest: CowriteTask | null = null
+        for (const task of tasks) {
+          newStatuses[task.id] = task.status
+          const prev = lastTaskStatusRef.current[task.id]
+          if ((prev === 'running' || prev === 'queued') && (task.status === 'succeeded' || task.status === 'failed')) {
+            // 同一轮回合多个任务完成时，取更新时间最晚（最新完成）的一条
+            if (!latest || new Date(task.updatedAt) > new Date(latest.updatedAt)) latest = task
+          }
+        }
+        lastTaskStatusRef.current = newStatuses
+        if (latest) {
+          setCompletionLeaving(false)
+          setCompletion(latest.status === 'succeeded' ? { kind: 'success', text: '任务已完成' } : { kind: 'fail', text: '任务失败' })
+        }
+      } catch { /* 忽略网络抖动 */ }
+    }
+    poll()
+    timer = setInterval(poll, 3000)
+    return () => clearInterval(timer)
+  }, [])
+
+  // 任务完成弹屏到达 autoHideSeconds 后自动退场
+  useEffect(() => {
+    if (!completion) return
+    const timer = setTimeout(() => setCompletionLeaving(true), autoHideSeconds * 1000)
+    return () => clearTimeout(timer)
+  }, [completion, autoHideSeconds])
+
+  // 兜底：退场后 300ms 强制卸载（防止 WebView/节流下 animationend 不触发导致残留）
+  useEffect(() => {
+    if (!completionLeaving || !completion) return
+    const timer = setTimeout(() => { setCompletion(null); setCompletionLeaving(false) }, 300)
+    return () => clearTimeout(timer)
+  }, [completionLeaving, completion])
 
   const notify = useCallback((text: string) => { setToastLeaving(false); setToast(text) }, [])
   const onSaved = useCallback((updated: Page) => {
@@ -790,6 +844,17 @@ function App() {
       onConfirm={() => removePage(deleteTarget)}
     />}
     {toast && <div className={`toast ${toastLeaving ? 'is-leaving' : ''}`} onAnimationEnd={() => { if (toastLeaving) { setToast(''); setToastLeaving(false) } }}>✓ {toast}</div>}
+    {completion && (
+      <div
+        className={`task-complete ${completion.kind} ${completionLeaving ? 'is-leaving' : ''}`}
+        role="status"
+        onClick={() => setCompletionLeaving(true)}
+        onAnimationEnd={() => { if (completionLeaving) { setCompletion(null); setCompletionLeaving(false) } }}
+      >
+        <span className="task-complete-icon" aria-hidden="true">{completion.kind === 'success' ? '✓' : '✕'}</span>
+        <span className="task-complete-text">{completion.text}</span>
+      </div>
+    )}
   </div>
 }
 

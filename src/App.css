@@ -173,6 +173,16 @@
 @keyframes toast-out { to { opacity: 0; transform: translate(-50%, 5px); } }
 .toast.is-leaving { animation: toast-out .15s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
 
+/* 任务完成居中弹屏（与底部小 toast 独立并存） */
+.task-complete { position: fixed; z-index: 70; left: 50%; top: 50%; transform: translate(-50%, -50%); display: inline-flex; align-items: center; gap: 10px; padding: 18px 26px; border-radius: 14px; font-size: 16px; font-weight: 600; color: #fff; box-shadow: 0 10px 34px #00000042; cursor: pointer; max-width: min(420px, calc(100% - 40px)); animation: task-complete-in .22s cubic-bezier(0.23, 1, 0.32, 1); }
+.task-complete.success { background: #16a34a; }
+.task-complete.fail { background: #dc2626; }
+.task-complete-icon { flex: 0 0 auto; display: inline-flex; width: 22px; height: 22px; align-items: center; justify-content: center; border-radius: 50%; background: rgba(255, 255, 255, 0.28); font-size: 13px; }
+.task-complete-text { flex: 0 0 auto; line-height: 1.4; }
+@keyframes task-complete-in { from { opacity: 0; transform: translate(-50%, -50%) scale(0.95); } }
+@keyframes task-complete-out { to { opacity: 0; transform: translate(-50%, -50%) scale(0.95); } }
+.task-complete.is-leaving { animation: task-complete-out .18s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
+
 .loading { min-height: 100vh; display: grid; place-items: center; align-content: center; grid-gap: 12px; gap: 12px color: var(--muted); }
 .loading > span { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 8px; background: #37352f; color: #fff; font-weight: 700; }
 .loading p { margin: 0; font-size: 12px; }

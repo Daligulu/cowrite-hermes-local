@@ -8,6 +8,7 @@ import { assetsDir, buildCreateCommand, CowriteService } from './service.js'
 import { ActionConfigStore, actionConfigFileSchema } from './actionConfig.js'
 import { ChannelConfigStore, channelConfigFileSchema } from './channelConfig.js'
 import { StyleConfigStore, styleConfigFileSchema } from './styleConfig.js'
+import { AppConfigStore, appConfigFileSchema } from './appConfig.js'
 import { WechatAccountsStore } from './wechatAccounts.js'
 import type { WechatAccountInput } from './wechatAccounts.js'
 import { LocalSkillLibrary } from './skilldeck.js'
@@ -26,6 +27,7 @@ export function createApp(
   wechatAccounts = new WechatAccountsStore(),
   channelConfig = new ChannelConfigStore(),
   styleConfig = new StyleConfigStore(),
+  appConfig = new AppConfigStore(),
 ) {
   const app = express()
   const sessionToken = randomBytes(32).toString('base64url')
@@ -79,6 +81,7 @@ export function createApp(
   app.get('/api/wechat-accounts', async (_request, response) => response.json({ accounts: await wechatAccounts.toViews() }))
   app.get('/api/channel-config', async (_request, response) => response.json({ config: await channelConfig.load() }))
   app.get('/api/style-config', async (_request, response) => response.json({ config: await styleConfig.load() }))
+  app.get('/api/app-config', async (_request, response) => response.json({ config: await appConfig.load() }))
   app.use('/api', (request, response, next) => {
     if (['GET', 'HEAD', 'OPTIONS'].includes(request.method)) {
       next()
@@ -112,6 +115,13 @@ export function createApp(
   })
   app.post('/api/style-config/reset', async (_request, response) => {
     response.json({ config: await styleConfig.reset() })
+  })
+  app.put('/api/app-config', async (request, response) => {
+    const input = appConfigFileSchema.parse(request.body)
+    response.json({ config: await appConfig.save(input) })
+  })
+  app.post('/api/app-config/reset', async (_request, response) => {
+    response.json({ config: await appConfig.reset() })
   })
   app.put('/api/wechat-accounts', async (request, response) => {
     const input = z.object({ accounts: z.array(z.object({
