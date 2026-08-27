@@ -208,17 +208,15 @@ export function EditorCommandBar({ page, notify }: { page: Page; notify: (messag
     // 水平：跟按钮左对齐，超出右边界时右对齐，避免溢出视口
     const menuWidth = Math.min(320, window.innerWidth - 20)
     const left = Math.max(0, Math.min(rect.left, window.innerWidth - menuWidth - 20))
-    // 预估下拉高度：每行约 40px + 容器 padding 12，上限 40vh
-    const group = ACTION_GROUPS.find((g) => g.id === groupId)
-    const estHeight = Math.min(window.innerHeight * 0.4, (group?.actionIds.length ?? 2) * 40 + 12)
-    // 判断按钮「上方」空间（rect.top 到视口顶，无遮挡、真实可用）。
-    // 不要用「下方」空间——命令栏下方还有 fixed 底部 tabbar(58px) 占位，下方看似够实际会被 tabbar 遮挡。
-    const spaceAbove = rect.top
-    if (spaceAbove >= estHeight) {
-      // 上方足够：向上展开（移动端底部命令栏，与历史「选择动作」一致，不侵入底部 tabbar）
+    // 决定性判断：命令栏是否固定底部（移动端 .editor-command 是 position:fixed）；
+    // 用按钮位置/空间估算会因下拉实际高度或底部 tabbar 干扰而误判（实测踩过两种边界）。
+    const commandBar = document.querySelector('.editor-command')
+    const dockedBottom = commandBar ? getComputedStyle(commandBar).position === 'fixed' : false
+    if (dockedBottom) {
+      // 命令栏固定底部（移动端）：向上展开，避免被底部 tabbar 遮挡
       setSelectorPos({ left, bottom: window.innerHeight - rect.top + gap })
     } else {
-      // 上方放不下（按钮贴近视口顶，桌面顶部命令栏）：向下展开
+      // 命令栏在页面顶部（桌面）：向下展开，避免顶出视口上方
       setSelectorPos({ left, top: rect.bottom + gap })
     }
     setOpenGroup(groupId)
