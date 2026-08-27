@@ -515,12 +515,12 @@ function MobileTabBar({ view, onNavigate }: {
   view: WorkspaceView
   onNavigate: (view: WorkspaceView) => void
 }) {
-  const tabs: Array<{ id: WorkspaceView; icon: string; label: string }> = [
-    { id: 'home', icon: '⌂', label: '工作台' },
-    { id: 'tasks', icon: '◫', label: '任务' },
-    { id: 'page', icon: '✎', label: '编辑' },
-    { id: 'skill-manager', icon: '▤', label: '技能' },
-    { id: 'action-config', icon: '\u2699\uFE0E', label: '配置' },
+  const tabs: Array<{ id: WorkspaceView; icon: React.ReactNode; label: string }> = [
+    { id: 'home', icon: <svg viewBox="0 0 16 16" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3.8C6.6 3 4.8 3 3 3.8v8.6c1.8-.7 3.6-.7 5 0Z"/><path d="M8 3.8c1.4-.8 3.2-.8 5 0v8.6c-1.8-.7-3.6-.7-5 0Z"/><path d="M3 6.5c1.8-.6 3.6-.6 5 0M8 6.5c1.4-.6 3.2-.6 5 0M3 9c1.8-.6 3.6-.6 5 0M8 9c1.4-.6 3.2-.6 5 0"/></svg>, label: '工作台' },
+    { id: 'tasks', icon: <svg viewBox="0 0 16 16" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h10M3 8h10M3 11h10"/></svg>, label: '任务' },
+    { id: 'page', icon: <svg viewBox="0 0 16 16" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M11.2 2.8 13.2 4.8 6 12 3 13l1-3Z"/></svg>, label: '编辑' },
+    { id: 'skill-manager', icon: <svg viewBox="0 0 16 16" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 11.5 10.2 6.8M7.2 3 13 8.3l-2 1.6L5.2 4.6Z"/></svg>, label: '技能' },
+    { id: 'action-config', icon: <svg viewBox="0 0 16 16" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="2.4"/><path d="M8 2.2v2M8 11.8v2M13.8 8h-2M4.2 8h-2M12 4l-1.4 1.4M5.4 10.6 4 12M12 12l-1.4-1.4M5.4 5.4 4 4"/></svg>, label: '配置' },
   ]
   return (
     <nav className="mobile-tabbar" aria-label="移动端导航">
