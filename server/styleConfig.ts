@@ -44,7 +44,7 @@ export const DEFAULT_STYLES: StyleConfig = {
     { id: 'flat-illustration', label: '扁平插画', description: '扁平插画、色块干净' },
     { id: '3d-render', label: '3D 质感', description: '3D 渲染质感、光影立体' },
     { id: 'photoreal', label: '摄影写实', description: '写实摄影感、真实场景' },
-    { id: 'feng-ip', label: '峰峰 IP', description: '峰峰个人 IP 一致性形象（深海军蓝夹克+白 hoodie）' },
+    { id: 'guofeng-ink', label: '国风水墨', description: '水墨晕染、留白写意、东方意境' },
   ],
 }
 

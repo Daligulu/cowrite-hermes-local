@@ -55,7 +55,7 @@ function detectAction(text: string, actions: ActionConfig[]): { action: string; 
   return { action: actions.find((action) => action.id === 'polish')?.id ?? 'polish', requirements: text.trim() || undefined }
 }
 
-export function EditorCommandBar({ page, notify }: { page: Page; notify: (message: string) => void }) {
+export function EditorCommandBar({ page, notify, imageStyleLabel }: { page: Page; notify: (message: string) => void; imageStyleLabel: string }) {
   const [text, setText] = useState('')
   const [openGroup, setOpenGroup] = useState<string | null>(null)
   const [selectorPos, setSelectorPos] = useState<{ left: number; top?: number; bottom?: number } | null>(null)
@@ -64,8 +64,6 @@ export function EditorCommandBar({ page, notify }: { page: Page; notify: (messag
   const [expanded, setExpanded] = useState(false)
   const [actions, setActions] = useState<ActionConfig[]>([])
   const [pendingChoice, setPendingChoice] = useState<{ action: string; requirements?: string } | null>(null)
-  const [pendingStyle, setPendingStyle] = useState('')
-  const [pendingCustomStyle, setPendingCustomStyle] = useState('')
   const [accounts, setAccounts] = useState<{ id: string; label: string }[]>([])
   const [pendingAccount, setPendingAccount] = useState('')
   const [topicModalOpen, setTopicModalOpen] = useState(false)
@@ -89,12 +87,6 @@ export function EditorCommandBar({ page, notify }: { page: Page; notify: (messag
   const labelFor = (id: string) => actions.find((action) => action.id === id)?.label ?? id
 
   const latest = tasks[0]
-
-  const openStyleChoice = (action: string, requirements?: string) => {
-    setPendingChoice({ action, requirements })
-    setPendingStyle('')
-    setPendingCustomStyle('')
-  }
 
   const openAccountChoice = async (action: string, requirements?: string) => {
     setPendingChoice({ action, requirements })
@@ -120,12 +112,17 @@ export function EditorCommandBar({ page, notify }: { page: Page; notify: (messag
     const req = requirements !== undefined
       ? requirements
       : (action ? (trimmed || undefined) : (detected.requirements ?? (trimmed || undefined)))
-    if (chosen === 'wechat-sticker' && !(req ?? '').includes('风格')) {
-      openStyleChoice(chosen, req)
-      return
-    }
     if (chosen === 'publish-sticker' && !(req ?? '').includes('账号')) {
       void openAccountChoice(chosen, req)
+      return
+    }
+    if (chosen === 'wechat-sticker') {
+      if (!imageStyleLabel) {
+        notify('请先在编辑页「配图」下拉选择配图风格')
+        return
+      }
+      const reqWithStyle = [req, `风格：${imageStyleLabel}`].filter(Boolean).join('；')
+      await doSubmit(chosen, reqWithStyle)
       return
     }
     if (chosen === 'topic-collect' && !(req ?? '').includes('渠道')) {
@@ -152,16 +149,6 @@ export function EditorCommandBar({ page, notify }: { page: Page; notify: (messag
     } finally {
       setSubmitting(false)
     }
-  }
-
-  const confirmStyle = async () => {
-    if (!pendingChoice) return
-    const style = pendingCustomStyle.trim() || pendingStyle
-    const suffix = style ? `风格：${style}` : ''
-    const req = [pendingChoice.requirements, suffix].filter(Boolean).join('；')
-    const chosen = pendingChoice.action
-    setPendingChoice(null)
-    await doSubmit(chosen, req || undefined)
   }
 
   const confirmAccount = async () => {
@@ -294,45 +281,6 @@ export function EditorCommandBar({ page, notify }: { page: Page; notify: (messag
               </div>
             </div>
           )}
-        </div>
-      )}
-
-      {pendingChoice?.action === 'wechat-sticker' && (
-        <div className="modal-mask" onClick={() => setPendingChoice(null)}>
-          <div className="modal sticker-style-modal" onClick={(event) => event.stopPropagation()}>
-            <h2>选择贴图风格</h2>
-            <p className="modal-hint">为「{text.trim() || '微信贴图'}」选择生成风格，或手动输入描述。</p>
-            <div className="sticker-style-options">
-              {[
-                { id: '新海诚清新', label: '新海诚清新', desc: '清新明亮动漫感，自然光线' },
-                { id: '萌系治愈', label: '萌系治愈', desc: '可爱软萌，温暖治愈' },
-                { id: '科技简洁', label: '科技简洁', desc: 'AI/科技视觉，简洁高级' },
-                { id: '极简扁平', label: '极简扁平', desc: '扁平插画，色块干净' },
-                { id: '手绘暖色', label: '手绘暖色', desc: '暖色调手绘质感' },
-              ].map((style) => (
-                <button
-                  key={style.id}
-                  className={`sticker-style-option ${pendingStyle === style.id ? 'on' : ''}`}
-                  onClick={() => { setPendingStyle(style.id); setPendingCustomStyle('') }}
-                >
-                  <span className="sticker-style-label">{style.label}</span>
-                  <span className="sticker-style-desc">{style.desc}</span>
-                </button>
-              ))}
-            </div>
-            <label className="field">
-              <span>或手动输入描述</span>
-              <input
-                value={pendingCustomStyle}
-                placeholder="如：宫崎骏风格、插画感、深蓝色调…"
-                onChange={(event) => { setPendingCustomStyle(event.target.value); setPendingStyle('') }}
-              />
-            </label>
-            <div className="modal-actions">
-              <button onClick={() => setPendingChoice(null)}>取消</button>
-              <button className="primary" onClick={() => void confirmStyle()} disabled={submitting}>确认并提交</button>
-            </div>
-          </div>
         </div>
       )}
 

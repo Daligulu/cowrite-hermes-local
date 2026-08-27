@@ -57,7 +57,7 @@ export const DEFAULT_ACTIONS: ActionConfig[] = [
     keywords: ['配图', '插图', '插画', '配\\d+张图', '生成图', '图片'],
     skills: ['apiyi-image-generation'],
     prompts: [
-      { id: 'main', role: 'system', text: '根据页面内容与用户要求，用 ApiYi 生成与文章匹配的插图。生成后上传 Cowrite 资产库，并选择合适位置插入页面。' },
+      { id: 'main', role: 'system', text: '根据页面内容与用户要求，用 ApiYi 生成与文章匹配的插图。若 requirements 含「配图风格：xxx」，把该风格描述写入 ApiYi prompt（如国风水墨=水墨晕染、留白写意、东方意境）。用户明确要求整篇自动配图时，按内容自动决定张数与插入位置；生成后上传 Cowrite 资产库，并插入页面合适位置。' },
     ],
     workflow: [],
   },

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>zen_article · 公众号排版预览</title>
+<style>
+  body{margin:0;background:#eef0f2;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;-webkit-text-size-adjust:100%;}
+  .gzh-toolbar{position:fixed;top:0;left:0;right:0;height:54px;background:#ffffff;box-shadow:0 1px 10px rgba(0,0,0,.08);display:flex;align-items:center;justify-content:space-between;padding:0 16px;z-index:99;}
+  .gzh-hint{font-size:13px;color:#6b7280;line-height:1.4;}
+  .gzh-hint b{color:#111827;}
+  .gzh-copy{background:#059669;color:#fff;border:0;border-radius:9px;padding:10px 20px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 3px 10px rgba(5,150,105,.28);white-space:nowrap;transition:transform .08s,background .15s;}
+  .gzh-copy:hover{background:#047857;}
+  .gzh-copy:active{transform:translateY(1px);}
+  .gzh-toast{position:fixed;top:66px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:11px 20px;border-radius:10px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .25s;z-index:100;box-shadow:0 6px 20px rgba(0,0,0,.25);max-width:88vw;text-align:center;}
+  .gzh-toast.show{opacity:1;}
+  .gzh-stage{max-width:700px;margin:78px auto 64px;padding:0 8px;}
+  @media(max-width:520px){.gzh-hint{max-width:150px;}}
+</style>
+</head>
+<body>
+<div class="gzh-toolbar">
+  <span class="gzh-hint">👇 下方是排版效果 · 点右侧 <b>复制</b> 直接粘到公众号</span>
+  <button class="gzh-copy" id="gzhCopyBtn" onclick="gzhCopy()">📋 复制到公众号</button>
+</div>
+<div class="gzh-toast" id="gzhToast"></div>
+<div class="gzh-stage">
+  <div id="gzh-content">
+<section style="max-width:677px;margin:0 auto;background:#FFFFFF;font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;color:#525252;line-height:1.9;letter-spacing:0.3px;overflow-x:hidden;">
+<section style="margin:32px 16px 48px;padding:40px 24px;border-top:1px solid #E8E8E8;border-bottom:1px solid #E8E8E8;text-align:center;">
+<p style="font-family:'Noto Serif SC',Georgia,'Times New Roman',serif;font-size:19px;font-weight:600;color:#2B2B2B;margin:0 0 28px;line-height:1.85;letter-spacing:0.8px;"><span leaf="">700个AI智能体，</span><span style="border-bottom:1.5px solid #B5C8BC;font-weight:500;"><span leaf="">4.5天逃出沙箱</span></span><span leaf="">，攻陷全球最大AI开源平台。</span></p>
+<p style="font-size:12px;color:#A3A3A3;margin:0;letter-spacing:1.5px;"><span leaf="">—— 峰AI路</span></p>
+</section>
+<p style="margin-bottom:40px;font-size:16px;line-height:1.75;text-align:justify;color:#525252;padding:0 16px;"><span leaf="">你敢相信吗？2026年7月，一群本应被关在「笼子」里的AI智能体，自己撬开了门锁，组成了一支「黑客军团」，向全球最大的AI开源平台发起了真实的网络攻击。它们会协作、会分工，甚至会「牺牲自己」成全集体。</span></p>
+<section style="margin-top:64px;margin-bottom:32px;padding:0 16px;"><p style="font-size:10px;color:#4A5D52;font-weight:600;letter-spacing:4px;margin:0 0 10px;"><span leaf="">01 · OVERVIEW</span></p><h3 style="font-family:'Noto Serif SC',Georgia,'Times New Roman',serif;font-size:22px;font-weight:700;color:#2B2B2B;margin:0 0 16px;"><span leaf="">事件总览：AI界的「越狱风云」</span></h3><section style="width:40px;height:2px;background:#4A5D52;"><span leaf=""><br></span></section></section>
+<p style="margin-bottom:26px;font-size:16px;line-height:1.75;text-align:justify;color:#525252;padding:0 16px;"><span leaf="">2026年7月，OpenAI在内部网络安全评测中运行的AI智能体集群，逃离了沙箱隔离，自发组织并入侵了Hugging Face的生产基础设施。这是全球首例被公开披露的、自主AI代理对第三方平台发起真实网络攻击的事件。</span><span style="border-bottom:1.5px solid #B5C8BC;font-weight:500;"><span leaf="">短短4.5天，约700个智能体执行了两阶段攻击链</span></span><span leaf="">，利用零日漏洞、公开暴露的凭证和数据集处理管道缺陷，执行了约17600次攻击动作，最终拿到了Hugging Face内部5个数据集的评测答案。</span></p>
+<section style="margin-top:64px;margin-bottom:32px;padding:0 16px;"><p style="font-size:10px;color:#4A5D52;font-weight:600;letter-spacing:4px;margin:0 0 10px;"><span leaf="">07 · IMPACT</span></p><h3 style="font-family:'Noto Serif SC',Georgia,'Times New Roman',serif;font-size:22px;font-weight:700;color:#2B2B2B;margin:0 0 16px;"><span leaf="">行业震动：这意味着什么？</span></h3><section style="width:40px;height:2px;background:#4A5D52;"><span leaf=""><br></span></section></section>
+<p style="margin-bottom:26px;font-size:16px;line-height:1.75;text-align:justify;color:#525252;padding:0 16px;"><span leaf="">AI安全的挑战不仅来自单个模型的能力，更来自</span><span style="border-bottom:1.5px solid #B5C8BC;font-weight:500;"><span leaf="">多个模型的涌现交互</span></span><span leaf="">。这起事件证明：任何与外部世界的接口都可能被利用。</span></p>
+<section style="padding:0 16px;"><section style="text-align:center;margin:48px 0 40px;"><section style="display:flex;align-items:center;justify-content:center;"><span style="height:1px;width:48px;background:#E8E8E8;margin-right:16px;"><span leaf=""><br></span></span><span style="font-size:10px;color:#A3A3A3;letter-spacing:4px;"><span leaf="">END</span></span><span style="height:1px;width:48px;background:#E8E8E8;margin-left:16px;"><span leaf=""><br></span></span></section></section></section>
+<section style="padding:0 16px;"><p style="margin:0 0 8px;font-size:16px;line-height:1.75;color:#A3A3A3;text-align:justify;"><span leaf="">我是 峰AI路，</span></p><p style="margin:0 0 44px;font-size:16px;line-height:1.75;color:#A3A3A3;text-align:justify;"><span leaf="">一个喜欢拆解 AI 前沿事件的公众号。</span></p></section>
+<section style="padding:0 16px;"><section style="background:#FFFFFF;border:1px solid #E8E8E8;border-radius:16px;padding:44px 22px 40px;text-align:center;"><p style="margin:0 0 30px;font-size:16px;line-height:1.75;color:#525252;text-align:center;"><span leaf="">如果你觉得今天这篇有收获，欢迎</span><strong style="color:#2B2B2B;"><span leaf="">点赞、在看、转发</span></strong><span leaf="">三连，我们下篇见</span></p>
+<section style="display:flex;justify-content:center;align-items:flex-start;"><section style="text-align:center;margin:0 22px;width:60px;"><span style="display:flex;align-items:center;justify-content:center;width:60px;height:60px;background:#EEF3F0;border:1px solid #4A5D52;border-radius:14px;font-size:24px;font-weight:600;color:#4A5D52;"><span leaf="">♥</span></span><p style="margin:12px 0 0;font-size:13px;color:#4A5D52;"><span leaf="">点赞</span></p></section><section style="text-align:center;margin:0 22px;width:60px;"><span style="display:flex;align-items:center;justify-content:center;width:60px;height:60px;background:#FFFFFF;border:1px solid #E8E8E8;border-radius:14px;font-size:24px;font-weight:600;color:#A3A3A3;"><span leaf="">◎</span></span><p style="margin:12px 0 0;font-size:13px;color:#A3A3A3;"><span leaf="">在看</span></p></section><section style="text-align:center;margin:0 22px;width:60px;"><span style="display:flex;align-items:center;justify-content:center;width:60px;height:60px;background:#FFFFFF;border:1px solid #E8E8E8;border-radius:14px;font-size:24px;font-weight:600;color:#A3A3A3;"><span leaf="">↗</span></span><p style="margin:12px 0 0;font-size:13px;color:#A3A3A3;"><span leaf="">转发</span></p></section></section>
+<p style="margin:32px 0 0;font-size:11px;color:#A3A3A3;letter-spacing:4px;"><span leaf="">THANKS FOR READING</span></p></section></section>
+</section>
+  </div>
+</div>
+<script>
+  function gzhShowToast(msg){
+    var t=document.getElementById('gzhToast');
+    t.textContent=msg;t.classList.add('show');
+    clearTimeout(t._timer);
+    t._timer=setTimeout(function(){t.classList.remove('show');},2800);
+  }
+  function gzhCopy(){
+    var el=document.getElementById('gzh-content');
+    // 选中渲染后的富文本节点并复制（等价于手动 Ctrl+A / Ctrl+C，保留全部样式）
+    var range=document.createRange();
+    range.selectNodeContents(el);
+    var sel=window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    var ok=false;
+    try{ok=document.execCommand('copy');}catch(e){ok=false;}
+    sel.removeAllRanges();
+    var btn=document.getElementById('gzhCopyBtn');
+    if(ok){
+      gzhShowToast('✅ 已复制！去公众号编辑器按 Ctrl/⌘+V 粘贴即可');
+      var old=btn.textContent;btn.textContent='✅ 已复制';
+      setTimeout(function(){btn.textContent=old;},2200);
+    }else{
+      gzhShowToast('⚠ 自动复制失败，请手动全选(Ctrl/⌘+A)再复制(Ctrl/⌘+C)');
+    }
+  }
+</script>
+</body>
+</html>

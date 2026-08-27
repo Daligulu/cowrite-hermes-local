@@ -139,11 +139,14 @@ function DeletePageModal({ page, pendingTasks, onClose, onConfirm }: {
   </div>
 }
 
-function Editor({ page, onDirty, onSaved, notify }: {
+function Editor({ page, onDirty, onSaved, notify, imageStyles, imageStyle, onImageStyleChange }: {
   page: Page
   onDirty: () => void
   onSaved: (page: Page) => void
   notify: (text: string) => void
+  imageStyles: Array<{ id: string; label: string; description?: string }>
+  imageStyle: string
+  onImageStyleChange: (id: string) => void
 }) {
   const holderRef = useRef<HTMLDivElement>(null)
   const vditorRef = useRef<Vditor | null>(null)
@@ -475,6 +478,15 @@ function Editor({ page, onDirty, onSaved, notify }: {
     void sendAi('gzh-layout', `主题：${gzhTheme}（${name}）；请把当前页面内容按该主题排版成公众号 HTML 初稿并写回页面。`, `已发送「${name}」排版任务，结果将写回当前页面`)
   }
 
+  const applyImageStyle = () => {
+    const style = imageStyles.find((s) => s.id === imageStyle)
+    if (!style) {
+      notify('请先为当前文章/贴图选择配图风格')
+      return
+    }
+    void sendAi('illustrate', `配图风格：${style.label}（${style.id}）；请按此风格为当前页面内容整篇自动配图，按内容自动决定张数并插入合适位置。`, `已发送「${style.label}」整篇自动配图任务，结果将写回当前页面`)
+  }
+
   return <>
     <div className="editor-toolbar">
       <div className="theme-select">
@@ -485,6 +497,14 @@ function Editor({ page, onDirty, onSaved, notify }: {
             : gzhThemes.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
         </select>
         <button type="button" className="editor-theme-apply" onClick={applyGzhTheme}>排版</button>
+      </div>
+      <div className="image-style-select">
+        <span className="image-style-label">配图</span>
+        <select value={imageStyle} onChange={(event) => onImageStyleChange(event.target.value)}>
+          <option value="">请选择配图风格</option>
+          {imageStyles.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+        </select>
+        <button type="button" className="editor-image-apply" onClick={applyImageStyle}>配图</button>
       </div>
       <button type="button" className="editor-tool" onClick={undo} disabled={!canUndo} title="回退（Ctrl+Z）">↶ 回退</button>
       <button type="button" className="editor-tool" onClick={redo} disabled={!canRedo} title="恢复（Ctrl+Y）">↷ 恢复</button>
@@ -554,6 +574,17 @@ function App() {
   const [toastLeaving, setToastLeaving] = useState(false)
   // 任务完成居中弹屏（与底部小 toast 独立并存）
   const [completion, setCompletion] = useState<{ kind: 'success' | 'fail'; text: string } | null>(null)
+  // 编辑页「配图」风格：从 /api/style-config 的 image 预设读取；不设默认，必须显式选一次
+  const [imageStyles, setImageStyles] = useState<Array<{ id: string; label: string; description?: string }>>([])
+  const [imageStyle, setImageStyle] = useState('')
+  useEffect(() => {
+    let mounted = true
+    api<{ config: { styles: { image?: Array<{ id: string; label: string; description?: string }> } } }>('/api/style-config')
+      .then((data) => { if (mounted) setImageStyles(data?.config?.styles?.image ?? []) })
+      .catch(() => { if (mounted) setImageStyles([]) })
+    return () => { mounted = false }
+  }, [])
+  const imageStyleLabel = imageStyles.find((s) => s.id === imageStyle)?.label ?? ''
   const [completionLeaving, setCompletionLeaving] = useState(false)
   const [autoHideSeconds, setAutoHideSeconds] = useState(30)
   const lastTaskStatusRef = useRef<Record<string, TaskStatus>>({})
@@ -808,14 +839,14 @@ function App() {
             <span className={`save-state ${saveState}`}>{saveState === 'saved' ? '已保存' : '未保存'}</span>
           </>}
         </div>
-        {activePage && <EditorCommandBar page={activePage} notify={notify} />}
+        {activePage && <EditorCommandBar page={activePage} notify={notify} imageStyleLabel={imageStyleLabel} />}
         {activePage?.prompt && activePage.revision === 1 && <div className="prompt-banner">
           <div><b>等待 Agent 创作</b><p>{activePage.prompt}</p></div>
           <button onClick={sendPendingCommand}>发送到 Hermes</button>
         </div>}
         {activePage && activePage.title.startsWith('选题·') && <TopicConfirmPanel page={activePage} notify={notify} />}
         {activePage
-          ? <Editor key={activePage.id} page={activePage} onDirty={onDirty} onSaved={onSaved} notify={notify} />
+          ? <Editor key={activePage.id} page={activePage} onDirty={onDirty} onSaved={onSaved} notify={notify} imageStyles={imageStyles} imageStyle={imageStyle} onImageStyleChange={setImageStyle} />
           : <div className="empty-state"><p>没有页面。</p><button className="primary" onClick={() => setModalOpen(true)}>＋ 新建页面</button></div>}
       </div>
 

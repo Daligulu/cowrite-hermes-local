@@ -22,7 +22,7 @@ describe('Style config', () => {
     expect(config.styles.image.length).toBeGreaterThan(0)
     const byId = Object.fromEntries(config.styles.writing.map((preset) => [preset.id, preset]))
     expect(byId['howto'].label).toBe('干货教程')
-    expect(config.styles.image.map((preset) => preset.id)).toContain('feng-ip')
+    expect(config.styles.image.map((preset) => preset.id)).toContain('guofeng-ink')
   })
 
   it('returns defaults when the file does not exist', async () => {
