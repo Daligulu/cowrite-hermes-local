@@ -31,8 +31,8 @@
 标签底色：          #EEF3F0（极浅墨绿底，胶囊标签用）
 标签文字色：        #3D5046（深墨绿，胶囊标签文字）
 
-正文字号：          15px
-行高：              1.9
+正文字号：          16px
+行高：              1.75
 字间距：            0.3px
 段落间距：          26px+
 章节上下留白：      64px+
@@ -157,7 +157,7 @@
 **基础段落**：
 
 ```html
-<p style="margin-bottom: 26px;font-size: 15px;line-height: 1.9;text-align: justify;color: #525252;padding: 0 16px;">
+<p style="margin-bottom: 26px;font-size: 16px;line-height: 1.75;text-align: justify;color: #525252;padding: 0 16px;">
   <span leaf="">正文内容，15px 字号，1.9 倍行高，两端对齐。段落间距 26px+，字里行间充满呼吸感。</span>
 </p>
 ```
@@ -165,7 +165,7 @@
 **带关键词下划线标记的段落**（推荐默认使用）：
 
 ```html
-<p style="margin-bottom: 26px;font-size: 15px;line-height: 1.9;text-align: justify;color: #525252;padding: 0 16px;">
+<p style="margin-bottom: 26px;font-size: 16px;line-height: 1.75;text-align: justify;color: #525252;padding: 0 16px;">
   <span leaf="">正文内容的前半部分，引出核心概念，</span>
   <span style="border-bottom: 1.5px solid #B5C8BC;font-weight: 500;"><span leaf="">这是需要强调的关键语句</span></span>
   <span leaf="">，后半部分继续阐述。</span>
@@ -227,7 +227,7 @@
 **在段落中的实际效果**：
 
 ```html
-<p style="margin-bottom: 26px;font-size: 15px;line-height: 1.9;text-align: justify;color: #525252;padding: 0 16px;">
+<p style="margin-bottom: 26px;font-size: 16px;line-height: 1.75;text-align: justify;color: #525252;padding: 0 16px;">
   <span leaf="">这个时代的竞争，拼的不是速度，而是</span>
   <span style="border-bottom: 1.5px solid #B5C8BC;font-weight: 500;"><span leaf="">深度思考的能力</span></span>
   <span leaf="">。真正的高手，往往在别人仰望风口时，已经悄悄</span>
@@ -331,7 +331,7 @@
 ## 组件 11 加粗结论段落
 
 ```html
-<p style="margin-bottom: 26px;font-size: 15px;line-height: 1.9;text-align: justify;font-weight: 600;color: #2B2B2B;padding: 0 16px;">
+<p style="margin-bottom: 26px;font-size: 16px;line-height: 1.75;text-align: justify;font-weight: 600;color: #2B2B2B;padding: 0 16px;">
   <span leaf="">加粗的结论性短句，字色加深到近黑，靠字重而非色彩传达重量。</span>
 </p>
 ```
@@ -339,7 +339,7 @@
 结合荧光笔的变体：
 
 ```html
-<p style="margin-bottom: 26px;font-size: 15px;line-height: 1.9;text-align: justify;font-weight: 600;color: #2B2B2B;padding: 0 16px;">
+<p style="margin-bottom: 26px;font-size: 16px;line-height: 1.75;text-align: justify;font-weight: 600;color: #2B2B2B;padding: 0 16px;">
   <span style="background: linear-gradient(180deg, transparent 60%, #D6E4DC 60%);"><span leaf="">荧光笔标记的结论句，极浅墨绿底，克制温柔。</span></span>
 </p>
 ```
@@ -418,18 +418,63 @@
 
 ---
 
-## 组件 15 尾部作者签名区
+## 组件 15 尾部作者签名区（占位已默认填峰AI路，可替换）
+
+> 默认署名「峰AI路」（峰AI路公众号主理人）；若文章作者或其余账号（如狗狗小百科）不同，替换成对应署名与简介即可。
 
 ```html
 <section style="padding: 0 16px 40px;">
-  <p style="margin-bottom: 26px;font-size: 15px;line-height: 1.9;text-align: justify;color: #525252;">
-    <span leaf="">我是 {{作者名}}，{{一句话简介，如：热衷于分享 AI 观察与干货}}。</span>
+  <p style="margin-bottom: 26px;font-size: 16px;line-height: 1.75;text-align: justify;color: #525252;">
+    <span leaf="">我是 峰AI路，一个喜欢拆解 AI 前沿事件的公众号。</span>
   </p>
-  <p style="margin-bottom: 26px;font-size: 15px;line-height: 1.9;text-align: justify;color: #525252;">
+  <p style="margin-bottom: 26px;font-size: 16px;line-height: 1.75;text-align: justify;color: #525252;">
     <span leaf="">如果你觉得今天这篇有收获，欢迎</span>
     <strong style="color: #4A5D52;"><span leaf="">点赞、在看、转发</span></strong>
     <span leaf="">三连，我们下篇见。</span>
   </p>
+</section>
+```
+
+---
+
+## 组件 16 文末感谢卡（留白禅意配色，圆角卡 + 点赞高亮三连 + THANKS FOR READING）
+
+> 与内置组件 15 签名区**二选一**，不要同时堆两句「三连」。推荐用本组件（更聚焦、有记忆点）替代组件 15；保留组件 15 纯文字签名时，把组件 15 的「点赞在看转发」句删掉。主色墨绿 #4A5D52，点赞 ♥ 用主色高亮，◎ 在看 / ↗ 转发常规灰。
+
+```html
+<section style="padding: 0 16px;">
+  <p style="margin: 0 0 8px;font-size: 16px;line-height: 1.75;color: #A3A3A3;text-align: justify;">
+    <span leaf="">我是 峰AI路，</span>
+  </p>
+  <p style="margin: 0 0 44px;font-size: 16px;line-height: 1.75;color: #A3A3A3;text-align: justify;">
+    <span leaf="">一个喜欢拆解 AI 前沿事件的公众号。</span>
+  </p>
+</section>
+<section style="padding: 0 16px;">
+  <section style="background: #FFFFFF;border: 1px solid #E8E8E8;border-radius: 16px;padding: 44px 22px 40px;text-align: center;">
+    <p style="margin: 0 0 30px;font-size: 16px;line-height: 1.75;color: #525252;text-align: center;">
+      <span leaf="">如果你觉得今天这篇有收获，欢迎</span>
+      <strong style="color: #2B2B2B;"><span leaf="">点赞、在看、转发</span></strong>
+      <span leaf="">三连，我们下篇见</span>
+    </p>
+    <section style="display: flex;justify-content: center;align-items: flex-start;">
+      <section style="text-align: center;margin: 0 22px;width: 60px;">
+        <span style="display: flex;align-items: center;justify-content: center;width: 60px;height: 60px;background: #EEF3F0;border: 1px solid #4A5D52;border-radius: 14px;font-size: 24px;font-weight: 600;color: #4A5D52;"><span leaf="">♥</span></span>
+        <p style="margin: 12px 0 0;font-size: 13px;color: #4A5D52;"><span leaf="">点赞</span></p>
+      </section>
+      <section style="text-align: center;margin: 0 22px;width: 60px;">
+        <span style="display: flex;align-items: center;justify-content: center;width: 60px;height: 60px;background: #FFFFFF;border: 1px solid #E8E8E8;border-radius: 14px;font-size: 24px;font-weight: 600;color: #A3A3A3;"><span leaf="">◎</span></span>
+        <p style="margin: 12px 0 0;font-size: 13px;color: #A3A3A3;"><span leaf="">在看</span></p>
+      </section>
+      <section style="text-align: center;margin: 0 22px;width: 60px;">
+        <span style="display: flex;align-items: center;justify-content: center;width: 60px;height: 60px;background: #FFFFFF;border: 1px solid #E8E8E8;border-radius: 14px;font-size: 24px;font-weight: 600;color: #A3A3A3;"><span leaf="">↗</span></span>
+        <p style="margin: 12px 0 0;font-size: 13px;color: #A3A3A3;"><span leaf="">转发</span></p>
+      </section>
+    </section>
+    <p style="margin: 32px 0 0;font-size: 11px;color: #A3A3A3;letter-spacing: 4px;">
+      <span leaf="">THANKS FOR READING</span>
+    </p>
+  </section>
 </section>
 ```
 
@@ -473,8 +518,8 @@
   <!-- 10. END 分割线 -->
   <!-- 组件 14 -->
 
-  <!-- 11. 尾部签名 -->
-  <!-- 组件 15 -->
+  <!-- 11. 尾部作者签名 / 文末感谢卡 -->
+  <!-- 组件 16 文末感谢卡（推荐）或 组件 15 纯文字签名（二选一，不同时堆两句「三连」） -->
 
 </section>
 ```
@@ -535,4 +580,4 @@
 | 要点列表 | 组件 12 要点列表版 | 竖排，编号 + 细线分隔 |
 | 行内标签 | 组件 13 标签胶囊 | 浅墨绿底为默认，描边为轻量 |
 | `---` | 组件 4 章节分割线 | 1px 极细线 + 64px 留白 |
-| 文末 | 组件 14 + 15 | END 细线 + 签名 |
+| 文末 | 组件 14 + 16 | END 细线 + 文末感谢卡（圆角卡+点赞三连；也可用 15 纯文字签名，二选一） |
