@@ -661,7 +661,7 @@ function App() {
         aria-current={workspaceView === 'project' ? 'page' : undefined}
         onClick={() => { setWorkspaceView('project'); setSidebarOpen(false) }}
       >
-        <span className="sidebar-tool-icon project-tool-icon" aria-hidden="true" />
+        <span className="sidebar-tool-icon project-tool-icon" aria-hidden="true"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 5.5v7a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-6a1 1 0 0 0-1-1H8.5l-1.3-1.6a1 1 0 0 0-.8-.4H3.5a1 1 0 0 0-1 1Z"/></svg></span>
         <span className="sidebar-tool-label">项目</span>
       </button>
       <button

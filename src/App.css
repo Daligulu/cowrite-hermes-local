@@ -21,8 +21,6 @@
 .sidebar-tool.active { color: #2383e2; font-weight: 600; }
 /* 侧边栏图标统一为同规格内联 SVG(14px)，stroke 用 currentColor 跟随激活色 */
 .sidebar-tool-icon svg { display: block; }
-.project-tool-icon { position: relative; width: 14px; height: 14px; flex: 0 0 14px; border: 1px solid currentColor; border-radius: 2px; opacity: .85; }
-.project-tool-icon::before { content: ''; position: absolute; left: -1px; top: -4px; width: 7px; height: 3px; border: 1px solid currentColor; border-bottom: 0; border-radius: 2px 2px 0 0; background: var(--sidebar); }
 .sidebar nav { flex: 1; overflow-x: hidden; overflow-y: auto; display: grid; grid-gap: 1px; gap: 1px; align-content: start; }
 .sidebar-page { display: flex; align-items: center; min-width: 0; border-radius: 8px; color: #3c4a5a; }
 .sidebar-page:hover, .sidebar-page.active { background: var(--hover); }
