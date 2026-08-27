@@ -261,6 +261,13 @@ find /root /home /srv /mnt /data /media -maxdepth 6 -name ".obsidian" -type d 2>
 - 验收任务创建：POST /api/tasks body `{action:'gzh-layout', pageId, requirements, delivery:'cowrite'}`（带 x-cowrite-token）；`/api/tasks` 返回**数组非 `{tasks:[...]}`**，轮询直接遍历；worker 领取有 ~1 分钟延迟
 - gzh-publish 升级要保幂等：仅当 prompt 不含「主题：」才补，避免重复 merge 破坏
 
+## 页面内容/配图「找不到」先看恢复配方（2026-08-27 实操）
+**触发词**：用户报「Cowrite 平台某文章内容和配图找不到了」。**先别重建，先分层确认后端到底丢没丢**——绝大多数情况是「产物有、写回漏」或「前端缓存」，不是真丢。
+- **完整定位三步 + 根因 + 恢复配方 + 验收注意见 `references/page-content-recovery.md`**（含：① API 直读确认内容/图在不在；② assets 目录 + HTTP 可达确认配图；③ 查任务产物。根因 = `gzh-layout` 生成的完整 HTML 产物 `gzh_<theme>_layout.html` **含图**，但写回页面 content 时只落正文、把 `<img>` 丢了 → 页面无图但无报错）
+- **恢复 = 完整产物（含图）+ 占位符替换峰AI路 + 全量写回**；写回后必读回断言 `img>0`、无 `{{}}` 占位、含峰AI路
+- **验收坑**：Cowrite 编辑器是**源码视图**（HTML 以 `<code>` 呈现），browser_vision 会误判「正文空白/排版异常」——以 DOM 快照 / API 读回 / wrap_preview 为准，不要用 browser 截图做最终判定
+- **教训**：排版/配图任务成功 ≠ 正文里有图。worker 契约的「真实验证→写回」必须落到**读回页面断言 img 数**这一步，不能只看 status=succeeded
+
 ## 移动端底部 Tab 图标统一（2026-08-27 落地，commit da237c6）
 
 **触发**：用户看到侧边栏图标已统一后，要求顺手把底部 Tab 栏（MobileTabBar，514-540 行）图标也统一。
