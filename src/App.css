@@ -11,15 +11,17 @@
 .sidebar-head button { border: 0; background: transparent; color: var(--faint); border-radius: 8px; padding: 3px 7px; }
 .sidebar-head button:hover { background: var(--hover); }
 .sidebar-tool, .new-page { height: 34px; border: 0; background: transparent; border-radius: 8px; color: var(--muted); font-size: 13px; text-align: left; padding: 0 10px; }
-.sidebar-tool { margin: 8px 0 1px; display: flex; align-items: center; }
-.sidebar-tool > * + * { margin-left: 8px; }
+.sidebar-tool { margin: 8px 0 1px; display: flex; align-items: center; gap: 7px; }
+/* 导航项左侧图标统一为固定尺寸居中盒，字符图标也垂直居中，避免基线/大小不一 */
+.sidebar-tool-icon { flex: 0 0 16px; width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
+.sidebar-tool-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .new-page { margin: 1px 0 8px; }
 .sidebar-tool:hover, .sidebar-tool.active, .new-page:hover { background: var(--hover); }
 .sidebar-tool.active { color: #2383e2; font-weight: 600; }
-.skill-tool-icon { width: 13px; height: 13px; display: grid; grid-template-columns: repeat(2, 5px); grid-template-rows: repeat(2, 5px); grid-gap: 2px; gap: 2px }
+.skill-tool-icon { display: grid; grid-template-columns: repeat(2, 6px); grid-template-rows: repeat(2, 6px); grid-gap: 2px; gap: 2px; }
 .skill-tool-icon i { border: 1px solid currentColor; border-radius: 1px; }
-.project-tool-icon { position: relative; width: 14px; height: 11px; flex: 0 0 14px; border: 1px solid currentColor; border-radius: 2px; opacity: .85; }
+.project-tool-icon { position: relative; width: 14px; height: 12px; flex: 0 0 14px; border: 1px solid currentColor; border-radius: 2px; opacity: .85; }
 .project-tool-icon::before { content: ''; position: absolute; left: -1px; top: -4px; width: 7px; height: 3px; border: 1px solid currentColor; border-bottom: 0; border-radius: 2px 2px 0 0; background: var(--sidebar); }
 .sidebar nav { flex: 1; overflow-x: hidden; overflow-y: auto; display: grid; grid-gap: 1px; gap: 1px; align-content: start; }
 .sidebar-page { display: flex; align-items: center; min-width: 0; border-radius: 8px; color: #3c4a5a; }
@@ -429,7 +431,9 @@
 
 .sidebar-home-link:hover { background: var(--hover); }
 .sidebar-home-link b { flex: 1; font-size: 13px; text-align: left; }
-.home-tool-icon { width: 13px; height: 13px; display: grid; place-items: center; font-size: 12px; }
+.home-tool-icon { font-size: 14px; }
+.action-tool-icon { font-size: 14px; }
+.task-tool-icon { font-size: 14px; }
 @media (max-width: 760px) {
   .home-workspace { padding: 20px 16px 30px; grid-gap: 20px; gap: 20px; }
   .home-head { flex-direction: column; }

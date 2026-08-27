@@ -653,40 +653,40 @@ function App() {
         aria-current={workspaceView === 'home' ? 'page' : undefined}
         onClick={() => { setWorkspaceView('home'); setSidebarOpen(false) }}
       >
-        <span className="home-tool-icon" aria-hidden="true">⌂</span>
-        首页
+        <span className="sidebar-tool-icon home-tool-icon" aria-hidden="true">⌂</span>
+        <span className="sidebar-tool-label">首页</span>
       </button>
       <button
         className={`sidebar-tool ${workspaceView === 'project' ? 'active' : ''}`}
         aria-current={workspaceView === 'project' ? 'page' : undefined}
         onClick={() => { setWorkspaceView('project'); setSidebarOpen(false) }}
       >
-        <span className="project-tool-icon" aria-hidden="true" />
-        项目
+        <span className="sidebar-tool-icon project-tool-icon" aria-hidden="true" />
+        <span className="sidebar-tool-label">项目</span>
       </button>
       <button
         className={`sidebar-tool ${workspaceView === 'skill-manager' ? 'active' : ''}`}
         aria-current={workspaceView === 'skill-manager' ? 'page' : undefined}
         onClick={() => setWorkspaceView('skill-manager')}
       >
-        <span className="skill-tool-icon" aria-hidden="true"><i /><i /><i /><i /></span>
-        Skill 管理
+        <span className="sidebar-tool-icon skill-tool-icon" aria-hidden="true"><i /><i /><i /><i /></span>
+        <span className="sidebar-tool-label">Skill 管理</span>
       </button>
       <button
         className={`sidebar-tool ${workspaceView === 'action-config' ? 'active' : ''}`}
         aria-current={workspaceView === 'action-config' ? 'page' : undefined}
         onClick={() => { setWorkspaceView('action-config'); setSidebarOpen(false) }}
       >
-        <span className="action-tool-icon" aria-hidden="true">⚙</span>
-        动作配置
+        <span className="sidebar-tool-icon action-tool-icon" aria-hidden="true">⚙</span>
+        <span className="sidebar-tool-label">动作配置</span>
       </button>
       <button
         className={`sidebar-tool ${workspaceView === 'tasks' ? 'active' : ''}`}
         aria-current={workspaceView === 'tasks' ? 'page' : undefined}
         onClick={() => setWorkspaceView('tasks')}
       >
-        <span className="task-tool-icon" aria-hidden="true">☰</span>
-        任务中心
+        <span className="sidebar-tool-icon task-tool-icon" aria-hidden="true">☰</span>
+        <span className="sidebar-tool-label">任务中心</span>
       </button>
       <button className="new-page" onClick={() => { setWorkspaceView('page'); setNewPageMode('write'); setModalOpen(true) }}>＋ 新建页面</button>
       <nav>
