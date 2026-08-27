@@ -649,7 +649,7 @@ function App() {
         <button title="返回首页" onClick={() => { setSidebarOpen(false); if (workspaceView !== 'page') setWorkspaceView('home') }}>«</button>
       </div>
       <button
-        className={`sidebar-tool primary ${workspaceView === 'home' ? 'active' : ''}`}
+        className={`sidebar-tool ${workspaceView === 'home' ? 'active' : ''}`}
         aria-current={workspaceView === 'home' ? 'page' : undefined}
         onClick={() => { setWorkspaceView('home'); setSidebarOpen(false) }}
       >
@@ -665,7 +665,7 @@ function App() {
         <span className="sidebar-tool-label">项目</span>
       </button>
       <button
-        className={`sidebar-tool primary ${workspaceView === 'skill-manager' ? 'active' : ''}`}
+        className={`sidebar-tool ${workspaceView === 'skill-manager' ? 'active' : ''}`}
         aria-current={workspaceView === 'skill-manager' ? 'page' : undefined}
         onClick={() => setWorkspaceView('skill-manager')}
       >
@@ -677,7 +677,7 @@ function App() {
         aria-current={workspaceView === 'action-config' ? 'page' : undefined}
         onClick={() => { setWorkspaceView('action-config'); setSidebarOpen(false) }}
       >
-        <span className="sidebar-tool-icon action-tool-icon" aria-hidden="true">⚙</span>
+        <span className="sidebar-tool-icon action-tool-icon" aria-hidden="true"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="2.4"/><path d="M8 2.2v2M8 11.8v2M13.8 8h-2M4.2 8h-2M12 4l-1.4 1.4M5.4 10.6 4 12M12 12l-1.4-1.4M5.4 5.4 4 4"/></svg></span>
         <span className="sidebar-tool-label">动作配置</span>
       </button>
       <button
@@ -685,7 +685,7 @@ function App() {
         aria-current={workspaceView === 'tasks' ? 'page' : undefined}
         onClick={() => setWorkspaceView('tasks')}
       >
-        <span className="sidebar-tool-icon task-tool-icon" aria-hidden="true">☰</span>
+        <span className="sidebar-tool-icon task-tool-icon" aria-hidden="true"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h10M3 8h10M3 11h10"/></svg></span>
         <span className="sidebar-tool-label">任务中心</span>
       </button>
       <button className="new-page" onClick={() => { setWorkspaceView('page'); setNewPageMode('write'); setModalOpen(true) }}>＋ 新建页面</button>

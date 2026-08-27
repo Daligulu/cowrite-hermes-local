@@ -15,17 +15,13 @@
 /* 导航项左侧图标统一为固定尺寸居中盒，字符图标也垂直居中，避免基线/大小不一 */
 .sidebar-tool-icon { flex: 0 0 16px; width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
 .sidebar-tool-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* 「首页」「Skill 管理」主入口新样式：14px + 浅蓝圆角底 + 左侧主题蓝竖条 */
-.sidebar-tool.primary { font-size: 14px; background: #eef5ff; color: #2379c0; font-weight: 600; box-shadow: inset 3px 0 0 #2383e2; }
-.sidebar-tool.primary:hover { background: #e2eeff; }
-.sidebar-tool.primary.active { background: #e2eeff; color: #1e6ec0; }
 
 .new-page { margin: 1px 0 8px; }
 .sidebar-tool:hover, .sidebar-tool.active, .new-page:hover { background: var(--hover); }
 .sidebar-tool.active { color: #2383e2; font-weight: 600; }
-/* 内联 SVG 侧边栏图标统一显示为适配盒，stroke 用 currentColor 跟随激活色 */
+/* 侧边栏图标统一为同规格内联 SVG(14px)，stroke 用 currentColor 跟随激活色 */
 .sidebar-tool-icon svg { display: block; }
-.project-tool-icon { position: relative; width: 14px; height: 12px; flex: 0 0 14px; border: 1px solid currentColor; border-radius: 2px; opacity: .85; }
+.project-tool-icon { position: relative; width: 14px; height: 14px; flex: 0 0 14px; border: 1px solid currentColor; border-radius: 2px; opacity: .85; }
 .project-tool-icon::before { content: ''; position: absolute; left: -1px; top: -4px; width: 7px; height: 3px; border: 1px solid currentColor; border-bottom: 0; border-radius: 2px 2px 0 0; background: var(--sidebar); }
 .sidebar nav { flex: 1; overflow-x: hidden; overflow-y: auto; display: grid; grid-gap: 1px; gap: 1px; align-content: start; }
 .sidebar-page { display: flex; align-items: center; min-width: 0; border-radius: 8px; color: #3c4a5a; }
@@ -435,9 +431,7 @@
 
 .sidebar-home-link:hover { background: var(--hover); }
 .sidebar-home-link b { flex: 1; font-size: 13px; text-align: left; }
-/* home-tool-icon 现为内联 SVG(书)，不再需要字符字号 */
-.action-tool-icon { font-size: 14px; }
-.task-tool-icon { font-size: 14px; }
+/* 侧边栏导航图标均已改为内联 SVG，无需字符字号规则 */
 @media (max-width: 760px) {
   .sidebar-tool, .new-page { font-size: 14px; }
   .home-workspace { padding: 20px 16px 30px; grid-gap: 20px; gap: 20px; }
