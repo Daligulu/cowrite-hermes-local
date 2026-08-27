@@ -57,7 +57,7 @@ function detectAction(text: string, actions: ActionConfig[]): { action: string; 
 export function EditorCommandBar({ page, notify }: { page: Page; notify: (message: string) => void }) {
   const [text, setText] = useState('')
   const [openGroup, setOpenGroup] = useState<string | null>(null)
-  const [selectorPos, setSelectorPos] = useState<{ left: number; bottom: number } | null>(null)
+  const [selectorPos, setSelectorPos] = useState<{ left: number; top?: number; bottom?: number } | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [tasks, setTasks] = useState<CowriteTask[]>([])
   const [expanded, setExpanded] = useState(false)
@@ -204,7 +204,17 @@ export function EditorCommandBar({ page, notify }: { page: Page; notify: (messag
       return
     }
     const rect = event.currentTarget.getBoundingClientRect()
-    setSelectorPos({ left: rect.left, bottom: window.innerHeight - rect.top + 6 })
+    const gap = 6
+    // 水平：跟按钮左对齐，超出右边界时右对齐，避免溢出视口
+    const menuWidth = Math.min(320, window.innerWidth - 20)
+    const left = Math.max(0, Math.min(rect.left, window.innerWidth - menuWidth - 20))
+    if (rect.top < window.innerHeight * 0.5) {
+      // 按钮在上半屏（桌面顶部命令栏）：下拉向下展开，避免顶出视口上方
+      setSelectorPos({ left, top: rect.bottom + gap })
+    } else {
+      // 按钮在下半屏（移动端底部命令栏）：下拉向上展开
+      setSelectorPos({ left, bottom: window.innerHeight - rect.top + gap })
+    }
     setOpenGroup(groupId)
   }
 
@@ -235,7 +245,7 @@ export function EditorCommandBar({ page, notify }: { page: Page; notify: (messag
                 {group.label} ▾
               </button>
               {openGroup === group.id && selectorPos && (
-                <div className="selector-list" style={{ left: selectorPos.left, bottom: selectorPos.bottom }}>
+                <div className="selector-list" style={{ left: selectorPos.left, ...(selectorPos.top !== undefined ? { top: selectorPos.top } : { bottom: selectorPos.bottom }) }}>
                   {group.actionIds.map((id) => {
                     const option = selectableActions.find((action) => action.id === id)
                     if (!option) return null
