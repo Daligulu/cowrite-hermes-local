@@ -649,12 +649,12 @@ function App() {
         <button title="返回首页" onClick={() => { setSidebarOpen(false); if (workspaceView !== 'page') setWorkspaceView('home') }}>«</button>
       </div>
       <button
-        className={`sidebar-tool ${workspaceView === 'home' ? 'active' : ''}`}
+        className={`sidebar-tool primary ${workspaceView === 'home' ? 'active' : ''}`}
         aria-current={workspaceView === 'home' ? 'page' : undefined}
         onClick={() => { setWorkspaceView('home'); setSidebarOpen(false) }}
       >
         <span className="sidebar-tool-icon home-tool-icon" aria-hidden="true">⌂</span>
-        <span className="sidebar-tool-label home-label">首页</span>
+        <span className="sidebar-tool-label">首页</span>
       </button>
       <button
         className={`sidebar-tool ${workspaceView === 'project' ? 'active' : ''}`}
@@ -665,7 +665,7 @@ function App() {
         <span className="sidebar-tool-label">项目</span>
       </button>
       <button
-        className={`sidebar-tool ${workspaceView === 'skill-manager' ? 'active' : ''}`}
+        className={`sidebar-tool primary ${workspaceView === 'skill-manager' ? 'active' : ''}`}
         aria-current={workspaceView === 'skill-manager' ? 'page' : undefined}
         onClick={() => setWorkspaceView('skill-manager')}
       >

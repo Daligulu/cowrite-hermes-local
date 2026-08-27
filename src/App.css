@@ -15,7 +15,10 @@
 /* 导航项左侧图标统一为固定尺寸居中盒，字符图标也垂直居中，避免基线/大小不一 */
 .sidebar-tool-icon { flex: 0 0 16px; width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
 .sidebar-tool-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.home-label { font-size: 16px; }
+/* 「首页」「Skill 管理」主入口新样式：14px + 浅蓝圆角底 + 左侧主题蓝竖条 */
+.sidebar-tool.primary { font-size: 14px; background: #eef5ff; color: #2379c0; font-weight: 600; box-shadow: inset 3px 0 0 #2383e2; }
+.sidebar-tool.primary:hover { background: #e2eeff; }
+.sidebar-tool.primary.active { background: #e2eeff; color: #1e6ec0; }
 
 .new-page { margin: 1px 0 8px; }
 .sidebar-tool:hover, .sidebar-tool.active, .new-page:hover { background: var(--hover); }
