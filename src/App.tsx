@@ -653,7 +653,7 @@ function App() {
         aria-current={workspaceView === 'home' ? 'page' : undefined}
         onClick={() => { setWorkspaceView('home'); setSidebarOpen(false) }}
       >
-        <span className="sidebar-tool-icon home-tool-icon" aria-hidden="true">⌂</span>
+        <span className="sidebar-tool-icon home-tool-icon" aria-hidden="true"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3.8C6.6 3 4.8 3 3 3.8v8.6c1.8-.7 3.6-.7 5 0Z"/><path d="M8 3.8c1.4-.8 3.2-.8 5 0v8.6c-1.8-.7-3.6-.7-5 0Z"/><path d="M3 6.5c1.8-.6 3.6-.6 5 0M8 6.5c1.4-.6 3.2-.6 5 0M3 9c1.8-.6 3.6-.6 5 0M8 9c1.4-.6 3.2-.6 5 0"/></svg></span>
         <span className="sidebar-tool-label">首页</span>
       </button>
       <button
@@ -669,7 +669,7 @@ function App() {
         aria-current={workspaceView === 'skill-manager' ? 'page' : undefined}
         onClick={() => setWorkspaceView('skill-manager')}
       >
-        <span className="sidebar-tool-icon skill-tool-icon" aria-hidden="true"><i /><i /><i /><i /></span>
+        <span className="sidebar-tool-icon skill-tool-icon" aria-hidden="true"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 11.5 10.2 6.8M7.2 3 13 8.3l-2 1.6L5.2 4.6Z"/></svg></span>
         <span className="sidebar-tool-label">Skill 管理</span>
       </button>
       <button
