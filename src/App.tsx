@@ -519,8 +519,8 @@ function MobileTabBar({ view, onNavigate }: {
     { id: 'home', icon: '⌂', label: '工作台' },
     { id: 'tasks', icon: '◫', label: '任务' },
     { id: 'page', icon: '✎', label: '编辑' },
-    { id: 'skill-manager', icon: '🧩', label: '技能' },
-    { id: 'action-config', icon: '⚙', label: '配置' },
+    { id: 'skill-manager', icon: '▤', label: '技能' },
+    { id: 'action-config', icon: '\u2699\uFE0E', label: '配置' },
   ]
   return (
     <nav className="mobile-tabbar" aria-label="移动端导航">
