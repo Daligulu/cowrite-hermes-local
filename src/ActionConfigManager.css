@@ -24,7 +24,7 @@
 
 .action-config-head-actions .primary {
   border: 0;
-  background: #16324f;
+  background: var(--primary);
   color: #fff;
   border-radius: 8px;
   padding: 8px 14px;
@@ -42,7 +42,7 @@
   font-size: 13px;
   cursor: pointer;
 }
-.ghost:hover:not(:disabled) { background: #f2f5f8; }
+.ghost:hover:not(:disabled) { background: var(--hover); }
 .ghost:disabled { opacity: 0.6; cursor: default; }
 .ghost.small { padding: 5px 10px; font-size: 12px; }
 
@@ -85,7 +85,7 @@
 .action-config-item-buttons > * + * { margin-left: 2px; }
 .action-config-item-buttons .icon-button { border: 0; background: transparent; color: var(--muted); border-radius: 5px; padding: 3px 6px; font-size: 13px; cursor: pointer; }
 .action-config-item-buttons .icon-button:hover { background: rgba(0,0,0,0.06); }
-.action-config-item-buttons .icon-button.danger:hover { color: #c0392b; }
+.action-config-item-buttons .icon-button.danger:hover { color: var(--error); }
 .action-config-add {
   width: 100%;
   margin-top: 8px;
@@ -145,7 +145,7 @@
   display: inline-flex;
   align-items: center;
   margin: 0 8px 8px 0;
-  background: #16324f;
+  background: var(--primary);
   color: #fff;
   border-radius: 999px;
   padding: 4px 6px 4px 11px;
@@ -197,10 +197,10 @@
   font-size: 12px;
 }
 .skill-row + .skill-row { border-top: 1px solid #eef1f4; }
-.skill-row:hover { background: #f2f5f8; }
+.skill-row:hover { background: var(--hover); }
 .skill-row.on { background: #e8f0fa; }
 .skill-row input { margin-right: 8px; flex: 0 0 auto; }
-.skill-row-name { font-weight: 600; color: #24313e; white-space: nowrap; }
+.skill-row-name { font-weight: 600; color: var(--text); white-space: nowrap; }
 .skill-row-desc {
   color: var(--muted);
   margin-left: 10px;
@@ -211,14 +211,14 @@
 .skill-empty { padding: 18px; text-align: center; color: var(--muted); font-size: 12px; }
 .skill-empty.error { color: #b3261e; }
 .skill-empty .ghost.small { margin-left: 6px; }
-.skill-warning { margin-top: 6px; font-size: 12px; color: #a06a12; background: #fff8e6; border-radius: 8px; padding: 7px 10px; }
+.skill-warning { margin-top: 6px; font-size: 12px; color: var(--warning); background: #fff8e6; border-radius: 8px; padding: 7px 10px; }
 
 .prompt-row { display: flex; align-items: flex-start; margin-bottom: 8px; }
 .prompt-row .prompt-id { width: 90px; min-width: 70px; border: 1px solid #ccd3da; border-radius: 8px; padding: 8px; font-size: 12px; }
 .prompt-row select { border: 1px solid #ccd3da; border-radius: 8px; padding: 8px; font-size: 12px; margin-left: 6px; }
 .prompt-row .prompt-text { flex: 1; min-width: 0; margin-left: 6px; border: 1px solid #ccd3da; border-radius: 8px; padding: 8px; font-size: 12px; min-height: 54px; resize: vertical; }
 .prompt-row .icon-button { border: 0; background: transparent; color: var(--muted); border-radius: 5px; padding: 6px 8px; font-size: 13px; cursor: pointer; margin-left: 4px; }
-.prompt-row .icon-button.danger:hover { color: #c0392b; }
+.prompt-row .icon-button.danger:hover { color: var(--error); }
 
 .workflow-row { display: flex; align-items: center; margin-bottom: 8px; }
 .workflow-row .step-type { border: 1px solid #ccd3da; border-radius: 8px; padding: 8px; font-size: 12px; width: 86px; }
@@ -228,7 +228,7 @@
 .workflow-row .step-io { width: 90px; }
 .workflow-row .step-arrow { margin: 0 4px; color: var(--muted); font-size: 12px; }
 .workflow-row .icon-button { border: 0; background: transparent; color: var(--muted); border-radius: 5px; padding: 4px 6px; font-size: 13px; cursor: pointer; margin-left: 2px; }
-.workflow-row .icon-button.danger:hover { color: #c0392b; }
+.workflow-row .icon-button.danger:hover { color: var(--error); }
 
 /* 公众号账号管理 */
 .wechat-accounts-panel {
@@ -258,11 +258,11 @@
 }
 .wechat-account-row + .wechat-account-row { margin-top: 6px; }
 .wechat-account-main { display: flex; flex-direction: column; min-width: 0; }
-.wechat-account-label { font-weight: 600; color: #24313e; }
+.wechat-account-label { font-weight: 600; color: var(--text); }
 .wechat-account-meta { color: var(--muted); font-size: 12px; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .wechat-account-buttons { display: flex; align-items: center; flex: 0 0 auto; }
 .wechat-account-buttons > * + * { margin-left: 6px; }
-.danger-text { color: #c0392b; }
+.danger-text { color: var(--error); }
 .wechat-accounts-empty { padding: 16px; text-align: center; color: var(--muted); font-size: 12px; }
 .wechat-account-form {
   border: 1px solid #dbe2ea;
@@ -287,7 +287,7 @@
 .wechat-account-form-actions { display: flex; justify-content: flex-end; margin-top: 10px; }
 .wechat-account-form-actions > * + * { margin-left: 8px; }
 .primary.small { padding: 6px 12px; font-size: 12px; }
-.wechat-accounts-dirty { margin-top: 8px; font-size: 12px; color: #a06a12; }
+.wechat-accounts-dirty { margin-top: 8px; font-size: 12px; color: var(--warning); }
 
 /* 任务提示设置 */
 .task-notice-config {
@@ -302,7 +302,7 @@
 .task-notice-row { display: flex; align-items: flex-end; margin-top: 12px; }
 .task-notice-row .field { flex: 1; min-width: 0; margin-bottom: 0; }
 .task-notice-row .field input { max-width: 180px; }
-.task-notice-save { flex: 0 0 auto; margin-left: 12px; border: 0; background: #16324f; color: #fff; border-radius: 8px; padding: 9px 14px; font-size: 13px; cursor: pointer; }
+.task-notice-save { flex: 0 0 auto; margin-left: 12px; border: 0; background: var(--primary); color: #fff; border-radius: 8px; padding: 9px 14px; font-size: 13px; cursor: pointer; }
 .task-notice-save:disabled { background: #c6cdd6; cursor: default; }
 
 @media (max-width: 760px) {

@@ -1,22 +1,74 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700;800&display=swap');
 
 :root {
-  font-family: 'Noto Sans SC', -apple-system, sans-serif;
-  color: #1c2b3a;
-  background: #fff;
-  --text: #1c2b3a;
-  --muted: #64748b;
-  --faint: #8a94a0;
-  --line: #e6eaf0;
-  --sidebar: #fbfcfe;
-  --hover: #eef2f7;
-  --blue: #2383e2;
+  font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Segoe UI', Roboto, sans-serif;
+  color: var(--text);
+  background: var(--canvas);
+
+  /* ===== 品牌主色（方案 C：主按钮渐变 + 纯蓝功能） ===== */
+  --primary: #2F5BEA;          /* 主蓝：链接/选中/复选/激活/纯蓝功能 */
+  --primary-press: #2347C9;    /* 主蓝按压态 */
+  --primary-strong: #2F5BEA;   /* 渐变起点（主按钮） */
+  --accent-end: #6E56CF;       /* 渐变终点紫/装饰 chip */
+  --accent-soft: #8B73E8;      /* 暗色用浅紫（当前光色不用） */
+  --accent-bg: #EEF2FF;        /* 选中浅底 */
+  --primary-border: #B9C3E8;   /* 浅蓝边框/hover 边 */
+  --link: #2F5BEA;             /* 链接/任务资产链接 */
+  --focus-ring: #2F5BEA;
+
+  /* ===== 语义状态色（三套归一为一套） ===== */
+  --success: #30A46C;
+  --error: #E5484D;
+  --info: #2F5BEA;
+  --warning: #F0A92B;
+
+  /* ===== 画布与文本（暖白） ===== */
+  --canvas: #FCFCFD;
+  --surface: #F4F4F6;
+  --surface-2: #ECECEF;
+  --divider: #E6E6EA;
+  --text: #1C1C22;
+  --muted: #6A6A78;
+  --faint: #9B9BA6;
+  --hover: #F0F0F3;
+  --carbon: #37352F;
+
+  /* ===== 排版 Type Scale ===== */
+  --ts-title: 22px;
+  --ts-h1: 20px;
+  --ts-h2: 17px;
+  --ts-body: 16px;
+  --ts-card-title: 14px;
+  --ts-caption: 12px;
+
+  /* ===== 间距网格（4/8pt） ===== */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* ===== 圆角 ===== */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  /* ===== 按钮高度 ===== */
+  --btn-h-sm: 28px;
+  --btn-h-md: 36px;
+  --btn-h-lg: 44px;
+
+  /* ===== 兼容旧变量名（迁移期保留，后续可清理） ===== */
+  --sidebar: var(--surface);
+  --blue: var(--primary);
+  --line: var(--divider);
 }
 
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; }
-body { margin: 0; overflow: hidden; background: #fff; }
+body { margin: 0; overflow: hidden; background: var(--canvas); }
 button, input, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
-button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid #80bfff; outline-offset: 1px; }
-::selection { background: #b9dcfa; }
+button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 1px; }
+::selection { background: rgba(47,91,234,0.22); }
