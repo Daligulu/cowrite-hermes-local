@@ -110,6 +110,18 @@ export const DEFAULT_ACTIONS: ActionConfig[] = [
     workflow: [],
   },
   {
+    id: 'gzh-retint',
+    label: '按主题换色',
+    enabled: true,
+    chip: false,
+    keywords: ['换色', '换主色', '改色', 'gzh换色', '按主题换色'],
+    skills: ['gzh-design'],
+    prompts: [
+      { id: 'main', role: 'system', text: '把当前页面已排版的公众号 HTML 产物按指定新主色换色（主色同族联动，保留中性灰与异色族点缀色）。步骤：① mcp_cowrite_cowrite_get_page 读取页面最新内容与 revision；② 解析 requirements 中的「主题：xxx」（用于确定原主色与同族判定，graphite-minimal=石墨极简/moyu-green=摸鱼绿/red-white=红白/zen-whitespace=留白禅意/moyu-ticket=摸鱼票据/olive-journal=橄榄手记；未指定默认 graphite-minimal）与「新主色：#RRGGBB」（必填，否则 fail_task）；③ 从页面 content 提取顶层 <section> 产物，写入临时文件；④ 调用 gzh-design 的 scripts/retint.py <临时文件> --theme <主题id> --accent <新主色> --output <输出文件>，把同色族颜色按 HSL 相对偏移迁移到新主色；⑤ 读回输出文件正文，用 gzh-design 的 scripts/validate_gzh_html.py 校验完全合规；⑥ 成功后用 mcp_cowrite_cowrite_update_page 把换色后正文写回页面（带 expected_revision），失败则 fail_task 写真实错误。\\n\\n注意：仅重写内联 style 里的颜色，不改行内文本/结构；石墨等 grayscale 主题只迁移主灰族。' },
+    ],
+    workflow: [],
+  },
+  {
     id: 'xiaohongshu',
     label: '小红书图组',
     enabled: true,

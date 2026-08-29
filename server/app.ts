@@ -5,6 +5,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { z } from 'zod'
 import { assetsDir, buildCreateCommand, CowriteService } from './service.js'
+import { renderGzhPreview } from './gzhPreview.js'
 import { ActionConfigStore, actionConfigFileSchema } from './actionConfig.js'
 import { ChannelConfigStore, channelConfigFileSchema } from './channelConfig.js'
 import { StyleConfigStore, styleConfigFileSchema } from './styleConfig.js'
@@ -241,6 +242,15 @@ export function createApp(
   })
   app.get('/api/pages', async (_request, response) => response.json(await service.listPages()))
   app.get('/api/pages/:id', async (request, response) => response.json(await service.getPage(request.params.id)))
+  app.get('/api/pages/:id/gzh-preview', async (request, response) => {
+    const page = await service.getPage(request.params.id)
+    try {
+      const html = await renderGzhPreview(page.content, page.title)
+      response.type('text/html').send(html)
+    } catch (error) {
+      response.status(422).json({ error: error instanceof Error ? error.message : '预览生成失败' })
+    }
+  })
   app.get('/api/pages/:id/command', async (request, response) => {
     const page = await service.getPage(request.params.id)
     response.type('text/plain').send(buildCreateCommand(page))

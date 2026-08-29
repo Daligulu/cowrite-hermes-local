@@ -165,6 +165,31 @@ function Editor({ page, onDirty, onSaved, notify, imageStyles, imageStyle, onIma
   const [selectionBar, setSelectionBar] = useState<{ x: number; y: number; text: string } | null>(null)
   const pageId = page.id
 
+  // 公众号排版产物「只读 + 复制」预览（模态 iframe 渲染）
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const [previewHtml, setPreviewHtml] = useState('')
+  const [previewLoading, setPreviewLoading] = useState(false)
+  const [previewError, setPreviewError] = useState('')
+
+  const openPreview = async () => {
+    setPreviewOpen(true)
+    setPreviewLoading(true)
+    setPreviewError('')
+    try {
+      const response = await cowriteFetch(`/api/pages/${pageId}/gzh-preview`)
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({ error: '预览生成失败' }))
+        throw new Error(body.error || '预览生成失败')
+      }
+      setPreviewHtml(await response.text())
+    } catch (error) {
+      setPreviewError(error instanceof Error ? error.message : '预览加载失败')
+      setPreviewHtml('')
+    } finally {
+      setPreviewLoading(false)
+    }
+  }
+
   // 公众号排版主题：优先从 /api/style-config 的 layout 预设读取，失败用兜底列表
   const [gzhThemes, setGzhThemes] = useState<Array<{ id: string; label: string; description?: string }>>([])
   const [gzhTheme, setGzhTheme] = useState('graphite-minimal')
@@ -506,6 +531,7 @@ function Editor({ page, onDirty, onSaved, notify, imageStyles, imageStyle, onIma
         </select>
         <button type="button" className="editor-image-apply" onClick={applyImageStyle}>配图</button>
       </div>
+      <button type="button" className="editor-toolbar-preview" onClick={openPreview} title="预览当前页 gzh 排版产物（只读+复制）">预览</button>
       <button type="button" className="editor-tool" onClick={undo} disabled={!canUndo} title="回退（Ctrl+Z）">↶ 回退</button>
       <button type="button" className="editor-tool" onClick={redo} disabled={!canRedo} title="恢复（Ctrl+Y）">↷ 恢复</button>
       <span className="editor-toolbar-spacer" />
@@ -526,6 +552,21 @@ function Editor({ page, onDirty, onSaved, notify, imageStyles, imageStyle, onIma
             <button className="ai" onMouseDown={(event) => { event.preventDefault(); sendAi('polish', `根据上下文改进以下选中文字，如需求不明确请在任务结果中说明：\n${selectionBar.text}`, '修改任务已发送到 Hermes') }}>对话</button>
           </>
     </div>}
+    {previewOpen && (
+      <div className="modal-mask gzh-preview-mask" onClick={() => setPreviewOpen(false)}>
+        <div className="gzh-preview-modal" onClick={(event) => event.stopPropagation()}>
+          <div className="gzh-preview-head">
+            <span className="gzh-preview-title">公众号排版预览 <span className="gzh-preview-sub">（只读，点右上角「复制到公众号」可直接粘贴）</span></span>
+            <button type="button" className="gzh-preview-close" onClick={() => setPreviewOpen(false)}>✕</button>
+          </div>
+          {previewLoading
+            ? <div className="gzh-preview-empty">正在生成预览…</div>
+            : previewError
+              ? <div className="gzh-preview-empty">{previewError}</div>
+              : <div className="gzh-preview-body"><iframe title="gzh-preview" srcDoc={previewHtml} sandbox="allow-same-origin allow-scripts allow-clipboard-write" /></div>}
+        </div>
+      </div>
+    )}
   </>
 }
 
