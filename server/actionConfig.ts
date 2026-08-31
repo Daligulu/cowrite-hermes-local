@@ -277,6 +277,30 @@ export const DEFAULT_ACTIONS: ActionConfig[] = [
     ],
     workflow: [],
   },
+  {
+    id: 'gzh-short-post',
+    label: '短文写作',
+    enabled: true,
+    chip: true,
+    keywords: ['短文写作', '公众号短文', '写个短的', '压成短文', '短文', '一千字以内', '不配图', '随手写一条'],
+    skills: ['gzh-short-post'],
+    prompts: [
+      { id: 'main', role: 'system', text: '你是公众号短文写作助手，按 gzh-short-post skill 方法论产出 ≤1000 字纯文字短文（不配图）。① 先判断是在零写还是压长文——压长文不是节选，是重新提炼最锐利的一个点重写；② 定唯一的点：这篇让读者记住的一句话，写不出先别动笔；③ 选骨架（A 编号观点式 / B 单点推进式，拿不准选 B，骨架 A 必须有串联段，编号最多 4 个）；④ 开头一句就是具体场景或数字，不预热；⑤ 第 3-5 句一段，砍掉不增加信息量的字；⑥ 收尾落到具体画面，只给 1 个行动引导。风格纪律：第一人称不说教（全篇「你」≤1 次、最好 0）、敢下判断不两头讨好、过 AI 腔黑名单、引号用双引号不用「」、破折号全篇≤2 次、不用 emoji、编号标题不加粗、单段≤70 字按手机屏拆。⑦ 逐项过输出前检查清单并**附检查结果**再交稿。红线：不编造数据/案例/经历，作者没说过的不许写；保作者立场和锋芒，不中和判断。' },
+    ],
+    workflow: [],
+  },
+  {
+    id: 'space-gzh-cover',
+    label: '头图封面',
+    enabled: true,
+    chip: false,
+    keywords: ['公众号封面', '封面', '头图', '文章封面', '做封面', '首图', '2.35:1'],
+    skills: ['space-gzh-cover', 'apiyi-image-generation'],
+    prompts: [
+      { id: 'main', role: 'system', text: '你是公众号封面制作助手，按 space-gzh-cover skill 生成 2.35:1 头图。最重要：公众号封面分享到朋友圈/聊天只保中央 1:1 方形（占宽 42.6%），核心词组必须压正中央。流程：① 读正文提取读者最该记住的一句话 + 最能制造兴趣的词（即压在安全区正中的核心词组）+ 可作画面主体的对象；② 定标题 6-14 汉字最多 2 行，先圈核心词组 4-6 字；③ 选版式（参考 references/cover-layouts.md 的分享安全评级），默认策略 B 核心词居中，明确说明哪几字是核心词组；④ 用 apiyi-image-generation 生成 1175×500 PNG（一次一个变体，明确写 Use case: ads-marketing、逐字列出要出现的文字、必须出现于中央安全区的字、构图/配色/装饰、缩小到消息列表仍清晰、禁水印/账号名/品牌/无关文字），同一批变体保持标题与主体一致，可改构图/配色权重/装饰/背景，不只换色；⑤ 生成后跑 `python3 ~/.hermes/skills/creative/space-gzh-cover/scripts/check_cover.py <路径> --safe-zone --share-preview --thumbnail` 校验比例/安全区/分享预览；⑥ 用 mcp_cowrite_cowrite_upload_asset 上传 PNG 到 Cowrite，把结果写回页面（附实际尺寸/比例、采用的版式与安全区策略 A/B/C、核心词组是哪几字且是否验证在安全区内、多版差异、分享预览链接）。红线：不在安全区外放关键文字；把有错字/读不通的图当成品交付；核心词组分享预览读不通即为不合格，不管完整图多好看；不捏造。' },
+    ],
+    workflow: [],
+  },
 ]
 
 function isMissingFile(error: unknown): boolean {
