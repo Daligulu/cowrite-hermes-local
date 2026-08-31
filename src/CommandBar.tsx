@@ -68,6 +68,8 @@ export function EditorCommandBar({ page, notify, imageStyleLabel }: { page: Page
   const [pendingAccount, setPendingAccount] = useState('')
   const [topicModalOpen, setTopicModalOpen] = useState(false)
   const [topicModalReq, setTopicModalReq] = useState('')
+  const [fengChoice, setFengChoice] = useState<{ action: string; requirements?: string } | null>(null)
+  const [fengMode, setFengMode] = useState('full')
   const inputRef = useRef<HTMLInputElement>(null)
 
   const refresh = useCallback(async () => {
@@ -129,6 +131,11 @@ export function EditorCommandBar({ page, notify, imageStyleLabel }: { page: Page
       void openTopicChoice(req)
       return
     }
+    if (chosen === 'gzh-video' && !(req ?? '').includes('讲解员比例')) {
+      setFengChoice({ action: chosen, requirements: req })
+      setFengMode('full')
+      return
+    }
     await doSubmit(chosen, req)
   }
 
@@ -149,6 +156,15 @@ export function EditorCommandBar({ page, notify, imageStyleLabel }: { page: Page
     } finally {
       setSubmitting(false)
     }
+  }
+
+  const confirmFeng = async () => {
+    if (!fengChoice) return
+    const suffix = fengMode === 'full' ? '讲解员比例：全身' : fengMode === 'half' ? '讲解员比例：半身' : '讲解员比例：无'
+    const req = [fengChoice.requirements, suffix].filter(Boolean).join('；')
+    const chosen = fengChoice.action
+    setFengChoice(null)
+    await doSubmit(chosen, req)
   }
 
   const confirmAccount = async () => {
@@ -305,6 +321,29 @@ export function EditorCommandBar({ page, notify, imageStyleLabel }: { page: Page
             <div className="modal-actions">
               <button onClick={() => setPendingChoice(null)}>取消</button>
               <button className="primary" onClick={() => void confirmAccount()} disabled={submitting}>确认发布</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {fengChoice?.action === 'gzh-video' && (
+        <div className="modal-mask" onClick={() => setFengChoice(null)}>
+          <div className="modal sticker-account-modal" onClick={(event) => event.stopPropagation()}>
+            <h2>选择讲解员比例</h2>
+            <p className="modal-hint">视频右下角 Feng 讲解员用全身还是半身？</p>
+            <div className="sticker-account-options">
+              {[['full', '全身'], ['half', '半身 / 3-4身'], ['none', '无讲解员']].map(([value, label]) => (
+                <button
+                  key={value}
+                  className={`sticker-account-option ${fengMode === value ? 'on' : ''}`}
+                  onClick={() => setFengMode(value)}
+                >
+                  <span className="sticker-account-label">{label}</span>
+                </button>
+              ))}
+            </div>
+            <div className="modal-actions">
+              <button onClick={() => setFengChoice(null)}>取消</button>
+              <button className="primary" onClick={() => void confirmFeng()} disabled={submitting}>确认生成</button>
             </div>
           </div>
         </div>
