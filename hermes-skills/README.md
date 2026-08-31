@@ -13,9 +13,9 @@
 - [运行时外部依赖](#运行时外部依赖)
 - [同步机制](#同步机制)
 
-## A. 动作执行层（14 个）
+## A. 动作执行层（15 个）
 
-Cowrite 动作配置（`server/actionConfig.ts` / `/root/.cowrite/action-config.json`）14 个 action 直接引用的 skills：
+Cowrite 动作配置（`server/actionConfig.ts` / `/root/.cowrite/action-config.json`）action 直接引用的 skills：
 
 | Skill | 对应 action | 功能 |
 |---|---|---|
@@ -33,6 +33,7 @@ Cowrite 动作配置（`server/actionConfig.ts` / `/root/.cowrite/action-config.
 | `obsidian` | topic-collect（渠道） | Obsidian 笔记库检索 |
 | `ima` | topic-collect（渠道） | IMA 知识库检索 |
 | `aihot` | topic-collect（渠道） | AI HOT 热点检索 |
+| `baokuan-title-generator` | baokuan-title | 爆款标题批量生成+评分+按用途分角色推荐 |
 
 ## B. 平台开发/运维层（3 个）
 
