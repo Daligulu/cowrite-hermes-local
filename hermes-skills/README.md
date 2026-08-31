@@ -13,7 +13,7 @@
 - [运行时外部依赖](#运行时外部依赖)
 - [同步机制](#同步机制)
 
-## A. 动作执行层（18 个）
+## A. 动作执行层（19 个）
 
 Cowrite 动作配置（`server/actionConfig.ts` / `/root/.cowrite/action-config.json`）action 直接引用的 skills：
 
@@ -37,6 +37,7 @@ Cowrite 动作配置（`server/actionConfig.ts` / `/root/.cowrite/action-config.
 | `gzh-short-post` | gzh-short-post | 公众号短文 ≤1000 字纯文字，风格纪律+12 项检查 |
 | `space-gzh-cover` | space-gzh-cover | 2.35:1 公众号头图，分享安全区校验（check_cover.py） |
 | `baokuan-article-analysis` / `gzh-explosive-content-detector` | baokuan-research | 赛道爆款数据分析，脚本出 report.html，含泛化词治理 |
+| `gzh-longform-writer` | gzh-longform | 公众号长文 1500–4000 字，素材诊断→六写法路由 |
 
 ## B. 平台开发/运维层（3 个）
 

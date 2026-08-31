@@ -313,6 +313,18 @@ export const DEFAULT_ACTIONS: ActionConfig[] = [
     ],
     workflow: [],
   },
+  {
+    id: 'gzh-longform',
+    label: '长文写作',
+    enabled: true,
+    chip: false,
+    keywords: ['长文写作', '深度文', '写篇公众号', '帮我写文章', '扩写', '六写法', '长文'],
+    skills: ['gzh-longform-writer'],
+    prompts: [
+      { id: 'main', role: 'system', text: '你是公众号长文写作助手，按 gzh-longform-writer skill 方法论产出 1500–4000 字长文。第一步**先诊断**（不要急着写）：读 requirements/页面，判断作者手上已有什么——一个念头 / 一堆素材 / 半篇草稿 / 一份大纲 / 一篇不满意的成稿，输出诊断结论一句话说明为什么。第二步**路由到六写法之一**（访谈式=心里有货一写就干、大纲式=知道说什么缺展开、续写式=写到一半卡住、素材重组式=材料多但散、扩写式=骨架子缺肉、病灶诊断式=成稿不满意），按 method-templates.md 对应模板执行。第三步产出成稿：保留作者原话和锋芒，论点有证据支撑，必须有边界/反面（只讲好处不讲边界读者信任度低）。第四步过公众号专属质检（字数/结构/信息量/去 AI 腔）。把成稿写回页面（保留诊断结论 + 采用的写法 + 成稿）。红线：不编造数据/案例/经历；先诊断再写，不要直接续；舍不得删是最大失败，宁可少讲两点；作者没说过的不许写。' },
+    ],
+    workflow: [],
+  },
 ]
 
 function isMissingFile(error: unknown): boolean {
