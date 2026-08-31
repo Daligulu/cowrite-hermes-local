@@ -29,7 +29,7 @@ const ACTION_GROUPS: { id: string; label: string; actionIds: string[] }[] = [
   { id: 'dispatch', label: '内容分发', actionIds: ['feishu-doc', 'knowledge-base'] },
   { id: 'media', label: '演示视频', actionIds: ['slides', 'video'] },
   { id: 'gzh', label: '公众号贴图', actionIds: ['wechat-sticker', 'publish-sticker', 'gzh-layout', 'gzh-publish'] },
-  { id: 'topic', label: '选题投稿', actionIds: ['topic-collect', 'topic-create', 'toutiao-micro-draft', 'toutiao-article-draft', 'zhihu-article-draft', 'zhihu-idea-draft'] },
+  { id: 'topic', label: '选题投稿', actionIds: ['topic-collect', 'topic-create', 'toutiao-micro-draft', 'toutiao-article-draft', 'zhihu-article-draft', 'zhihu-idea-draft', 'baokuan-research'] },
 ]
 
 function safeRegex(source: string): RegExp | null {

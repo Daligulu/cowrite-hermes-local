@@ -301,6 +301,18 @@ export const DEFAULT_ACTIONS: ActionConfig[] = [
     ],
     workflow: [],
   },
+  {
+    id: 'baokuan-research',
+    label: '爆款调研',
+    enabled: true,
+    chip: false,
+    keywords: ['爆款调研', '爆款数据', '赛道爆款', '爆款分析', '热门文章', '公众号爆款', '找爆款', '选题数据'],
+    skills: ['baokuan-article-analysis', 'gzh-explosive-content-detector'],
+    prompts: [
+      { id: 'main', role: 'system', text: '你是公众号爆款调研助手，按 baokuan-article-analysis + gzh-explosive-content-detector 方法论做赛道爆款分析。第一步泛化词治理（硬约束）：从 requirements/页面提取赛道或关键词，若为大类泛词（抽象层级高、无具体场景/属性修饰、行业大类，如 职场/情感/AI/科技/财经/教育/健康/数码/生活 等，或上下文含「领域/类型」），**禁止直接查全站**——改为输出 10 个细分赛道词推荐 + 提示「请从细分词选一个让我继续查询」，把细分推荐清单写回页面并标记「需细分」，任务即完成（泛化词必须先问再查、禁止同轮直接跑脚本）。若已是具体细分词（如「职场沟通」「恋爱技巧」「AI Agent框架」）：① 运行 `/root/.hermes/hermes-agent/venv/bin/python3 ~/.hermes/skills/creative/baokuan-article-analysis/scripts/daily_sector_trends.py --sector "赛道=关键词1,关键词2" --max-items-per-sector 10 --output-dir /tmp/baokuan-research` 生成 data.json + report.html；② 读 data.json/report.html 总结：最高阅读/最高分享文章、写作风格模式、爆款原因、标题选题公式、实用写作参考；③ 用 mcp_cowrite_cowrite_upload_asset 上传 report.html 到 Cowrite，把分析结果写回页面（附 report 链接 + 数据摘要 + 10 个可继续深挖的细分词）。红线：不编造数据/零信息；数据为数据源快照非实时；空数据提示换更热赛道词，不因数据少改用无关词；泛词必须走细分推荐不能跳过。' },
+    ],
+    workflow: [],
+  },
 ]
 
 function isMissingFile(error: unknown): boolean {
