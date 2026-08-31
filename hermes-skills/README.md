@@ -13,7 +13,7 @@
 - [运行时外部依赖](#运行时外部依赖)
 - [同步机制](#同步机制)
 
-## A. 动作执行层（20 个）
+## A. 动作执行层（21 个）
 
 Cowrite 动作配置（`server/actionConfig.ts` / `/root/.cowrite/action-config.json`）action 直接引用的 skills：
 
@@ -40,6 +40,7 @@ Cowrite 动作配置（`server/actionConfig.ts` / `/root/.cowrite/action-config.
 | `gzh-longform-writer` | gzh-longform | 公众号长文 1500–4000 字，素材诊断→六写法路由 |
 | `space-chart-image` | space-chart | 公众号图表配图，10 类图表×6 风格，出图 PNG |
 | `space-text-logic-diagram` | space-logic | 正文拆逻辑关系图，自包含 HTML 含 SVG，6 种关系 |
+| `broll-hyperframes` | gzh-video | 公众号 9:16 竖屏知识 B-roll 视频，方案B 压缩男声 + Pillow/ffmpeg |
 
 ## B. 平台开发/运维层（3 个）
 

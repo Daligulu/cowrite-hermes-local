@@ -27,7 +27,7 @@ const ACTION_GROUPS: { id: string; label: string; actionIds: string[] }[] = [
   { id: 'write', label: '写作加工', actionIds: ['baokuan-title', 'gzh-short-post', 'gzh-longform', 'polish', 'wechat-layout'] },
   { id: 'image', label: '配图', actionIds: ['illustrate', 'feng-ip', 'xiaohongshu', 'space-gzh-cover', 'space-chart', 'space-logic'] },
   { id: 'dispatch', label: '内容分发', actionIds: ['feishu-doc', 'knowledge-base'] },
-  { id: 'media', label: '演示视频', actionIds: ['slides', 'video'] },
+  { id: 'media', label: '演示视频', actionIds: ['slides', 'video', 'gzh-video'] },
   { id: 'gzh', label: '公众号贴图', actionIds: ['wechat-sticker', 'publish-sticker', 'gzh-layout', 'gzh-publish'] },
   { id: 'topic', label: '选题投稿', actionIds: ['topic-collect', 'topic-create', 'toutiao-micro-draft', 'toutiao-article-draft', 'zhihu-article-draft', 'zhihu-idea-draft', 'baokuan-research'] },
 ]
