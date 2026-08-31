@@ -25,7 +25,7 @@ const STATUS_LABELS: Record<TaskStatus, string> = {
 /** 动作分组：推荐位按 6 大类展示，点分组弹出该组动作下拉 */
 const ACTION_GROUPS: { id: string; label: string; actionIds: string[] }[] = [
   { id: 'write', label: '写作加工', actionIds: ['baokuan-title', 'gzh-short-post', 'gzh-longform', 'polish', 'wechat-layout'] },
-  { id: 'image', label: '配图', actionIds: ['illustrate', 'feng-ip', 'xiaohongshu', 'space-gzh-cover'] },
+  { id: 'image', label: '配图', actionIds: ['illustrate', 'feng-ip', 'xiaohongshu', 'space-gzh-cover', 'space-chart', 'space-logic'] },
   { id: 'dispatch', label: '内容分发', actionIds: ['feishu-doc', 'knowledge-base'] },
   { id: 'media', label: '演示视频', actionIds: ['slides', 'video'] },
   { id: 'gzh', label: '公众号贴图', actionIds: ['wechat-sticker', 'publish-sticker', 'gzh-layout', 'gzh-publish'] },

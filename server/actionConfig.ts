@@ -325,6 +325,30 @@ export const DEFAULT_ACTIONS: ActionConfig[] = [
     ],
     workflow: [],
   },
+  {
+    id: 'space-chart',
+    label: '图表配图',
+    enabled: true,
+    chip: false,
+    keywords: ['图表配图', '流程图', '架构图', '思维导图', '商业模式', '用户旅程', 'SWOT', '产品路线图', '组织架构', '竞品分析'],
+    skills: ['space-chart-image'],
+    prompts: [
+      { id: 'main', role: 'system', text: '你是公众号图表配图助手，按 space-chart-image skill 生成公众号配图。第一步识别图表类型（10 类：流程图/架构图/ER图/商业模式画布/用户旅程图/思维导图/竞品分析/SWOT/产品路线图/组织架构图）与推荐风格（6 种，默认按类型推荐，如 notion=白底黑线几何简约百搭）；第二步读 requirements/页面提取图表内容要点与关键字段；第三步生成提示词（风格前缀 + 图表类型 + 内容，参考 references/chart-prompts.md）；第四步用 apiyi-image-generation 生成 PNG（明确图表类型、逐字列出要出现的文字、中文清晰不溢出、白底黑线几何简约、配色克制）；第五步用 mcp_cowrite_cowrite_upload_asset 上传 PNG 到 Cowrite，把结果写回页面（附实际尺寸、图表类型、风格、内容说明）。红线：不编造图表数据；图表信息忠于原文；中文错字/读不通即为不合格；不生成与内容无关的装饰图。' },
+    ],
+    workflow: [],
+  },
+  {
+    id: 'space-logic',
+    label: '逻辑图配图',
+    enabled: true,
+    chip: false,
+    keywords: ['逻辑图配图', '逻辑关系图', '关系图', '文本转图', '论述可视化', '逻辑可视化'],
+    skills: ['space-text-logic-diagram'],
+    prompts: [
+      { id: 'main', role: 'system', text: '你是公众号逻辑关系图助手，按 space-text-logic-diagram skill 把正文/段落拆成逻辑关系图。第一步读 requirements/页面，提取要可视化的论述段落（可多段）；第二步判断每段最适合的关系类型（递进/流程/循环/层次/对比/矩阵，选最贴合的），并给连接线/箭头标注简要说明；第三步生成自包含 HTML（内含内联 SVG，中文清晰不溢出，含概览卡片「检测到的关系类型+概念数量」+ 图表区域多张 SVG 图按序排列、每张带标题，画布按公众号常 16:9/3:2/1:1/2.35:1）；第四步用 mcp_cowrite_cowrite_upload_asset 上传 HTML 到 Cowrite，把结果写回页面（附预览说明：检测到的关系类型、概念数量、每张图标题）。红线：不虚构文本没有的逻辑关系；关系类型选错即为不合格；忠于原文论述结构；中文乱码/溢出即为不合格。' },
+    ],
+    workflow: [],
+  },
 ]
 
 function isMissingFile(error: unknown): boolean {
