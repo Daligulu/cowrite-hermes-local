@@ -197,6 +197,21 @@ find /root /home /srv /mnt /data /media -maxdepth 6 -name ".obsidian" -type d 2>
 4. **验收**：CDP 断言——正常态 `rows=223`、搜索+切分类后 `rows=0` 且空态含「清除搜索」按钮、点按钮后 `rows=42`（回到「图片/设计」全量）且 query 清空
 教训：过滤函数正确≠体验正确；「选 X 后没有结果」类问题优先查静默失败 + 组合过滤残留，别只盯着过滤逻辑本身。
 
+## 编辑页「配图」下拉 + 整篇自动配图（2026-08-27 落地，commit 5b90d89）
+
+**需求**：编辑页「版式」下方新增「配图」风格下拉，统一文章/贴图配图风格；风格集合加国风水墨、去峰峰IP；不设默认需显式选一次；微信贴图并入该下拉。
+
+**实现**：
+- `server/styleConfig.ts` DEFAULT_STYLES.image：移除 `feng-ip`（峰峰IP，仍走独立 feng-ip 入口），新增 `{ id: 'guofeng-ink', label: '国风水墨' }`。当前 5 项：anime-fresh(日系清新)/flat-illustration(扁平插画)/3d-render(3D质感)/photoreal(摄影写实)/guofeng-ink(国风水墨)。**生产无独立 style-config.json（用代码 DEFAULT_STYLES），无需生产 merge；改代码即生效**
+- `src/App.tsx`：**imageStyle/imageStyles/imageStyleLabel 状态必须放在 App 主组件（`function App()`）**，因要同时传给 Editor（渲染下拉）与 EditorCommandBar（微信贴图读风格）。Editor 改为接收 props `imageStyles/imageStyle/onImageStyleChange`，不要在自己组件内再拉 /api/style-config（会与 App 主组件重复）。工具栏 `.image-style-select`（label+select+配图按钮）放 `.theme-select` 之后，CSS `flex: 0 0 100%` 让它换行独占一行
+- **不设默认**：`imageStyle` 初始 `''`，select 首项 `<option value="">请选择配图风格</option>`；`applyImageStyle()` 未选时 `notify('请先为当前文章/贴图选择配图风格')` 拦截；选中后 `sendAi('illustrate', '配图风格：<label>（<id>）；请按此风格整篇自动配图...')`
+- `src/CommandBar.tsx`：`EditorCommandBar` 新增 prop `imageStyleLabel`；微信贴图**删除风格弹窗**（openStyleChoice/confirmStyle/pendingStyle/pendingCustomStyle 及 JSX 整块清除），submit 分支改为：`wechat-sticker` 时若 `!imageStyleLabel` 拦截提示，否则拼 `风格：${imageStyleLabel}` 进 requirements 直接 doSubmit
+- `server/actionConfig.ts` illustrate prompt：加入「若 requirements 含『配图风格：xxx』写入 ApiYi prompt；整篇自动配图按内容定张数」——**生产 action-config.json 是独立文件，需 API merge**（GET /api/session 取 token → GET /api/action-config → 改 illustrate prompt → PUT `{version, actions}` 无 config 包装 → 读回断言）
+
+**测试断言**：`tests/style-config.test.ts` L25 `expect(...image...).toContain('guofeng-ink')`（原断言 `feng-ip` 需同步改）；action-config 断言 toHaveLength(18) 等不受影响（illustrate 仍在 18 动作内）。
+
+**验收（CDP 实测全过）**：编辑页 `.image-style-select` 存在且含 5 项（含国风水墨、不含峰峰IP）、位于 `.theme-select` 下方（`ir.top >= tr.bottom - 2`）、默认 selectedValue=''；未选点配图 → toast「请先为当前文章/贴图选择配图风格」；选中 guofeng-ink 点配图 → toast「已发送「国风水墨」整篇自动配图任务」；移动端 390px `scrollW===clientW` 无横向溢出。**坑**：首页 home-row 第一条常是「选题·」确认页，其 TopicConfirmPanel 占满视口看不到工具栏——验收要用标题匹配点开纯文章页（如「主题排版测试页」）。CDP 截图脚本若用 `fs` 写入必须 `require('node:fs')`（subprocess spawn 不默认注入）。
+
 ## 手机通知草稿功能 + 快捷键选择器（2026-08-23 落地）
 
 **需求**：Cowrite 新增 4 个「通知手机创建草稿」动作（微头条/头条文章/知乎文章/知乎想法），服务器无头条/知乎权限，Worker 整理内容后投递 Memos 信箱 @openminis，手机端 OpenMinis 建草稿、写回 [DONE]；同时编辑页快捷键栏位由平铺 chips 改为选择器。
@@ -302,7 +317,78 @@ find /root /home /srv /mnt /data /media -maxdepth 6 -name ".obsidian" -type d 2>
 
 **教训**：① **导航图标统一用同规格内联 SVG**（字符字形宽度差异无法用字号抹平，emoji 跨端不稳）；② 用户要"统一/干净"时，**别加特殊标蓝/底色强调**，仅保留选中态高亮；③ 测量字符可视尺寸用 `document.createRange().getBoundingClientRect()`（比 getBoundingClientRect 更准，能看到 glyphW/glyphH）；④ 用户区分的"标签字号""图标符号""图标大小"是三个独立诉求，逐个确认，别混成一次改。
 
+## 任务完成居中弹屏 + appConfig（2026-08-27 落地，commit 5e2756c）
+
+**需求**：任务完成时在屏幕中央弹轻提示「任务已完成」，30 秒自动消失或点击立即消失；时长可配置。
+
+**实现**：
+- `server/appConfig.ts`：`AppConfigStore`（zod schema、默认 `autoHideSeconds:30`、损坏改名备份、写入串行链）→ `/api/app-config`（GET 免 token / PUT + /reset 需 token，均 zod 校验）
+- `shared/types.ts`：`AppConfigFile { version:1, autoHideSeconds:number }`
+- `src/App.tsx`：**全局轮询** `/api/tasks`（3s，`lastTaskStatusRef` 快照），检测 `running/queued → succeeded/failed` 跳变才弹屏一次；多任务同轮取 `updatedAt` 最新一条；`completion`/`completionLeaving` 两段式 state；`autoHideSeconds` 从 app-config 读取；`task-complete` 渲染在 `toast` 旁（**与底部小 toast 并存**，底部管操作反馈、居中管任务结果）
+- `src/App.css`：`.task-complete` fixed 居中（`left:50%;top:50%;translate(-50%,-50%)`）、绿 `#16a34a`/红 `#dc2626`、`max-width:min(420px, calc(100% - 40px))`、`task-complete-in`/`task-complete-out`
+- `src/ActionConfigManager.tsx`：新增「任务提示」区块（number 输入 + 保存），load/save `/api/app-config`
+
+**样式类**：`.task-complete`（含 `success`/`fail` 与 `is-leaving`）；emojis-free（`✓`/`✕` 字符健康）。
+
+**坑**：
+- **`onAnimationEnd` 在节流 WebView/headless 下可能延迟**：click/auto-hide 都走 `setCompletionLeaving(true)` → `task-complete-out` `onAnimationEnd` 卸载；为兜底，另加一个 `useEffect` 在 `completionLeaving` 后 300ms 强制 `setCompletion(null)`（双保险，防弹屏悬留）
+- **state 只写不读 → tsc -b 报 TS6133**：ActionConfigManager 里 `autoHideSeconds` 只 set 不读，改只用 `autoHideDraft`（输入框值），避免未使用变量
+- **受控 input 注入**：CDP 改配置字段值必须 `Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set` + `dispatchEvent(new Event('input',{bubbles:true}))`，直接 `input.value=` 不触发 onChange
+- **移动端验收**：CDP `Emulation.setDeviceMetricsOverride 390×844`，**驱动任务生命周期需在页面内 same-origin fetch**（fresh 实例 prev=undefined 检测不到跳变，必须让前端先看到 queued/running 再 complete）；成品脚本套路见 cdp-verify/toast 用例（页面内 async IIFE：/api/session 取 token → 建页 → 建任务 → sleep4s → claim → sleep3s → complete → sleep4s 断言 `.task-complete`）
+- 服务端 `POST /api/pages` 也是写操作，需 `x-cowrite-token`（否则 403）；`/api/tasks` 返回**数组**，成功状态名 `succeeded`
+
+**验收（CDP 实测全过）**：居中（centerX=683=1366/2，390px 下 195）、绿「任务已完成」/红「任务失败」、取消不弹、点击关、auto-hide 超时消失、刷新不重弹（prev=undefined）、多任务同轮仅 1 条、配置页改值保存生效（API+磁盘核对）、390px 无横向溢出、133/133 测试全绿。
+
+## 方案C UI 视觉升级（2026-08-28 落地，commit d8a5c42）
+
+**触发**：用户要求按 ios-design-md（对标 Craft/Notion/Things）评估并优化 Cowrite UI，先出方案示例确认后再开发。经 3 轮确认定稿「方案C 融合风格」：主按钮蓝紫渐变 + 纯蓝功能。**P0 只做光色，dark mode 留独立后续批次。**
+
+**定稿 token（src/index.css :root）**：
+- 品牌主蓝：`--primary:#2F5BEA`（链接/选中/复选/激活/纯蓝功能）、`--primary-press:#2347C9`
+- 渐变：`--accent-end:#6E56CF`（主按钮 `linear-gradient(135deg,var(--primary-strong) 0%,var(--accent-end) 100%)`，替换原深军蓝 `#16324f→#1e4d7c`）
+- 状态色三套归一为一套：成功 `#30A46C` / 失败 `#E5484D` / 信息/运行 `#2F5BEA` / 警告 `#F0A92B`
+- 画布暖白：`--canvas:#FCFCFD`、`--surface:#F4F4F6`、`--text:#1C1C22`、`--divider:#E6E6EA`
+- 排版 Type Scale：`--ts-title:22px/--ts-h1:20px/--ts-h2:17px/--ts-body:16px`
+- 间距 4·8·12·16、圆角 6/10/14、按钮高 28/36/44
+- 兼容旧变量：`--blue`→primary、`--line`→divider、`--sidebar`→surface
+
+**全站颜色归一方法（安全，仅动 CSS，未动 TSX/结构）**：
+1. 精确侦察（grep hex 分布），只归一「品牌蓝+语义状态色+文本/surface」，中性灰黑不动
+2. **替换顺序严格**：先渐变段正则 → 再 rgba 阴影（`#16324f33`→`rgba(47,91,234,0.20)` 等）→ 最后单色 hex。避免 `#16324f33` 被误拆成 `var(--primary)33`
+3. 排版只改关键可见层级（编辑器正文 15.5px/1.9→16px/1.75、工作台标题 24→22px、分区标题 15→17px），细小标签字号不机械替换防回归
+4. 残留校验：`grep -rnE 'var\(--[a-z]+\)[0-9a-f]'` = 0
+
+**坑**：
+- **推荐位是编辑器命令栏的 6 组分类下拉**（CommandBar.tsx `ACTION_GROUPS`：写作加工/配图/内容分发/演示视频/公众号贴图/选题投稿，`createPortal` 渲染）。**UI 升级绝不能动 CommandBar.tsx**——用户明确要求推荐位功能与现有一致。只改 CSS 颜色保持结构。
+- 改完后必须 `git status` 确认只改了 css 文件、`CommandBar.tsx` 不在 diff 中
+- **飞书 WebView 缓存旧 UI 的根因（2026-08-28 根治）**：nginx `add_header Cache-Control "no-store"` 是**追加**不是覆盖，上游 Express 已带 `Cache-Control: public, max-age=0`，叠加后 HTML 响应出现**两个 Cache-Control 头**（`public,max-age=0` + `no-store`），JS 资源同理。飞书 WebView/Safari 解析多个同名头时只认第一个（`public,max-age=0` → 允许缓存、404/304 可复用），**绕过了 no-store**，于是仍显示旧版。**根治 = `proxy_hide_header Cache-Control;` 移除上游的头**，只用 add_header 加纯净 `no-store`，响应只剩 `Cache-Control: no-store`。配置文件 `/etc/nginx/cowrite-hermes-location.conf`（被 skillclaw-dashboard.conf include），改完 `nginx -t && nginx -s reload`，`curl -sI <入口> | grep -i cache-control` 断言只出现 no-store 一条。**诊断多同名头必须用 `curl -sI` 看原始头，别用 urllib 的 dict()（会去重丢头，误判成"没有 no-store"）**
+- CSS 改动不影响 vitest/tsc，但仍跑三连；推荐位功能用 CDP 断言：`.selector-toggle` 数量=6、点击展开下拉、选中填入输入框
+
+**一键回滚（正式开发前必须做）**：
+- `git tag pre-ui-c-backup` + `git branch backup/pre-ui-c-20260828` 指向开发前 commit
+- 生产完整快照：`tar czf /root/.cowrite/backups/pre-ui-c-<ts>/prod-full.tar.gz -C /opt cowrite-hermes`（含 node_modules/dist）
+- 数据快照：`/root/.cowrite/*.json` + `/etc/cowrite-hermes.env`
+- 回滚脚本：`/root/.cowrite/backups/pre-ui-c-<ts>/rollback-ui-c.sh`（reset 到回滚点 + build + restart + 健康检查）
+- **回滚点校验**：`git rev-list -n1 <tag>` 与 workspace/prod 的 HEAD 三者一致，才确认回滚点干净
+
+## 移除「等待 Agent 创作」黄底横幅（2026-09-01 落地，commit 3a6d90f）
+
+**触发**：用户看到编辑页黄底「等待 Agent 创作」横幅，问其作用、评估能否隐藏/去除。
+
+**作用**：提示「新建页面只有创作 brief、还没写正文」，并提供「发送到 Hermes」按钮把 brief 作为 polish 任务交给 Worker。触发条件 `activePage.prompt && revision === 1`。
+
+**误报根因**：用 `cowrite_create_page` 建页时 content 已写全但 `revision=1`，前端只看 `revision===1` 就误判「等待创作」。判断该看「内容是否为空」而非 revision 值。
+
+**决策**：用户选方案B——彻底删除（放弃 A「改内容空判断」治本版 / C「仅调样式」介）。
+
+**改动**（2 files，33 deletions）：`App.tsx` 删黄底横幅 JSX + 侧边栏 `pending-dot` + `sendPendingCommand()` + `enqueuePageTask()`；`App.css` 删 `.prompt-banner` + `.pending-dot`。回滚点 `pre-prompt-banner-remove-20260901-094009`。
+
+**验收**：133/133、tsc 0、build 成功；生产 HEAD=`3a6d90f` 健康 `{"ok":true}`；JS bundle 无黄底元素；CDP 390×844 实测 `.prompt-banner` 不存在、无「等待 Agent 创作」文本、无黄点。完整自包含记录见 Obsidian `20-Projects/Cowrite-for-Hermes/移除黄底横幅等待Agent创作-20260901.md`。
+
+**坑**：黄底横幅是「新建页一键让 Hermes 写初稿」入口，删除后需改用编辑页命令栏「交给 Hermes」触发，不再有横幅一键按钮。
+
 ## Pitfalls
+- **Cowrite asset 上传的源文件必须放在服务进程可达的路径（2026-08-31 实操踩坑）**：`cowrite_upload_asset` 报 `Asset file was not found at '/tmp/...'`，但文件明明存在——根因是生产服务（`/opt/cowrite-hermes`，systemd）开启了 **PrivateTmp**，其 `/tmp` 与宿主 `/tmp` 是**不同 mount namespace**，服务进程看不到 `/tmp` 下任何文件（`ls /proc/<pid>/root/tmp/...` 报不存在即证实）。解法：把待上传的源文件放到服务进程共享的路径，如 `/root/.cowrite/worker-assets/`（归属 `HOME=/root`，namespace 内可见），再调 `cowrite_upload_asset`。用 `ls -la /proc/<pid>/root/<path>` 先验证可见性再上传。
 - **Cowrite MCP 写页面/资产的调用约定（2026-08 OpenMinis 文章实测）**：`cowrite_create_page(title, content, prompt=brief)` 一次写入完整 Markdown，返回 `page_xxx` 与 `revision:1`；之后补图/改稿必须 `cowrite_update_page`，参数除 page_id 外**必须带 `expected_revision`（当前 revision）**，漏了会报 missing required argument。`cowrite_upload_asset` 上传本地图片返回 `/assets/<hash>.png`，页面 Markdown 里直接用相对路径 `/assets/<hash>.png`，前端 fixAssetLinks 会按当前入口子路径重写；验证用 `curl -sI` 同时过本地 `127.0.0.1:4320` 与公网子路径入口（均期望 200，非 text/html）。
 - **GitHub 上传 worktree 项目**：`gh repo create --source . --push` 会报 "not a git repository"（gh 不支持 gitfile worktree，`.git` 是 83 字节 gitfile 而非目录）。解法：`gh repo create <name> --private --description ...` 先建空仓库 → `git remote add origin https://github.com/<user>/<name>.git` → `git push -u origin hermes-local-impl`（可连带 `main`/`hermes-adaptation`）→ 默认分支用 `gh repo view owner/repo --json defaultBranchRef` 验证（`gh repo edit --default-branch` 在 worktree 里可能解析错 remote 报 404，但 create 时 HEAD 通常已指向推的第一个分支）。上传前安全扫描：`git log --all --name-only | grep -iE '\.env|data/|assets/'` 查敏感文件、`git log --all -p | grep -iE 'sk-|ghp_|AIza|PRIVATE KEY'` 查密钥值；本仓库 .gitignore 已排除 node_modules/dist/data/*.json*/assets/__pycache__
 - **部署后用户看到旧 UI = 飞书 WebView 缓存**：服务器已验证是最新版（index.html 新 hash + nginx 已设 `Cache-Control: no-store`），但飞书内置浏览器仍显示旧版平铺布局（用户截图 OCR 可确认）。处理：先 curl 验证 nginx 返回的新 JS hash 与 /opt dist 一致，再让用户「关掉页面重开」/手机浏览器打开/清 WebView 缓存；不要误判为部署失败或回滚。截图诊断用 tesseract OCR（vision_analyze 连续 400 时），必要时裁剪局部放大再 OCR
