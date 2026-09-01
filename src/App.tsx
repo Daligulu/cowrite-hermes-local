@@ -745,25 +745,6 @@ function App() {
     notify(attached.length > 0 ? `页面已删除，${attached.length} 个关联任务已取消` : '页面已删除')
   }
 
-  const enqueuePageTask = async (action: TaskAction, requirements?: string) => {
-    if (!activePage) return false
-    try {
-      const task = await api<CowriteTask>('/api/tasks', {
-        method: 'POST',
-        body: JSON.stringify({ action, pageId: activePage.id, requirements, delivery: 'cowrite' }),
-      })
-      notify(`Hermes 任务已入队：${task.id}`)
-      return true
-    } catch (error) {
-      notify(error instanceof Error ? error.message : 'Hermes 任务提交失败')
-      return false
-    }
-  }
-
-  const sendPendingCommand = async () => {
-    await enqueuePageTask('polish', activePage?.prompt || '根据当前页面的创作要求完成初稿')
-  }
-
   if (!pages) return <div className="loading"><span>C</span><p>正在打开 Cowrite…</p></div>
 
   return <div className={`shell ${sidebarOpen ? 'sidebar-open' : ''}`}>
@@ -820,7 +801,6 @@ function App() {
           <button className="sidebar-page-select" onClick={() => openPageGuarded(page.id)}>
             <span className="doc-icon">▤</span>
             <span className="doc-title">{page.title}</span>
-            {page.prompt && page.revision === 1 && <span className="pending-dot" title="等待 Agent 创作" />}
           </button>
           <button className="sidebar-delete" title={`删除 ${page.title}`} aria-label={`删除 ${page.title}`} onClick={async () => {
             setDeletePendingTasks(0)
@@ -881,10 +861,6 @@ function App() {
           </>}
         </div>
         {activePage && <EditorCommandBar page={activePage} notify={notify} imageStyleLabel={imageStyleLabel} />}
-        {activePage?.prompt && activePage.revision === 1 && <div className="prompt-banner">
-          <div><b>等待 Agent 创作</b><p>{activePage.prompt}</p></div>
-          <button onClick={sendPendingCommand}>发送到 Hermes</button>
-        </div>}
         {activePage && activePage.title.startsWith('选题·') && <TopicConfirmPanel page={activePage} notify={notify} />}
         {activePage
           ? <Editor key={activePage.id} page={activePage} onDirty={onDirty} onSaved={onSaved} notify={notify} imageStyles={imageStyles} imageStyle={imageStyle} onImageStyleChange={setImageStyle} />
