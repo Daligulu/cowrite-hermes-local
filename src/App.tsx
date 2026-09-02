@@ -152,7 +152,17 @@ function Editor({ page, onDirty, onSaved, notify, imageStyles, imageStyle, onIma
   const vditorRef = useRef<Vditor | null>(null)
   const revisionRef = useRef(page.revision)
   const assetBase = `${window.location.origin}${window.location.pathname.replace(/\/+$/, '/')}`
-  const fixAssetLinks = (markdown: string) => markdown.replace(/(\]\()\/assets\//g, `](${assetBase}assets/`)
+  // 方案A(根治)：把 content 里指向本平台 assets 的链接统一重写为「当前入口」的绝对地址。
+  // 1) markdown 图片/链接相对路径 ](/assets/xxx) → 当前入口绝对地址
+  // 2) 已被污染的绝对 URL（http://107.150.109.152/cowrite-xxx/assets/ 或 https://<tunnel>/cowrite-xxx/assets/）
+  //    → 用 assetBase 重写成当前入口（修复旧数据，且隧道换域名/换入口都能加载）
+  const createFixAssetLinks = (markdown: string) => {
+    const originPattern = /(?:https?:\/\/[^\/\s]+)\/[^/\s]*\/assets\//g
+    let out = markdown.replace(originPattern, `${assetBase}assets/`)
+    out = out.replace(/(\]\()\/assets\//g, `](${assetBase}assets/`)
+    return out
+  }
+  const fixAssetLinks = createFixAssetLinks
   const dirtyRef = useRef(false)
   const undoStackRef = useRef<string[]>([])
   const redoStackRef = useRef<string[]>([])
@@ -309,17 +319,28 @@ function Editor({ page, onDirty, onSaved, notify, imageStyles, imageStyle, onIma
     let disposed = false
     const rewriteAssetLinks = () => {
       try {
-        holder.querySelectorAll('a[href^="/assets/"]').forEach((anchor) => {
+        // 匹配「指向本平台 assets 的链接」：要么 /assets/ 开头的相对路径，要么指向本平台任何入口的绝对 URL
+        const isCowriteAsset = (url: string) => {
+          const u = url.trim()
+          return u.startsWith('/assets/') || /^https?:\/\/[^/\s]+\/[^/\s]*\/assets\//.test(u)
+        }
+        holder.querySelectorAll('a').forEach((anchor) => {
           const href = anchor.getAttribute('href')
-          if (!href) return
-          anchor.setAttribute('href', assetBase + href.slice(1))
+          if (!href || !isCowriteAsset(href)) return
+          const rel = href.startsWith('/assets/')
+            ? assetBase + href.slice(1)
+            : assetBase + href.substring(href.search(/\/assets\//) + 1)
+          anchor.setAttribute('href', rel)
           anchor.setAttribute('target', '_blank')
           anchor.setAttribute('rel', 'noopener')
         })
-        holder.querySelectorAll('img[src^="/assets/"]').forEach((image) => {
+        holder.querySelectorAll('img').forEach((image) => {
           const src = image.getAttribute('src')
-          if (!src) return
-          image.setAttribute('src', assetBase + src.slice(1))
+          if (!src || !isCowriteAsset(src)) return
+          const rel = src.startsWith('/assets/')
+            ? assetBase + src.slice(1)
+            : assetBase + src.substring(src.search(/\/assets\//) + 1)
+          image.setAttribute('src', rel)
         })
       } catch { /* 忽略渲染期 DOM 变化 */ }
     }
