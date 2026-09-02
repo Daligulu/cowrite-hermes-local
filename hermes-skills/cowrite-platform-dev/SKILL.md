@@ -276,6 +276,31 @@ find /root /home /srv /mnt /data /media -maxdepth 6 -name ".obsidian" -type d 2>
 - 验收任务创建：POST /api/tasks body `{action:'gzh-layout', pageId, requirements, delivery:'cowrite'}`（带 x-cowrite-token）；`/api/tasks` 返回**数组非 `{tasks:[...]}`**，轮询直接遍历；worker 领取有 ~1 分钟延迟
 - gzh-publish 升级要保幂等：仅当 prompt 不含「主题：」才补，避免重复 merge 破坏
 
+## 排版后「配图运行成功但看不到图」修复（2026-09-02 落地，commit 8a29d64）
+
+**触发**：用户报"编辑页排版后无法插入配图，虽然配图任务运行成功"。需先分析后确认再执行。
+
+**根因三层**：
+1. **图片链接被固化为公网绝对 URL（最致命）**：页面 content 里存 `http://107.150.109.152/cowrite-…/assets/xxx.jpg`（或 `https://<隧道>/cowrite-…/assets/…`）。前端 `fixAssetLinks` 只改写 `/assets/` 相对路径开头，**绝对 URL 它不动** → 隧道每次换域名、或从 https 隧道打开而图是 http 主入口，图片立即加载失败。
+2. **Worker 拔高"成功"判定**：配图任务只验证"页面里有 `<img>` + 资源 HTTP 200"，**没验证"图以可加载的相对路径写入 + 真的渲染出来"** → 报 succeeded 但图加载不出。
+3. **排版动作（gzh-layout）重新打包配图**：把 `<img>` 重新组织成 `<section><span leaf><img/></span></section>` 嵌套 + 固化成公网 URL。
+
+**修复（A+B+D+排版保留配图）**：
+- **方案A（前端根治）** `src/App.tsx`：`fixAssetLinks` 改为 `createFixAssetLinks`——正则 `/^(?:https?:\/\/[^\/\s]+)\/[^/\s]*\/assets\//` 匹配**任意入口的绝对 URL**，统一重写为当前入口 `assetBase`；同时保留 `](/assets/` 相对路径处理。`rewriteAssetLinks`（DOM 层）改为遍历所有 `a/img`，用 `isCowriteAsset()` 判定（`/assets/` 开头或指向本平台绝对 URL），重写为当前入口。
+- **方案B（Worker 增强验证 + 通用资产规则）** `deploy/scripts/cowrite-hermes-worker.py` PROMPT 新增三条：
+  - 通用资产链接规则：写回图片一律用 `cowrite_upload_asset` 返回的**相对路径 `/assets/xxx`**，严禁拼公网绝对 URL（前端 fixAssetLinks 会自动按当前入口重写，绝对 URL 会随隧道漂移失效）。
+  - 配图增强验证：① 读回页面断言 `<img` 数达标；② src 必须是 `/assets/` 相对路径；③ 至少一张图 HEAD `/assets/<file>` 返回 200 且 image/*。任一不满足 → fail_task 写真实错误。
+  - 排版保留配图：排版动作若在配图后执行，页面已含 `<img` 时**原样保留配图及相对路径**，只对正文段落排版，互不冲突。
+- **方案D（历史数据清洗）**：10 个已污染页面，PATCH `/api/pages/:id`（body `{content, expectedRevision}`，**注意是 PATCH 不是 PUT**，`Cannot PUT` 是陷阱）把绝对 URL → `/assets/`。全库复查 0 残留。
+
+**验收**：133/133、tsc -b 0、build 通过；生产 HEAD=`8a29d64` 健康 `{"ok":true}`；JS 单测三用例（http 污染/隧道污染/相对路径）全正确重写；CDP 实机：贴图页图 `src=http://127.0.0.1:4320/assets/…` complete=true 加载成功；核心页 `page_9Y6RXsXq` rev=5 绝对URL=0 相对assets=3。
+
+**坑**：
+- **PATCH 不是 PUT**：更新页面内容端点是 `PATCH /api/pages/:id`（`updatePage`），用 PUT 会 `Cannot PUT /api/pages/xxx`。写到 `/api/pages/:id/insert` 是插入锚点，别混淆。
+- `/api/pages` 列表接口返回**不含 content**（仅 id/title/prompt/revision/createdAt/updatedAt），清洗必须逐页 GET `/api/pages/:id` 读完整 content。
+- CDP 点击定位 `.home-row` 时，多个页面标题含"无限直播"，`find` 会命中第一个（常是贴图页）。要用 dist 精确匹配或避开"贴图草稿"前缀。
+- 清洗脚本会改 revision（content 更新自增），用户在前端看到 revision 跳动属预期。
+
 ## 页面内容/配图「找不到」先看恢复配方（2026-08-27 实操）
 **触发词**：用户报「Cowrite 平台某文章内容和配图找不到了」。**先别重建，先分层确认后端到底丢没丢**——绝大多数情况是「产物有、写回漏」或「前端缓存」，不是真丢。
 - **完整定位三步 + 根因 + 恢复配方 + 验收注意见 `references/page-content-recovery.md`**（含：① API 直读确认内容/图在不在；② assets 目录 + HTTP 可达确认配图；③ 查任务产物。根因 = `gzh-layout` 生成的完整 HTML 产物 `gzh_<theme>_layout.html` **含图**，但写回页面 content 时只落正文、把 `<img>` 丢了 → 页面无图但无报错）
