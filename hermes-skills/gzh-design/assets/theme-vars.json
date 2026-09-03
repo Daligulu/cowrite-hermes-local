@@ -1,0 +1,402 @@
+{
+  "version": 1,
+  "source": "gzh-design references/theme-index.md + 各主题库「设计变量速查表」",
+  "note": "accent 是主题主色（retint 换色的基准）；hue_range 判定哪些有彩色与主色同属可迁移色族；sat_min 低于此饱和度的颜色视为中性色不迁移（避免把灰/黑正文染色）。换色只迁移同色族，不改变不同色族的点缀色（如摸鱼绿的黄色高亮、橄榄手记的橙）。",
+  "themes": {
+    "moyu-green": {
+      "id": "moyu-green",
+      "name": "摸鱼绿",
+      "evidence": "源自 Emoji 生态的 emerald-600 主色 #059669 + 浅绿装饰 #A7F3D0 + 黄底警示 #FFFBEB；正文 #3F3F46 灰、H≈158±42。",
+      "accent": "#059669",
+      "hue_range": 42,
+      "sat_min": 15,
+      "underline": "border-bottom:2px solid #A7F3D0;font-weight:600;",
+      "vars": [
+        {
+          "role": "accent",
+          "value": "#059669",
+          "note": "主色 emerald-600"
+        },
+        {
+          "role": "alt",
+          "value": "#10B981",
+          "note": "辅色"
+        },
+        {
+          "role": "light",
+          "value": "#A7F3D0",
+          "note": "浅绿装饰/下划线"
+        },
+        {
+          "role": "pale-bg",
+          "value": "#ECFDF5",
+          "note": "浅绿背景"
+        },
+        {
+          "role": "bg-warn",
+          "value": "#FFFBEB",
+          "note": "黄底警告"
+        },
+        {
+          "role": "text-warn",
+          "value": "#92400E",
+          "note": "黄字警告"
+        }
+      ]
+    },
+    "red-white": {
+      "id": "red-white",
+      "name": "红白色系",
+      "evidence": "经典正红 #DC2626 + 珊瑚红 #FCA5A5 / 粉白 #FEE2E2 层级；H≈0±30，标题/正文近黑，风格克制中性。",
+      "accent": "#DC2626",
+      "hue_range": 30,
+      "sat_min": 15,
+      "underline": "border-bottom:2px solid #FECACA;font-weight:600;",
+      "vars": [
+        {
+          "role": "accent",
+          "value": "#DC2626",
+          "note": "正红"
+        },
+        {
+          "role": "accent-deep",
+          "value": "#991B1B",
+          "note": "暗红/酒红"
+        },
+        {
+          "role": "accent-light",
+          "value": "#FCA5A5",
+          "note": "珊瑚红"
+        },
+        {
+          "role": "accent-pale",
+          "value": "#FEE2E2",
+          "note": "粉白"
+        },
+        {
+          "role": "bg-tint",
+          "value": "#FEF2F2",
+          "note": "极淡红底"
+        },
+        {
+          "role": "mark",
+          "value": "#FECACA",
+          "note": "下划线/左竖条"
+        }
+      ]
+    },
+    "graphite-minimal": {
+      "id": "graphite-minimal",
+      "name": "石墨极简风",
+      "evidence": "严格黑白灰单色系：石墨主色 #52525B + 深炭标题 #27272A + 浅灰细线 #E4E4E7，靠层级而非颜色区分；grayscale=true（retint 只迁移主灰族）。",
+      "accent": "#52525B",
+      "hue_range": 60,
+      "sat_min": 60,
+      "underline": "border-bottom:2px solid #52525B;font-weight:600;",
+      "grayscale": true,
+      "vars": [
+        {
+          "role": "accent",
+          "value": "#52525B",
+          "note": "主色 石墨灰"
+        },
+        {
+          "role": "text",
+          "value": "#3F3F46",
+          "note": "正文色"
+        },
+        {
+          "role": "title",
+          "value": "#27272A",
+          "note": "标题深炭"
+        },
+        {
+          "role": "muted",
+          "value": "#A1A1AA",
+          "note": "辅助文字"
+        },
+        {
+          "role": "line",
+          "value": "#E4E4E7",
+          "note": "极细线/边框"
+        },
+        {
+          "role": "tag-bg",
+          "value": "#F4F4F5",
+          "note": "标签底"
+        }
+      ]
+    },
+    "zen-whitespace": {
+      "id": "zen-whitespace",
+      "name": "留白禅意风",
+      "evidence": "低饱和墨绿 #4A5D52 + 近黑标题 #2B2B2B + 大量留白与极细线 #E8E8E8，H≈126±34；图片/卡片弱化边框强调留白。",
+      "accent": "#4A5D52",
+      "hue_range": 34,
+      "sat_min": 12,
+      "underline": "border-bottom:1.5px solid #B5C8BC;font-weight:500;",
+      "vars": [
+        {
+          "role": "accent",
+          "value": "#4A5D52",
+          "note": "主色调 墨绿"
+        },
+        {
+          "role": "title",
+          "value": "#2B2B2B",
+          "note": "标题近黑"
+        },
+        {
+          "role": "text",
+          "value": "#525252",
+          "note": "正文中深灰"
+        },
+        {
+          "role": "muted",
+          "value": "#A3A3A3",
+          "note": "辅助文字"
+        },
+        {
+          "role": "line",
+          "value": "#E8E8E8",
+          "note": "细线"
+        },
+        {
+          "role": "mark",
+          "value": "#B5C8BC",
+          "note": "下划线墨绿"
+        },
+        {
+          "role": "highlight",
+          "value": "#D6E4DC",
+          "note": "荧光笔墨绿"
+        }
+      ]
+    },
+    "moyu-ticket": {
+      "id": "moyu-ticket",
+      "name": "摸鱼票据风",
+      "evidence": "票据/记账风：米黄纸感 #fffef8 + 绿主色 #059669 + 撕票线 #A7F3D0 + 黑描边硬阴影 #1a1a1a。",
+      "accent": "#059669",
+      "hue_range": 42,
+      "sat_min": 15,
+      "underline": "border-bottom:2px solid #A7F3D0;font-weight:600;",
+      "vars": [
+        {
+          "role": "accent",
+          "value": "#059669",
+          "note": "主色 绿"
+        },
+        {
+          "role": "paper",
+          "value": "#fffef8",
+          "note": "米黄纸感"
+        },
+        {
+          "role": "pale-bg",
+          "value": "#F0FDF4",
+          "note": "浅绿背景"
+        },
+        {
+          "role": "dash",
+          "value": "#A7F3D0",
+          "note": "撕票线"
+        },
+        {
+          "role": "ink",
+          "value": "#1a1a1a",
+          "note": "黑描边/硬阴影"
+        },
+        {
+          "role": "text",
+          "value": "#555555",
+          "note": "正文色"
+        }
+      ]
+    },
+    "olive-journal": {
+      "id": "olive-journal",
+      "name": "橄榄手记",
+      "evidence": "手账/橄榄色系：墨色深底 #1e1f23 + 橙强调/CTA #ed7b2f（H≈22±45 橙族），配米白纸感 #fdfdf8。",
+      "accent": "#ed7b2f",
+      "hue_range": 45,
+      "sat_min": 25,
+      "gap-accent": "#1e1f23",
+      "underline": "border-bottom:2px solid #ed7b2f;font-weight:600;",
+      "vars": [
+        {
+          "role": "ink",
+          "value": "#1e1f23",
+          "note": "主题墨色/深底"
+        },
+        {
+          "role": "accent",
+          "value": "#ed7b2f",
+          "note": "强调/CTA 橙"
+        },
+        {
+          "role": "title",
+          "value": "#23251d",
+          "note": "标题"
+        },
+        {
+          "role": "text",
+          "value": "#4d4f46",
+          "note": "正文"
+        },
+        {
+          "role": "muted",
+          "value": "#65675e",
+          "note": "次要文字"
+        },
+        {
+          "role": "line",
+          "value": "#bfc1b7",
+          "note": "边框/分隔线"
+        },
+        {
+          "role": "paper",
+          "value": "#fdfdf8",
+          "note": "米白背景"
+        },
+        {
+          "role": "tag-bg",
+          "value": "#e5e7e0",
+          "note": "标签浅底"
+        }
+      ]
+    },
+    "serif-green": {
+      "id": "serif-green",
+      "name": "衬线绿色方格纸",
+      "evidence": "编辑部纸感：衬线字体栈 + 绿色微方格纸背景 rgba(40,167,69,.035)→18px 格 + 强调主色 #28a745（H≈135±20, 绿色族）；正文 #344054 深灰、标题 #3e3e3e；浅蓝灰导语卡 #f6f9fc + 绿左竖条。",
+      "accent": "#28a745",
+      "hue_range": 30,
+      "sat_min": 15,
+      "underline": "border-bottom:2px solid #28a745;font-weight:600;",
+      "vars": [
+        {
+          "role": "accent",
+          "value": "#28a745",
+          "note": "强调绿主色"
+        },
+        {
+          "role": "accent-pale",
+          "value": "#28a7450F",
+          "note": "H2卡浅绿底"
+        },
+        {
+          "role": "accent-border",
+          "value": "#28a74555",
+          "note": "H2卡绿边框"
+        },
+        {
+          "role": "grid",
+          "value": "rgba(40,167,69,0.035)",
+          "note": "方格纸格线"
+        },
+        {
+          "role": "text",
+          "value": "#344054",
+          "note": "正文色"
+        },
+        {
+          "role": "title",
+          "value": "#3e3e3e",
+          "note": "标题色"
+        },
+        {
+          "role": "quote-text",
+          "value": "#4b5565",
+          "note": "引用/导语文字"
+        },
+        {
+          "role": "quote-bg",
+          "value": "#f6f9fc",
+          "note": "导语卡浅蓝灰底"
+        },
+        {
+          "role": "muted",
+          "value": "#6b7280",
+          "note": "辅助文字"
+        },
+        {
+          "role": "line",
+          "value": "rgba(0,0,0,0.08)",
+          "note": "极淡分割线"
+        },
+        {
+          "role": "icon-highlight",
+          "value": "#059669",
+          "note": "图标点赞点缀"
+        }
+      ]
+    },
+    "serif-navy": {
+      "id": "serif-navy",
+      "name": "衬线深蓝方格纸",
+      "evidence": "编辑部纸感（衬线绿色同系变体）：衬线字体栈 + 深蓝微方格纸背景 rgba(30,90,168,.035)→18px 格 + 强调主色 #1E5AA8（H≈214±18, 深蓝族，明亮清晰蓝而不闷）；正文 #344054、标题 #3e3e3e；浅蓝灰导语卡 #f6f9fc + 深蓝左竖条。",
+      "accent": "#1E5AA8",
+      "hue_range": 26,
+      "sat_min": 20,
+      "underline": "border-bottom:2px solid #1E5AA8;font-weight:600;",
+      "vars": [
+        {
+          "role": "accent",
+          "value": "#1E5AA8",
+          "note": "强调深蓝主色"
+        },
+        {
+          "role": "accent-pale",
+          "value": "#1E5AA80F",
+          "note": "H2卡浅蓝底"
+        },
+        {
+          "role": "accent-border",
+          "value": "#1E5AA855",
+          "note": "H2卡蓝边框"
+        },
+        {
+          "role": "grid",
+          "value": "rgba(30,90,168,0.035)",
+          "note": "方格纸格线"
+        },
+        {
+          "role": "text",
+          "value": "#344054",
+          "note": "正文色"
+        },
+        {
+          "role": "title",
+          "value": "#3e3e3e",
+          "note": "标题色"
+        },
+        {
+          "role": "quote-text",
+          "value": "#4b5565",
+          "note": "引用/导语文字"
+        },
+        {
+          "role": "quote-bg",
+          "value": "#f6f9fc",
+          "note": "导语卡浅蓝灰底"
+        },
+        {
+          "role": "muted",
+          "value": "#6b7280",
+          "note": "辅助文字"
+        },
+        {
+          "role": "line",
+          "value": "rgba(0,0,0,0.08)",
+          "note": "极淡分割线"
+        },
+        {
+          "role": "icon-highlight",
+          "value": "#2563EB",
+          "note": "图标点赞点睛蓝"
+        }
+      ]
+    }
+  }
+}

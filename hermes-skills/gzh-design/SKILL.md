@@ -173,6 +173,16 @@ description: 微信公众号文章排版引擎，将 Markdown 转换为可直接
 
 添加后在 `references/theme-index.md` 登记一行（主题名 / 主色 / 适用场景 / 组件库文件 / 正文下划线 CSS），并跑 `python3 scripts/component_lint.py .` 确认组件库无反模式（0 ERROR）。
 
+> **同系双配色变体（2026-09-02 沉淀，衬线绿→衬线深蓝实操）**：当用户要「参照某套版式再做一款，只换主色、其余不变」时，走**基底主题复制改色**流程，不要手写整套组件库：
+>
+> 1. **备份**：改前先 `cp -rp` 整个 gzh-design 目录到 `~/.hermes/workspace/gzh-backups/`（本次为 gzh-design-20260902-191117）。
+> 2. **改色生成新主题库**：以已知主题库（如 theme-serif-green.md）为基底，程序化替换**颜色族**（主色/浅底/边框/左竖条/格线/图标点睛/感谢卡三件套），**排版参数不碰**（字体栈/字号/行高/段距/H2卡/骨架/配方/映射全量保留）。替换时按「长前缀在前」顺序（如先 `#28a7450F` 再 `#28a745`），避免部分匹配误伤；用脚本校验无残留原色、无残留中文"原色名"字样。
+> 3. **四要素落地**：先出样张给用户确认主色 → 确认后新增 `theme-{新标识}.md` → theme-index.md 登记一行（注明"为 XX 同系变体"）→ theme-vars.json 登记（accent/hue_range 按新主色族、sat_min 视明度调整）→ theme-thanks-card.md 追加对应配色套的完整感谢卡 HTML。
+> 4. **链路同步**：除 skill 内三处（theme-index/theme-vars/theme-thanks-card）外，**Cowrite 生产端 `/root/.cowrite/action-config.json` 的 `gzh-layout` 动作提示词里的主题映射表也要加一行**（`新id=主题中文名`），否则 Worker 排版时选不到；改前备份该 json。
+> 5. **验收**：`component_lint.py`（0 ERROR）+ `validate_gzh_html.py`（纯正文+感谢卡「完全合规」）+ 390px 渲染 vision 核验；成果归档 Obsidian `20-Projects/Cowrite-for-Hermes/`。
+>
+> 本次「衬线深蓝方格纸（serif-navy，#1E5AA8）」即由「衬线绿色方格纸（serif-green，#28a745）」改色而来，构成同系双配色。主色选择依据用户偏好：**明亮清晰、蓝而不闷、公众号正文最耐读、点睛感适中**。
+
 > 触发与主题选择的回归用例见 `references/eval-cases.md`（维护时用于回归核对，不影响单次生成）。
 
 ## 发布到公众号草稿箱（脚本：scripts/publish_gzh_html.py）
@@ -239,3 +249,23 @@ python3 scripts/publish_gzh_html.py --account default \
 **Step 8 · 交付告知**：报「账号 / 标题 / draft_media_id / 组件完整与否」，引导用户去公众号后台草稿箱确认或群发。
 
 > 附：贴图/图片消息（newspic）不走此链，用 `wechat-sticker-publisher`。发布脚本只产草稿，**不群发**。
+
+---
+
+## 预览页增强与一体化工具（2026-08-29 落地）
+
+> 借鉴 `Kianzzz/zhouxing-paiban-wx`（公众号排版工具，MIT）的方法论，为 gzh 预览/换色链路做本地化增强。**只借方法论不抄代码**，全部针对 gzh 的内联样式 + span leaf 语境独立实现。
+
+### 1. wrap_preview.py / preview-template.html —— 三块增强
+`wrap_preview` 已升级为「实时预览 + 粘贴加固」的交互式预览页（`assets/preview-template.html`），生成后**点微调 / 点复制**即可。
+
+- **实时预览微调**（P0）：右侧「微调」面板三个滑块组（正文字号/行高/段落间距、标题上下间距、图片间距），拖动**即时改预览 DOM 内联样式**（不重跑 LLM 装配、不改内容）；复制时按当前微调结果输出。因 gzh 产物是内联样式，无法像 zhouxing 那样用 CSS 类换主题——所以微调只做**可读性参数**的字号/行高/间距，不做主题切换（换主题必须重跑 gzh-layout）。
+- **粘贴加固**（P0）：复制时把内容物化成内联样式写入剪贴板，含 `text/html`+`text/plain` 双格式（ClipboardItem，老浏览器降级 execCommand）；物化 `::before/::after`/`::marker` 伪元素；把 `ol/ul/li` **展平为含序号/圆点 span 的 `section>p` 段落**（避免公众号重写语义列表，丢失缩进/序号）；图片 `max-width:100%;height:auto`、表格 `width:100%;table-layout:fixed` 语义尺寸归一；清除 `id/class/data-*` 等非 gzh 属性；纯文本剔除 aria-hidden 装饰。**已用真实 gzh 产物回归验证**：span leaf 与内联样式全保留、data/class/id 零泄漏、结构完整。
+- **我的排版**（P2，用户级草稿）：微调面板内「保存我的排版/应用/清除」，把当前微调值存 `localStorage`（键 `gzh-mystyle:v1`），**只在本浏览器、不写入全局配置**；下次打开预览页可一键套用。
+- **只读 + 复制模式**（Cowrite 编辑页「预览」按钮）：`wrap_preview.py <src> <out> --readonly` 时模板 `{{READONLY}}=1`，JS 隐藏「微调」按钮+面板、跳过微调初始化，**只保留「复制到公众号」按钮**（粘贴加固逻辑仍在）。Cowrite 集成链：编辑页「预览」按钮 → `GET /api/pages/:id/gzh-preview`（`server/gzhPreview.ts`）读页面 content → `extractTopSection` 提取顶层 `<section>` → spawn `wrap_preview.py --readonly` → 前端模态 iframe srcDoc 渲染。**只读、无微调面板、无「我的排版」**。
+
+### 2. retint.py —— 主色同族联动（换色）
+`python3 scripts/retint.py draft.html --accent '#2F5BEA' --theme moyu-green`：把已排版 HTML 里与主题原主色**同色族**（hue 距离 ≤ hue_range 且饱和 ≥ sat_min）的颜色按 **HSL 相对偏移**迁移到新主色，**保留中性灰（正文/标题）与不同色族的点缀色（如摸鱼绿黄高亮、橄榄手记橙）不变**。可在不改主题组件、不重跑 LLM 的情况下，把整套版式从绿系换成蓝系。主题原主色 / hue_range / sat_min / grayscale 从 `assets/theme-vars.json` 读。石墨等 grayscale 主题只迁移主灰族（`sat < sat_min 且亮度距主色 ±10`）。**坑**：`style_re` 必须用否定后顾 `(?<![\w-])style=` 且替换用 `m.group(1)+内容+m.group(3)`（共 3 分组），先前写 4 分组会 IndexError；分隔 `style=` 与内容用分组而非 `m.group(0)[:3]`。
+
+### 3. theme-vars.json —— 主题设计变量 JSON 化 + evidence 卡
+`assets/theme-vars.json` 把 6 套主题的**主色/色族参数/下划线/角色色板**结构化（`accent/hue_range/sat_min/grayscale/underline/vars[{role,value,note}]`），供前端加载、retint 读基准、以及**风格学习 evidence 卡**：每个主题带 `evidence` 字段记录 token 来源/rationale（如摸鱼绿「emerald-600 主色 + 浅绿装饰 + 黄底警示，H≈158±42」）。**新增/自学习主题时，在 theme-vars.json 登记 accent/hue_range/sat_min/grayscale + 一句话 evidence**，保持与 theme-index.md 的 id 一一对应；缺了 retint 无法 `--theme` 换色。

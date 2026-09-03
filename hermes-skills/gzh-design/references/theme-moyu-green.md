@@ -39,8 +39,8 @@
 浅边框：       #E5E7EB
 浅灰背景：     #F3F4F6
 极浅灰：       #F9FAFB
-正文字号：     14px（不可改）
-正文行高：     1.9
+正文字号：     16px
+正文行高：     1.75
 全局行高：     1.75
 字间距：       0.5px
 最大宽度：     677px
@@ -263,7 +263,7 @@
 ## 组件 5 正文段落 paragraph
 
 ```html
-<p style="margin-bottom:16px;font-size:14px;line-height:1.9;text-align:justify;">
+<p style="margin-bottom:24px;font-size:16px;line-height:1.75;text-align:justify;">
   <span leaf="">{{正文内容}}</span>
 </p>
 ```
@@ -350,7 +350,7 @@
       <span leaf="">{{步骤标题}}</span>
     </h4>
   </section>
-  <p style="font-size:14px;margin:0 0 16px;color:#4B5563;line-height:1.9;text-align:justify;">
+  <p style="font-size:16px;margin:0 0 24px;color:#4B5563;line-height:1.75;text-align:justify;">
     {{步骤内容}}
   </p>
 </section>
@@ -665,7 +665,7 @@
     <p style="font-size:11px;font-weight:600;color:#9CA3AF;letter-spacing:1px;margin:0 0 12px;">
       <span leaf="">{{英文副标题}}</span>
     </p>
-    <p style="font-size:14px;margin:0 0 16px;color:#4B5563;line-height:1.7;text-align:justify;">
+    <p style="font-size:16px;margin:0 0 24px;color:#4B5563;line-height:1.75;text-align:justify;">
       {{内容}}
     </p>
   </section>
@@ -737,19 +737,19 @@
 <section style="margin-bottom:24px;">
   <section style="display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;">
     <span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;background:#059669;color:#fff;font-size:11px;font-weight:700;border-radius:50%;flex-shrink:0;margin-top:2px;"><span leaf="">1</span></span>
-    <p style="font-size:14px;color:#374151;margin:0;line-height:1.9;flex:1;">
+    <p style="font-size:16px;color:#374151;margin:0;line-height:1.75;flex:1;">
       <span leaf="">{{列表项内容}}</span>
     </p>
   </section>
   <section style="display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;">
     <span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;background:#059669;color:#fff;font-size:11px;font-weight:700;border-radius:50%;flex-shrink:0;margin-top:2px;"><span leaf="">2</span></span>
-    <p style="font-size:14px;color:#374151;margin:0;line-height:1.9;flex:1;">
+    <p style="font-size:16px;color:#374151;margin:0;line-height:1.75;flex:1;">
       <span leaf="">{{列表项内容}}</span>
     </p>
   </section>
   <section style="display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;">
     <span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;background:#059669;color:#fff;font-size:11px;font-weight:700;border-radius:50%;flex-shrink:0;margin-top:2px;"><span leaf="">3</span></span>
-    <p style="font-size:14px;color:#374151;margin:0;line-height:1.9;flex:1;">
+    <p style="font-size:16px;color:#374151;margin:0;line-height:1.75;flex:1;">
       <span leaf="">{{列表项内容}}</span>
     </p>
   </section>

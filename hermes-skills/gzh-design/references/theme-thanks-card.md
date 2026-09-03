@@ -21,6 +21,8 @@
 | 留白禅意 | `#4A5D52` 墨绿 | `#FFFFFF` | `#E8E8E8` | `#525252` | `#2B2B2B` | `#A3A3A3` | `#E8E8E8` | `#A3A3A3` | `#A3A3A3` |
 | 摸鱼票据 | `#059669` emerald | `#fffef8` | `#1a1a1a` | `#555` | `#1a1a1a` | `#888` | `#D1D5DB` | `#888` | `#999` |
 | 橄榄手记 | `#ed7b2f` 橙 | `#eeefe9` | `#bfc1b7` | `#4d4f46` | `#23251d` | `#65675e` | `#bfc1b7` | `#65675e` | `#9ea096` |
+| 衬线绿色方格纸 | `#28a745` 强调绿 | `#F0FDF4` | `#BBF7D0` | `#344054` | `#3e3e3e` | `#6b7280` | `#E5E7EB` | `#6b7280` | `#9CA3AF` |
+| 衬线深蓝方格纸 | `#1E5AA8` 深蓝 | `#EFF6FF` | `#BFDBFE` | `#344054` | `#3e3e3e` | `#6b7280` | `#E5E7EB` | `#6b7280` | `#9CA3AF` |
 
 > 通用规则：**点赞用主色高亮**（主色字 + 主色描边 + 主题浅底），**在看/转发常规**（常规图标色 + 浅描边）。「THANKS FOR READING」用辅助英文色、大写 + 字距 4px。
 
@@ -296,6 +298,84 @@
       </section>
     </section>
     <p style="margin:32px 0 0;font-size:11px;color:#9ea096;letter-spacing:4px;">
+      <span leaf="">THANKS FOR READING</span>
+    </p>
+  </section>
+</section>
+```
+
+### 七、衬线绿色方格纸（`{{主色}}=#28a745`）
+
+```html
+<section style="padding:0 10px;">
+  <p style="margin:0 0 8px;font-size:15px;line-height:1.82;color:#6b7280;text-align:justify;">
+    <span leaf="">我是 {{作者名}}，</span>
+  </p>
+  <p style="margin:0 0 44px;font-size:15px;line-height:1.82;color:#6b7280;text-align:justify;">
+    <span leaf="">更多 AI 应用 / 我们下期再见 👋</span>
+  </p>
+</section>
+<section style="padding:0 11px;">
+  <section style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:16px;padding:40px 22px 36px;text-align:center;">
+    <p style="margin:0 0 28px;font-size:15px;line-height:1.82;color:#344054;text-align:center;">
+      <span leaf="">如果你觉得今天这篇有收获，欢迎</span>
+      <strong style="color:#3e3e3e;"><span leaf="">点赞、在看、转发</span></strong>
+      <span leaf="">三连，我们下篇见</span>
+    </p>
+    <section style="display:flex;justify-content:center;align-items:flex-start;">
+      <section style="text-align:center;margin:0 22px;width:60px;">
+        <span style="display:flex;align-items:center;justify-content:center;width:60px;height:60px;background:#ECFDF5;border:1px solid #28a745;border-radius:14px;font-size:24px;font-weight:600;color:#28a745;"><span leaf="">♥</span></span>
+        <p style="margin:12px 0 0;font-size:13px;color:#28a745;"><span leaf="">点赞</span></p>
+      </section>
+      <section style="text-align:center;margin:0 22px;width:60px;">
+        <span style="display:flex;align-items:center;justify-content:center;width:60px;height:60px;background:#FFFFFF;border:1px solid #E5E7EB;border-radius:14px;font-size:24px;font-weight:600;color:#6b7280;"><span leaf="">◎</span></span>
+        <p style="margin:12px 0 0;font-size:13px;color:#6b7280;"><span leaf="">在看</span></p>
+      </section>
+      <section style="text-align:center;margin:0 22px;width:60px;">
+        <span style="display:flex;align-items:center;justify-content:center;width:60px;height:60px;background:#FFFFFF;border:1px solid #E5E7EB;border-radius:14px;font-size:24px;font-weight:600;color:#6b7280;"><span leaf="">↗</span></span>
+        <p style="margin:12px 0 0;font-size:13px;color:#6b7280;"><span leaf="">转发</span></p>
+      </section>
+    </section>
+    <p style="margin:32px 0 0;font-size:11px;color:#9CA3AF;letter-spacing:4px;">
+      <span leaf="">THANKS FOR READING</span>
+    </p>
+  </section>
+</section>
+```
+
+### 八、衬线深蓝方格纸（`{{主色}}=#1E5AA8`）
+
+```html
+<section style="padding:0 10px;">
+  <p style="margin:0 0 8px;font-size:15px;line-height:1.82;color:#6b7280;text-align:justify;">
+    <span leaf="">我是 {{作者名}}，</span>
+  </p>
+  <p style="margin:0 0 44px;font-size:15px;line-height:1.82;color:#6b7280;text-align:justify;">
+    <span leaf="">更多 AI 应用 / 我们下期再见 👋</span>
+  </p>
+</section>
+<section style="padding:0 11px;">
+  <section style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:16px;padding:40px 22px 36px;text-align:center;">
+    <p style="margin:0 0 28px;font-size:15px;line-height:1.82;color:#344054;text-align:center;">
+      <span leaf="">如果你觉得今天这篇有收获，欢迎</span>
+      <strong style="color:#3e3e3e;"><span leaf="">点赞、在看、转发</span></strong>
+      <span leaf="">三连，我们下篇见</span>
+    </p>
+    <section style="display:flex;justify-content:center;align-items:flex-start;">
+      <section style="text-align:center;margin:0 22px;width:60px;">
+        <span style="display:flex;align-items:center;justify-content:center;width:60px;height:60px;background:#EAF2FB;border:1px solid #1E5AA8;border-radius:14px;font-size:24px;font-weight:600;color:#1E5AA8;"><span leaf="">♥</span></span>
+        <p style="margin:12px 0 0;font-size:13px;color:#1E5AA8;"><span leaf="">点赞</span></p>
+      </section>
+      <section style="text-align:center;margin:0 22px;width:60px;">
+        <span style="display:flex;align-items:center;justify-content:center;width:60px;height:60px;background:#FFFFFF;border:1px solid #E5E7EB;border-radius:14px;font-size:24px;font-weight:600;color:#6b7280;"><span leaf="">◎</span></span>
+        <p style="margin:12px 0 0;font-size:13px;color:#6b7280;"><span leaf="">在看</span></p>
+      </section>
+      <section style="text-align:center;margin:0 22px;width:60px;">
+        <span style="display:flex;align-items:center;justify-content:center;width:60px;height:60px;background:#FFFFFF;border:1px solid #E5E7EB;border-radius:14px;font-size:24px;font-weight:600;color:#6b7280;"><span leaf="">↗</span></span>
+        <p style="margin:12px 0 0;font-size:13px;color:#6b7280;"><span leaf="">转发</span></p>
+      </section>
+    </section>
+    <p style="margin:32px 0 0;font-size:11px;color:#9CA3AF;letter-spacing:4px;">
       <span leaf="">THANKS FOR READING</span>
     </p>
   </section>

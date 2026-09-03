@@ -30,8 +30,8 @@
 标签浅底：                     #e5e7e0
 强调橙（关键词下划线/前导词/CTA）： #ed7b2f
 陶土棕装饰（进行中/次强调）：       #d4c9b8（配边框 #b17816）
-正文字号：                     14px
-正文行高：                     1.9
+正文字号：                     16px（移动端规范，2026-08-26 统一）
+正文行高：                     1.75
 全局行高：                     1.75
 最大宽度：                     677px
 容器内边距：                   8px
@@ -263,7 +263,7 @@
 ```html
 <section style="margin-top:24px;">
   <section style="font-family:'IBM Plex Sans',-apple-system,sans-serif;">
-    <p style="margin:0;font-size:14px;line-height:1.9;text-align:justify;color:#4d4f46;">
+    <p style="margin:0;font-size:16px;line-height:1.75;text-align:justify;color:#4d4f46;">
       <span leaf="">{{正文内容}}</span>
     </p>
   </section>
@@ -313,7 +313,7 @@
 ```html
 <section style="margin-top:24px;">
   <section style="font-family:'IBM Plex Sans',-apple-system,sans-serif;">
-    <p style="margin:0;font-size:14px;color:#4d4f46;line-height:1.9;">
+    <p style="margin:0;font-size:16px;color:#4d4f46;line-height:1.75;">
       <span leaf="">{{正文前半}}&nbsp;</span><span style="background:#eeefe9;color:#23251d;padding:2px 6px;border-radius:4px;font-family:ui-monospace,Menlo,Monaco,Consolas,monospace;font-size:13px;border:1px solid #b6b7af;"><span leaf="">{{代码}}</span></span><span leaf="">&nbsp;{{正文后半}}</span>
     </p>
   </section>
@@ -331,7 +331,7 @@
 ```html
 <section style="margin-top:24px;">
   <section style="font-family:'IBM Plex Sans',-apple-system,sans-serif;">
-    <p style="margin:0;font-size:14px;line-height:1.9;text-align:justify;color:#4d4f46;">
+    <p style="margin:0;font-size:16px;line-height:1.75;text-align:justify;color:#4d4f46;">
       <span style="font-size:14px;color:#9ea096;letter-spacing:0.3px;text-decoration:line-through;"><span leaf="">{{旧表述}}</span></span>
       <span style="margin-left:6px;font-weight:700;color:#23251d;"><span leaf="">{{新表述}}</span></span>
       <span style="margin-left:6px;background:#e5e7e0;padding:1px 5px;border-radius:4px;font-weight:600;color:#23251d;border:1px solid #bfc1b7;"><span leaf="">{{差异点}}</span></span>
@@ -376,7 +376,7 @@
       <span style="font-size:10px;color:rgba(255,255,255,0.65);"><span leaf="">{{批注小字}}</span></span>
     </section>
     <section style="padding:16px 18px 18px;background:#eeefe9;">
-      <p style="margin:0;font-size:14px;line-height:1.9;color:#4d4f46;text-align:justify;"><span leaf="">{{编者按正文}}</span></p>
+      <p style="margin:0;font-size:16px;line-height:1.75;color:#4d4f46;text-align:justify;"><span leaf="">{{编者按正文}}</span></p>
     </section>
   </section>
 </section>
@@ -394,7 +394,7 @@
 <section style="margin-top:24px;">
   <section style="font-family:'IBM Plex Sans',-apple-system,sans-serif;">
     <section style="background:#fdfdf8;border-radius:6px;padding:16px 18px;border:1px solid #bfc1b7;">
-      <p style="font-size:14px;color:#4d4f46;margin:0;line-height:1.8;text-align:justify;">
+      <p style="font-size:16px;color:#4d4f46;margin:0;line-height:1.75;text-align:justify;">
         <strong style="color:#23251d;border-bottom:3px solid #ed7b2f;"><span leaf="">{{重点观点}}</span></strong><span leaf="">&nbsp;{{补充说明}}</span>
       </p>
     </section>
@@ -657,11 +657,11 @@
           <h4 style="font-size:15px;font-weight:800;color:#23251d;margin:0;"><span leaf="">{{案例标题}}</span></h4>
         </section>
         <p style="font-size:11px;font-weight:600;color:#65675e;letter-spacing:1px;margin:0 0 12px;"><span leaf="">{{行业规模}}</span></p>
-        <p style="font-size:14px;margin:0 0 14px;color:#4d4f46;line-height:1.7;text-align:justify;"><span leaf="">{{案例描述}}</span></p>
+        <p style="font-size:16px;margin:0 0 24px;color:#4d4f46;line-height:1.75;text-align:justify;"><span leaf="">{{案例描述}}</span></p>
         <section style="text-align:center;margin-bottom:4px;">
           <span leaf=""><img src="{{图片URL}}" alt="案例配图" style="max-width:100%;height:auto;display:block;margin:0 auto;border-radius:6px;border:1px solid #bfc1b7;"></span>
         </section>
-        <p style="font-size:14px;margin:12px 0 0;color:#4d4f46;line-height:1.7;text-align:justify;"><strong style="color:#23251d;"><span leaf="">{{结果总结}}</span></strong></p>
+        <p style="font-size:16px;margin:12px 0 0;color:#4d4f46;line-height:1.75;text-align:justify;"><strong style="color:#23251d;"><span leaf="">{{结果总结}}</span></strong></p>
       </section>
     </section>
   </section>
@@ -791,7 +791,7 @@
   <section style="background:#1e1f23;border:1px solid #23251d;padding:8px;box-sizing:border-box;border-radius:6px;font-family:'IBM Plex Sans',-apple-system,sans-serif;">
     <section style="border:1px solid rgba(255,255,255,0.16);border-radius:4px;padding:20px 22px;">
       <p style="margin:0 0 8px;font-size:10px;line-height:1.6;color:#a3a3a3;letter-spacing:4px;font-weight:800;"><span leaf="">{{CLOSING标签}}</span></p>
-      <p style="margin:0;font-size:16px;line-height:1.9;color:#fafafa;font-weight:700;"><span leaf="">{{结尾金句}}</span></p>
+      <p style="margin:0;font-size:16px;line-height:1.75;color:#fafafa;font-weight:700;"><span leaf="">{{结尾金句}}</span></p>
     </section>
   </section>
 </section>
@@ -859,8 +859,8 @@
         <p style="margin:0;font-size:11px;font-weight:600;color:#65675e;letter-spacing:1.2px;"><span leaf="">{{结尾说明}}</span></p>
       </section>
     </section>
-    <p style="margin:0 0 14px;font-size:14px;line-height:1.9;text-align:justify;color:#4d4f46;"><span leaf="">{{收尾段落1}}</span></p>
-    <p style="margin:0 0 14px;font-size:14px;line-height:1.9;text-align:justify;color:#4d4f46;"><span leaf="">{{收尾段落2}}</span></p>
+    <p style="margin:0 0 14px;font-size:16px;line-height:1.75;text-align:justify;color:#4d4f46;"><span leaf="">{{收尾段落1}}</span></p>
+    <p style="margin:0 0 14px;font-size:16px;line-height:1.75;text-align:justify;color:#4d4f46;"><span leaf="">{{收尾段落2}}</span></p>
     <section style="background:#eeefe9;border-radius:6px;padding:16px 18px;border:1px solid #bfc1b7;text-align:center;">
       <p style="font-size:15px;color:#23251d;margin:0;line-height:1.6;"><strong style="border-bottom:3px solid #ed7b2f;"><span leaf="">{{最后总结}}</span></strong></p>
     </section>

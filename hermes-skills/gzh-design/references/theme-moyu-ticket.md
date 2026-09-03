@@ -10,7 +10,7 @@
 >
 > **WeChat 兼容铁律**（本主题组件全部已按此写好，改动时必须遵守）：
 > - 所有"装饰性空元素"（撕票虚线、头像占位框）**没有真实内容时整块删掉**，不留空 section
-> - 正文字号固定 `14px`、行高 `1.9`——这是本主题的排版铁律，不与其它主题共用字号
+> - 正文字号统一 `16px`、行高 `1.75`（移动端规范，2026-08-26 全主题统一）
 > - 不要把 `font-size`/`border-bottom` 打在 `<strong>` 上，高亮样式统一挂在外层 `<span>` 上
 > - `writing-mode:vertical-rl`（票据侧边竖排字）在个别老旧客户端可能渲染异常，如遇异常可退化为横排小字，不影响其余结构
 
@@ -30,8 +30,8 @@
 代码背景：       #F3F4F6
 代码字色：       #1F2937
 品牌紫色（AI 品牌专用，如 Claude/Obsidian/Gemini）：#7C3AED
-正文字号：       14px（本主题铁律，不可改）
-正文行高：       1.9
+正文字号：       16px（移动端规范，2026-08-26 统一）
+正文行高：       1.75
 全局行高：       1.75
 字间距：         0.5px
 最大宽度：       677px
@@ -170,7 +170,7 @@
 
 ```html
 <section style="margin-bottom:32px;padding:0 20px;">
-  <p style="font-size:14px;color:#555;line-height:1.9;margin-bottom:16px;text-align:justify;">
+  <p style="font-size:16px;color:#555;line-height:1.75;margin-bottom:24px;text-align:justify;">
     <span leaf="">{{正文内容}}</span>
   </p>
 </section>
@@ -305,7 +305,7 @@
       <span style="color:#059669;font-size:24px;"><span leaf="">{{大数字}}</span></span>
       <span leaf="">{{金句后半}}</span>
     </p>
-    <p style="font-size:14px;color:#555;line-height:1.8;margin:0;text-align:justify;">
+    <p style="font-size:16px;color:#555;line-height:1.75;margin:0;text-align:justify;">
       <span leaf="">{{补充说明}}</span>
     </p>
   </section>

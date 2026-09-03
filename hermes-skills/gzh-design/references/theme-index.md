@@ -1,5 +1,7 @@
 # 主题索引与选择决策表
 
+> **排版统一规范（2026-08-26 定稿）**：全部 6 套主题的**正文段落**已统一为移动端可读性基线 `16px / 行高1.75 / 段距24px / 每段≤150字`。各主题仅保留**自身配色**（正文色、主色、点缀色各异，见下表主色列），不共用字号与配色。改任何主题正文时，只体现该主题的配色，字号/行高/段距遵循此规范。
+
 本表是主题信息的**单一来源**。工作流第 1 步据此向用户展示选项，第 2 步据"组件库文件"列读取对应库，下划线标记时据"正文下划线 CSS"列取值。
 
 每个主题的**英文标识**（用于产物命名 `{中文名}({标识}).html`、Agent 引用）= "组件库文件"列去掉 `theme-` 前缀与 `.md` 后缀。展示给用户仍用中文名。
@@ -14,6 +16,12 @@
 | 留白禅意风 | `#4A5D52` 墨绿 | 禅意冥想、极简生活、深度随笔、艺术留白（呼吸感最强） | `references/theme-zen-whitespace.md` | `border-bottom:1.5px solid #B5C8BC;font-weight:500;` |
 | 摸鱼票据风 | `#059669` emerald | 测评、工具对比、创意评测（票据/门票视觉隐喻，星级评分+编号+硬阴影卡片） | `references/theme-moyu-ticket.md` | `border-bottom:2px solid #A7F3D0;font-weight:600;` |
 | 橄榄手记 | `#1e1f23` 墨黑（配橙 `#ed7b2f`） | 内刊手记、深度评测、案例复盘、系统性说明文档（编辑部内刊质感，分节形式多样，信息密度偏高） | `references/theme-olive-journal.md` | `border-bottom:2px solid #ed7b2f;font-weight:600;` |
+| 衬线绿色方格纸 | `#28a745` 强调绿 | 教程、工具盘点、深度分析、知识整理、观点类长文（衬线editorial纸感，绿色微方格纸背景+绿强调+H2绿卡，无现代无衬线） | `references/theme-serif-green.md` | `border-bottom:2px solid #28a745;font-weight:600;` |
+| 衬线深蓝方格纸 | `#1E5AA8` 深蓝 | 教程、工具盘点、深度分析、知识整理、观点类长文（衬线editorial纸感，深蓝微方格纸背景+深蓝强调+H2蓝卡；衬线绿色同系变体，明亮清晰蓝而不闷） | `references/theme-serif-navy.md` | `border-bottom:2px solid #1E5AA8;font-weight:600;` |
+
+## 通用组件（所有主题共用）
+
+- **`references/theme-thanks-card.md`** — 文末感谢卡（作者签名 + 圆角卡 + 点赞高亮三连 + THANKS FOR READING），配色按主题变量化（6 套主题各预置完整 HTML）。排版到文末时调用，**替代或紧随各主题内置签名区（二选一，不重复堆三连）**。
 
 ## 选择建议
 

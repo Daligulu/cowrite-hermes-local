@@ -604,6 +604,75 @@ GIF 动图角标改极简描边胶囊：边框与字色用石墨主色 `#52525B`
 
 ---
 
+## 组件 17 · step-card（步骤卡，教程/操作步骤）
+
+> 深炭实底编号标签 + 步骤标题 + 正文段落。比组件 10a 更完整的「步骤卡」形态：标签行独立、正文单独一段、底部留白，适合较长教程的步骤分解。来源：2026-08 从《豆包 Work》排版分析提炼，校验与草稿箱读回验证通过。
+
+```html
+<section style="margin-bottom:24px;">
+  <section style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+    <span style="display:inline-block;background:#27272A;color:#FFFFFF;font-size:11px;font-weight:700;padding:2px 8px;border-radius:3px;letter-spacing:0.5px;"><span leaf="">STEP 01</span></span>
+    <span style="font-size:17px;font-weight:600;color:#27272A;letter-spacing:0.5px;"><span leaf="">{{步骤标题}}</span></span>
+  </section>
+  <p style="font-size:16px;margin:0 0 16px;color:#3F3F46;line-height:1.75;text-align:justify;letter-spacing:0.3px;">
+    <span leaf="">{{步骤说明前半}}</span>
+    <span style="border-bottom:2px solid #52525B;font-weight:600;color:#27272A;"><span leaf="">{{关键短语}}</span></span>
+    <span leaf="">{{步骤说明后半}}</span>
+  </p>
+</section>
+```
+
+`STEP 01` 可替换为 `STEP 02`…或 `SKILL 1` / `TOOL 摄像机` / `CASE 01`。
+
+---
+
+## 组件 18 · copy-block（可复制指令块 / 模板框）
+
+> 极浅灰底 + 1px 细线边框 + 等宽字体，用于展示**可直接复制**的命令、Prompt、模板。把「抄就能用」的指令从正文独立出来，一眼可辨。
+
+```html
+<section style="background:#FAFAFA;border:1px solid #E4E4E7;padding:20px 22px;margin:0 10px 24px;">
+  <p style="font-size:11px;color:#A1A1AA;margin:0 0 10px;letter-spacing:2px;font-weight:500;">
+    <span leaf="">直接复制</span>
+  </p>
+  <p style="font-size:14px;color:#27272A;font-family:'SF Mono',Consolas,Monaco,monospace;line-height:1.7;margin:0;letter-spacing:0;">
+    <span leaf="">{{可复制命令/Prompt/模板内容，等宽体}}</span>
+  </p>
+</section>
+```
+
+多行内容：每行一个单独的 `<p style="margin:0">`（绝不用 white-space:pre），缩进用全角空格 `　`。
+
+---
+
+## 组件 19 · verdict-box（「值不值得」/ 判断卡）
+
+> 顶部 2px 深炭细线 + 判断标签 + 正文 + **橙色左竖条结论**。用于表达作者的主观判断/推荐/保留意见，是「推荐但不说谎」的落点——把「我的判断」和客观正文区隔开。
+
+```html
+<section style="margin:0 10px 24px;">
+  <section style="border-top:2px solid #27272A;padding-top:18px;">
+    <p style="font-size:11px;color:#A1A1AA;margin:0 0 12px;letter-spacing:2px;font-weight:500;">
+      <span leaf="">值不值得 · {{判断类型，如：我的整体判断}}</span>
+    </p>
+    <p style="font-size:16px;margin:0 0 14px;color:#3F3F46;line-height:1.75;text-align:justify;letter-spacing:0.3px;">
+      <span leaf="">{{正文判断前半}}</span>
+      <span style="border-bottom:2px solid #52525B;font-weight:600;color:#27272A;"><span leaf="">{{关键短语}}</span></span>
+      <span leaf="">{{正文判断后半}}</span>
+    </p>
+    <section style="border-left:3px solid #F97316;padding:14px 0 14px 22px;margin:0 0 8px;">
+      <p style="font-size:15px;font-weight:700;color:#27272A;margin:0;line-height:1.75;letter-spacing:0.3px;">
+        <span leaf="">「{{核心判断结论}}」</span>
+      </p>
+    </section>
+  </section>
+</section>
+```
+
+**点睛配额**：内部橙色左竖条（`#F97316`）是全篇最强锚点，**计入全篇橙色 ≤3 处配额**，一张文章建议最多 1 个 verdict-box。想转灰阶（不耗橙配额）→ 把内层竖条换 `#27272A`。
+
+---
+
 ## 完整文章模板骨架
 
 ```html
@@ -664,6 +733,13 @@ GIF 动图角标改极简描边胶囊：边框与字色用石墨主色 `#52525B`
 | 生活/情感随笔 | 正文6 + 居中金句8d + 辅助竖条旁注8c | 石墨竖条金句8a（少量） |
 | 案例实战 | case-label 10a / timeline 11c + step-label 10a | 极浅灰引用8b、踩坑提示9c |
 
+**可选增强（组件 17–19，2026-08 新增，不改上文配方）**：
+| 场景 | 新增核心组件 | 说明 |
+|---|---|---|
+| 教程步骤（长） | 组件 17 step-card | 深炭编号标签 + 标题 + 正文 |
+| 可复制指令 | 组件 18 copy-block | 命令/Prompt 独立、等宽体、可复制 |
+| 作者判断/推荐 | 组件 19 verdict-box | 「值不值得」顶部细线 + 橙竖条结论 |
+
 所有类型共用固定结构：引言卡 2 + 导读 3（3+ 章节）+ 水印编号章节 5 + END 15 + 签名 16。
 
 ---
@@ -700,5 +776,12 @@ GIF 动图角标改极简描边胶囊：边框与字色用石墨主色 `#52525B`
 | `---` | 组件 4 章节分割线 | 1px 石墨极细线 |
 | `![](图片)` | 组件 14 图片容器 | 极简线框，无圆角 |
 | 文末 | 组件 15 END + 16 签名 | END线 + 签名 |
+
+**可选增强映射（组件 17–19，2026-08 新增）**：
+| Markdown 元素 | 对应组件 | 说明 |
+|---|---|---|
+| 需复制的命令/Prompt | 组件 18 copy-block | 等宽字体，标签「直接复制」 |
+| 作者主观判断/推荐 | 组件 19 verdict-box | 顶部细线 + 橙竖条结论 |
+| 操作步骤（长教程） | 组件 17 step-card | 深炭编号标签 + 标题 + 正文 |
 </content>
 </invoke>

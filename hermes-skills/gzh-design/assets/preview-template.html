@@ -12,6 +12,23 @@
   .gzh-copy{background:#059669;color:#fff;border:0;border-radius:9px;padding:10px 20px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 3px 10px rgba(5,150,105,.28);white-space:nowrap;transition:transform .08s,background .15s;}
   .gzh-copy:hover{background:#047857;}
   .gzh-copy:active{transform:translateY(1px);}
+  .gzh-tune-toggle{background:#fff;color:#374151;border:1px solid #d1d5db;border-radius:9px;padding:10px 14px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;margin-left:8px;transition:background .15s;}
+  .gzh-tune-toggle:hover{background:#f3f4f6;}
+  .gzh-tune{position:fixed;top:60px;right:16px;z-index:102;width:268px;max-height:calc(100vh - 90px);overflow:auto;background:#fff;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 16px 44px rgba(0,0,0,.16);padding:14px 16px 16px;}
+  .gzh-tune h4{margin:0 0 4px;font-size:14px;color:#111827;}
+  .gzh-tune .sub{margin:0 0 10px;color:#8b8f98;font-size:11px;line-height:1.5;}
+  .gzh-tune .tune-group{margin:0 0 12px;padding-top:10px;border-top:1px solid #f0f1f3;}
+  .gzh-tune label{display:block;font-size:12px;color:#4b5563;margin:0 0 3px;}
+  .gzh-tune .trow{display:flex;align-items:center;gap:8px;margin:0 0 8px;}
+  .gzh-tune .trow label{flex:0 0 74px;margin:0;font-size:12px;color:#4b5563;}
+  .gzh-tune input[type=range]{flex:1;min-width:0;accent-color:#059669;}
+  .gzh-tune .tval{flex:0 0 44px;text-align:right;font-size:12px;color:#111827;font-variant-numeric:tabular-nums;}
+  .gzh-tune .tbtn{margin:10px 0 0;padding:9px 0;width:100%;border:0;border-radius:9px;background:#f3f4f6;color:#374151;font-size:13px;font-weight:700;cursor:pointer;}
+  .gzh-tune .tbtn:hover{background:#e5e7eb;}
+  .gzh-tune .tbtn2{flex:1;padding:8px 0;border:1px solid #d1d5db;border-radius:9px;background:#fff;color:#374151;font-size:12px;font-weight:700;cursor:pointer;transition:background .15s;white-space:nowrap;}
+  .gzh-tune .tbtn2:hover{background:#f3f4f6;}
+  .gzh-tune .tbtn3{width:100%;margin-top:8px;padding:7px 0;border:1px dashed #d1d5db;border-radius:9px;background:transparent;color:#9ca3af;font-size:12px;cursor:pointer;}
+  .gzh-tune .tbtn3:hover{color:#374151;border-color:#9ca3af;}
   .gzh-toast{position:fixed;top:66px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:11px 20px;border-radius:10px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .25s;z-index:100;box-shadow:0 6px 20px rgba(0,0,0,.25);max-width:88vw;text-align:center;}
   .gzh-toast.show{opacity:1;}
   .gzh-stage{max-width:700px;margin:78px auto 64px;padding:0 8px;}
@@ -21,41 +38,342 @@
 <body>
 <div class="gzh-toolbar">
   <span class="gzh-hint">👇 下方是排版效果 · 点右侧 <b>复制</b> 直接粘到公众号</span>
-  <button class="gzh-copy" id="gzhCopyBtn" onclick="gzhCopy()">📋 复制到公众号</button>
+  <span style="display:flex;align-items:center;">
+    <button class="gzh-tune-toggle" id="gzhTuneToggle">微调</button>
+    <button class="gzh-copy" id="gzhCopyBtn">📋 复制到公众号</button>
+  </span>
 </div>
 <div class="gzh-toast" id="gzhToast"></div>
+<aside class="gzh-tune" id="gzhTunePanel" hidden>
+  <h4>排版微调</h4>
+  <p class="sub">拖动实时生效；复制时按当前微调结果输出。仅调可读性参数，不改内容。</p>
+  <div class="tune-group">
+    <div class="trow"><label>正文字号</label><input type="range" id="tunFontSize" min="14" max="20" step="1"><span class="tval" id="tunFontSizeVal">16px</span></div>
+    <div class="trow"><label>正文行高</label><input type="range" id="tunLineHeight" min="1.4" max="2.2" step="0.05"><span class="tval" id="tunLineHeightVal">1.75</span></div>
+    <div class="trow"><label>段落间距</label><input type="range" id="tunParaSpacing" min="10" max="40" step="1"><span class="tval" id="tunParaSpacingVal">24px</span></div>
+  </div>
+  <div class="tune-group">
+    <div class="trow"><label>标题上间距</label><input type="range" id="tunHeadTop" min="8" max="48" step="1"><span class="tval" id="tunHeadTopVal">24px</span></div>
+    <div class="trow"><label>标题下间距</label><input type="range" id="tunHeadBottom" min="6" max="32" step="1"><span class="tval" id="tunHeadBottomVal">16px</span></div>
+    <div class="trow"><label>图片间距</label><input type="range" id="tunImgSpacing" min="0" max="40" step="1"><span class="tval" id="tunImgSpacingVal">24px</span></div>
+  </div>
+  <button class="tbtn" id="tunReset">恢复默认</button>
+  <div class="tune-group">
+    <label style="margin:0 0 6px;">我的排版（本浏览器保存，不写入全局配置）</label>
+    <div style="display:flex;gap:8px;">
+      <button class="tbtn2" id="tunSaveMine" style="flex:1;">保存我的排版</button>
+      <button class="tbtn2" id="tunApplyMine" style="flex:1;">应用我的排版</button>
+    </div>
+    <button class="tbtn3" id="tunClearMine">清除我的排版</button>
+  </div>
+</aside>
 <div class="gzh-stage">
   <div id="gzh-content">
 <!--GZH_CONTENT-->
   </div>
 </div>
 <script>
+var READONLY={{READONLY}};
+if(READONLY){
+  try{var _tt=document.getElementById('gzhTuneToggle');if(_tt)_tt.style.display='none';}catch(e){}
+  try{var _tp=document.getElementById('gzhTunePanel');if(_tp)_tp.style.display='none';}catch(e){}
+}
+/* ============================================================
+   公众号粘贴加固（2026-08-29）
+   为 gzh 内联样式产物实现粘贴健壮性（独立实现，不复制第三方代码）：
+   ① safeProps 白名单：只物化安全属性，不把固定宽高/绝对定位/float 写进正文节点
+   ② 物化 ::before/::after/::marker 为真实 <span>，避免公号不认伪元素致装饰/序号丢失
+   ③ ol/ul/li 展平为 section+p 行（inline-block 序号 + inline 正文），避免公号重写语义列表致符号错行
+   ④ 图片 max-width:100%/height:auto；表格 width:100%/table-layout:fixed 语义尺寸归一
+   ⑤ 剪贴板同时写 text/html + text/plain（ClipboardItem），失败降级选区复制
+   ⑥ 移除 id/class、data-前缀属性、contenteditable；aria-hidden 装饰在纯文本里剔除
+   ============================================================ */
+  var SAFE_PROPS=['display','box-sizing','margin','margin-top','margin-right','margin-bottom','margin-left','padding','padding-top','padding-right','padding-bottom','padding-left','color','background','background-color','background-image','background-size','background-position','background-repeat','border','border-top','border-right','border-bottom','border-left','border-radius','border-width','border-style','box-shadow','font-family','font-size','font-weight','font-style','font-variant-numeric','line-height','letter-spacing','text-align','text-decoration','text-indent','text-transform','white-space','word-break','word-spacing','overflow-wrap','vertical-align','border-collapse','border-spacing','table-layout','opacity','width','height','max-width','max-height','min-width','min-height'];
+
+  function isDefault(v){return !v||v==='normal'||v==='none'||v==='auto'||v==='0px'||v==='0';}
+  function toRoman(n){var p=[[1000,'M'],[900,'CM'],[500,'D'],[400,'CD'],[100,'C'],[90,'XC'],[50,'L'],[40,'XL'],[10,'X'],[9,'IX'],[5,'V'],[4,'IV'],[1,'I']],r='';for(var i=0;i<p.length;i++){while(n>=p[i][0]){r+=p[i][1];n-=p[i][0];}}return r;}
+
+  function applySafeStyles(src,dst){
+    var cs;try{cs=getComputedStyle(src);}catch(e){return;}
+    var isImg=src.tagName==='IMG',isTable=src.tagName==='TABLE',isRow=src.getAttribute&&src.getAttribute('data-gzh-list-row');
+    var skip=[];
+    for(var i=0;i<SAFE_PROPS.length;i++){
+      var p=SAFE_PROPS[i];
+      if((isImg||isTable)&&(p==='width'||p==='max-width'||p==='max-height'||p==='min-height'||p==='height'))continue;
+      if(p==='position'||p==='float'||p==='top'||p==='right'||p==='bottom'||p==='left')continue;
+      if(isRow&&(p==='height'||p==='max-height'))continue;
+      var v=cs.getPropertyValue(p);
+      if(isDefault(v))continue;
+      dst.style.setProperty(p,v);
+    }
+  }
+
+  function materializePseudo(src,dst,pseudo,prepend){
+    var cs;try{cs=getComputedStyle(src,pseudo);}catch(e){return;}
+    var content=cs.content;
+    if(isDefault(content)||content==='" "'||content==='""'||content==='"\\200b"')return;
+    var span=document.createElement('span');
+    span.setAttribute('aria-hidden','true');
+    var txt=content.replace(/^['"]|['"]$/g,'');
+    if(txt)span.textContent=txt;
+    for(var i=0;i<SAFE_PROPS.length;i++){var p1=SAFE_PROPS[i];var v=cs.getPropertyValue(p1);if(isDefault(v))continue;span.style.setProperty(p1,v);}
+    ['width','height','max-width','max-height','min-width','min-height'].forEach(function(p2){var v=cs.getPropertyValue(p2);if(v&&v!=='none'&&v!=='auto'&&v!=='0px')span.style.setProperty(p2,v);});
+    if(prepend)dst.insertBefore(span,dst.firstChild);else dst.appendChild(span);
+  }
+
+  function markerText(item){
+    var list=item.parentElement;
+    if(!list||(list.tagName!=='OL'&&list.tagName!=='UL'))return '';
+    var type;try{type=getComputedStyle(list).listStyleType;}catch(e){return '';}
+    if(type==='none')return '';
+    var idx=Array.prototype.indexOf.call(list.children,item);
+    var start=parseInt(list.getAttribute('start')||'1',10)||1;
+    var n=start+Math.max(idx,0);
+    if(list.tagName==='UL'){if(type==='circle')return '○';if(type==='square')return '▪';return '•';}
+    if(type==='decimal-leading-zero')return String(n).padStart(2,'0')+'.';
+    if(type==='upper-roman')return toRoman(n)+'.';
+    if(type==='lower-roman')return toRoman(n).toLowerCase()+'.';
+    return n+'.';
+  }
+
+  function materializeMarker(src,dst){
+    if(src.tagName!=='LI'||!src.parentElement)return;
+    var mt=markerText(src);
+    if(!mt)return;
+    var mk=document.createElement('span');
+    mk.setAttribute('data-gzh-marker','true');
+    mk.setAttribute('aria-hidden','true');
+    mk.textContent=mt;
+    var cs;try{cs=getComputedStyle(src,'::marker');}catch(e){}
+    if(cs){['color','font-family','font-size','font-weight','font-style'].forEach(function(p){var v=cs.getPropertyValue(p);if(v&&v!=='none')mk.style.setProperty(p,v);});}
+    mk.style.setProperty('display','inline-block');
+    mk.style.setProperty('margin-right','.25em');
+    dst.insertBefore(mk,dst.firstChild);
+    dst.style.setProperty('list-style','none');
+  }
+
+  function semanticSizing(src,dst){
+    if(src.tagName==='IMG'){dst.style.setProperty('max-width','100%');dst.style.setProperty('height','auto');}
+    else if(src.tagName==='TABLE'){dst.style.setProperty('width','100%');dst.style.setProperty('table-layout','fixed');dst.style.setProperty('border-collapse','collapse');try{if(getComputedStyle(src).overflow==='hidden')dst.style.setProperty('overflow','hidden');}catch(e){}}
+  }
+
+  function cloneTree(){
+    var root=document.getElementById('gzh-content');
+    var clone=root.cloneNode(true);
+    var originals=[],clones=[];
+    var w1=document.createTreeWalker(root,NodeFilter.SHOW_ELEMENT);
+    while(w1.nextNode())originals.push(w1.currentNode);
+    var w2=document.createTreeWalker(clone,NodeFilter.SHOW_ELEMENT);
+    while(w2.nextNode())clones.push(w2.currentNode);
+    for(var i=0;i<originals.length&&i<clones.length;i++){
+      var o=originals[i],c=clones[i];
+      applySafeStyles(o,c);
+      materializePseudo(o,c,'::before',true);
+      materializePseudo(o,c,'::after',false);
+      materializeMarker(o,c);
+      semanticSizing(o,c);
+    }
+    return clone;
+  }
+
+  function flattenLists(root){
+    var lists=root.querySelectorAll('ol,ul');
+    Array.prototype.forEach.call(lists,function(list){
+      var section=document.createElement('section');
+      section.setAttribute('data-gzh-list','true');
+      section.style.setProperty('display','block');
+      section.style.setProperty('list-style','none');
+      Array.prototype.forEach.call(list.children,function(item){
+        if(item.tagName!=='LI'){section.appendChild(item);return;}
+        var marker=item.querySelector('span[data-gzh-marker]');
+        var row=document.createElement('p');
+        row.setAttribute('data-gzh-list-row','true');
+        row.style.setProperty('display','block');
+        row.style.setProperty('list-style','none');
+        row.style.setProperty('margin','0');
+        var content=document.createElement('span');
+        content.setAttribute('data-gzh-list-content','true');
+        content.style.setProperty('display','inline');
+        // 把 marker 之外的可视节点搬进 content
+        var nodes=Array.prototype.slice.call(item.childNodes);
+        nodes.forEach(function(node){
+          if(node.nodeType===1&&node.getAttribute('data-gzh-marker')){item.removeChild(node);return;}
+          content.appendChild(node);
+        });
+        if(marker)row.appendChild(marker);
+        row.appendChild(content);
+        section.appendChild(row);
+      });
+      list.parentNode.replaceChild(section,list);
+    });
+  }
+
+  function stripAllData(root){
+    var walker=document.createTreeWalker(root,NodeFilter.SHOW_ELEMENT);
+    var nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);
+    nodes.forEach(function(el){
+      var attrs=Array.prototype.slice.call(el.attributes);
+      attrs.forEach(function(a){
+        if(a.name.indexOf('data-')===0)el.removeAttribute(a.name);
+        if(a.name==='id'||a.name==='class'||a.name==='contenteditable'||a.name==='spellcheck')el.removeAttribute(a.name);
+      });
+    });
+  }
+
+  function plainText(clone){
+    var plain=clone.cloneNode(true);
+    var walker=document.createTreeWalker(plain,NodeFilter.SHOW_ELEMENT);
+    var nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);
+    nodes.forEach(function(el){
+      if(el.getAttribute('data-gzh-marker')&&el.getAttribute('aria-hidden')==='true'){
+        var mt=el.textContent.trim();
+        var frag=document.createDocumentFragment();
+        frag.appendChild(document.createTextNode(mt+' '));
+        el.parentNode.insertBefore(frag,el);el.parentNode.removeChild(el);return;
+      }
+      if(el.getAttribute('aria-hidden')==='true'){el.parentNode.removeChild(el);return;}
+      // data-gzh-list-content 是内容容器，保留其文本（不替换成空）
+    });
+    var rows=plain.querySelectorAll('p[data-gzh-list-row]');
+    Array.prototype.forEach.call(rows,function(row){
+      var t=row.textContent.replace(/\s+/g,' ').trim();
+      row.textContent=t;
+      row.parentNode.insertBefore(document.createTextNode('\n'),row);
+    });
+    return (plain.innerText||plain.textContent||'').replace(/\n{3,}/g,'\n\n').replace(/^\n+|\n+$/g,'');
+  }
+
+  function buildClipboard(){
+    var clone=cloneTree();
+    flattenLists(clone);
+    return clone;
+  }
+
   function gzhShowToast(msg){
     var t=document.getElementById('gzhToast');
     t.textContent=msg;t.classList.add('show');
     clearTimeout(t._timer);
     t._timer=setTimeout(function(){t.classList.remove('show');},2800);
   }
-  function gzhCopy(){
-    var el=document.getElementById('gzh-content');
-    // 选中渲染后的富文本节点并复制（等价于手动 Ctrl+A / Ctrl+C，保留全部样式）
-    var range=document.createRange();
-    range.selectNodeContents(el);
-    var sel=window.getSelection();
-    sel.removeAllRanges();
-    sel.addRange(range);
-    var ok=false;
-    try{ok=document.execCommand('copy');}catch(e){ok=false;}
-    sel.removeAllRanges();
-    var btn=document.getElementById('gzhCopyBtn');
-    if(ok){
-      gzhShowToast('✅ 已复制！去公众号编辑器按 Ctrl/⌘+V 粘贴即可');
-      var old=btn.textContent;btn.textContent='✅ 已复制';
-      setTimeout(function(){btn.textContent=old;},2200);
-    }else{
-      gzhShowToast('⚠ 自动复制失败，请手动全选(Ctrl/⌘+A)再复制(Ctrl/⌘+C)');
-    }
+
+  function buildPayload(){
+    var clone=buildClipboard();
+    var text=plainText(clone);   // 读 clone 但不变动它
+    stripAllData(clone);          // 清掉 data-*，产出干净 HTML
+    var html=clone.innerHTML;
+    return {html:html,text:text};
   }
+
+  function legacyCopy(html,ok,fail){
+    var tmp=document.createElement('div');
+    tmp.style.cssText='position:fixed;left:-100000px;top:0;width:680px;background:#fff;pointer-events:none;';
+    tmp.innerHTML=html;
+    document.body.appendChild(tmp);
+    try{
+      var range=document.createRange();
+      range.selectNodeContents(tmp);
+      var sel=window.getSelection();
+      sel.removeAllRanges();sel.addRange(range);
+      var done=document.execCommand('copy');
+      sel.removeAllRanges();
+      if(done)ok('✅ 已用兼容模式复制！去公众号编辑器粘贴即可');
+      else fail('⚠ 自动复制失败，请手动全选(Ctrl/⌘+A)再复制(Ctrl/⌘+C)');
+    }catch(e){fail('⚠ 自动复制失败，请手动全选再复制');}
+    document.body.removeChild(tmp);
+  }
+
+  function copyToClipboard(){
+    var payload;
+    try{payload=buildPayload();}catch(e){gzhShowToast('⚠ 复制准备失败：'+e.message);return;}
+    var btn=document.getElementById('gzhCopyBtn');
+    function ok(msg){gzhShowToast(msg);btn.textContent='✅ 已复制';setTimeout(function(){btn.textContent='📋 复制到公众号';},2200);}
+    function fail(msg){gzhShowToast(msg);}
+    if(navigator.clipboard&&window.ClipboardItem){
+      try{
+        var item=new ClipboardItem({
+          'text/html':new Blob([payload.html],{type:'text/html'}),
+          'text/plain':new Blob([payload.text],{type:'text/plain'})
+        });
+        navigator.clipboard.write([item]).then(function(){ok('✅ 已复制富文本！去公众号编辑器按 Ctrl/⌘+V 粘贴即可');}).catch(function(e){legacyCopy(payload.html,ok,fail);});
+        return;
+      }catch(e){legacyCopy(payload.html,ok,fail);return;}
+    }
+    legacyCopy(payload.html,ok,fail);
+  }
+
+  /* ================= 排版微调（实时预览，只调可读性参数） ================= */
+  var TUNE_SNAPS={};
+  function tuneSnap(sel,prop){
+    var key=sel+'|'+prop;
+    if(TUNE_SNAPS[key])return TUNE_SNAPS[key];
+    var arr=[];
+    Array.prototype.forEach.call(document.querySelectorAll('#gzh-content '+sel),function(el){
+      arr.push({el:el,prop:prop,orig:el.style.getPropertyValue(prop)});
+    });
+    TUNE_SNAPS[key]=arr;
+    return arr;
+  }
+  function tuneSet(sel,prop,val,unit){
+    tuneSnap(sel,prop).forEach(function(r){r.el.style.setProperty(prop,unit?val+unit:val);});
+  }
+  function elStyle(sel,prop){
+    var el=document.querySelector('#gzh-content '+sel);
+    if(!el)return null;
+    var v=getComputedStyle(el).getPropertyValue(prop).trim();
+    return parseFloat(v);
+  }
+  function setSlider(id,val){var it=document.getElementById(id);it.value=val;document.getElementById(id+'Val').textContent=(Math.round(val*100)/100)+(id==='tunLineHeight'?'': 'px');}
+  function readDefaults(){
+    var fs=elStyle('p','font-size');if(fs)document.getElementById('tunFontSize').value=Math.round(fs);
+    var lh=elStyle('p','line-height');if(lh)document.getElementById('tunLineHeight').value=Math.round(lh*100)/100;
+    var ps=elStyle('p','margin-bottom');if(ps!=null)document.getElementById('tunParaSpacing').value=Math.round(ps);
+    var ht=elStyle('h1, h2, h3, h4','margin-top');if(ht!=null)document.getElementById('tunHeadTop').value=Math.round(ht);
+    var hb=elStyle('h1, h2, h3, h4','margin-bottom');if(hb!=null)document.getElementById('tunHeadBottom').value=Math.round(hb);
+    var im=elStyle('img','margin-bottom');if(im!=null)document.getElementById('tunImgSpacing').value=Math.round(im);
+    updVals();
+  }
+  function updVals(){
+    function v(id,u){var it=document.getElementById(id);document.getElementById(id+'Val').textContent=(Math.round(it.value*100)/100)+(u||'');}
+    v('tunFontSize','px');v('tunLineHeight','');v('tunParaSpacing','px');v('tunHeadTop','px');v('tunHeadBottom','px');v('tunImgSpacing','px');
+  }
+  function applyTune(){
+    tuneSet('p','font-size',+document.getElementById('tunFontSize').value,'px');
+    tuneSet('p','line-height',+document.getElementById('tunLineHeight').value,'');
+    tuneSet('p','margin-bottom',+document.getElementById('tunParaSpacing').value,'px');
+    tuneSet('h1, h2, h3, h4','margin-top',+document.getElementById('tunHeadTop').value,'px');
+    tuneSet('h1, h2, h3, h4','margin-bottom',+document.getElementById('tunHeadBottom').value,'px');
+    tuneSet('img','margin-top',+document.getElementById('tunImgSpacing').value,'px');
+    tuneSet('img','margin-bottom',+document.getElementById('tunImgSpacing').value,'px');
+    updVals();
+  }
+  function tunReset(){
+    Object.keys(TUNE_SNAPS).forEach(function(k){
+      TUNE_SNAPS[k].forEach(function(r){r.el.style.setProperty(r.prop,r.orig);});
+    });
+    TUNE_SNAPS={};
+    readDefaults();
+  }
+  /* ===== 我的排版（用户级草稿，localStorage，不进全局配置） ===== */
+  var MYSTYLE_KEY='gzh-mystyle:v1';
+  var TUNE_IDS={fs:'tunFontSize',lh:'tunLineHeight',ps:'tunParaSpacing',ht:'tunHeadTop',hb:'tunHeadBottom',im:'tunImgSpacing'};
+  function readTuneVals(){var o={};Object.keys(TUNE_IDS).forEach(function(k){o[k]=+document.getElementById(TUNE_IDS[k]).value;});return o;}
+  function tunSaveMine(){try{localStorage.setItem(MYSTYLE_KEY,JSON.stringify(readTuneVals()));gzhShowToast('✅ 已保存我的排版');}catch(e){gzhShowToast('⚠ 保存失败：'+e.message);}}
+  function tunApplyMine(){var raw=localStorage.getItem(MYSTYLE_KEY);if(!raw){gzhShowToast('⚠ 还没有保存过我的排版');return;}var v=JSON.parse(raw);Object.keys(TUNE_IDS).forEach(function(k){if(v[k]!=null)document.getElementById(TUNE_IDS[k]).value=v[k];});applyTune();gzhShowToast('✅ 已应用我的排版');}
+  function tunClearMine(){localStorage.removeItem(MYSTYLE_KEY);gzhShowToast('已清除我的排版');}
+  document.getElementById('tunSaveMine').addEventListener('click',tunSaveMine);
+  document.getElementById('tunApplyMine').addEventListener('click',tunApplyMine);
+  document.getElementById('tunClearMine').addEventListener('click',tunClearMine);
+
+  document.getElementById('gzhTuneToggle').addEventListener('click',function(){
+    var p=document.getElementById('gzhTunePanel');p.hidden=!p.hidden;if(!p.hidden)readDefaults();
+  });
+  ['tunFontSize','tunLineHeight','tunParaSpacing','tunHeadTop','tunHeadBottom','tunImgSpacing'].forEach(function(id){
+    document.getElementById(id).addEventListener('input',applyTune);
+  });
+  document.getElementById('tunReset').addEventListener('click',tunReset);
+  readDefaults();
+
+  document.getElementById('gzhCopyBtn').addEventListener('click',copyToClipboard);
 </script>
 </body>
 </html>
