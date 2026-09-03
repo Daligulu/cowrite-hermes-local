@@ -276,6 +276,26 @@ find /root /home /srv /mnt /data /media -maxdepth 6 -name ".obsidian" -type d 2>
 - 验收任务创建：POST /api/tasks body `{action:'gzh-layout', pageId, requirements, delivery:'cowrite'}`（带 x-cowrite-token）；`/api/tasks` 返回**数组非 `{tasks:[...]}`**，轮询直接遍历；worker 领取有 ~1 分钟延迟
 - gzh-publish 升级要保幂等：仅当 prompt 不含「主题：」才补，避免重复 merge 破坏
 
+## gzh-design 新增衬线双配色主题（2026-09-02 落地，commits f07d9db / cc0e5b5）
+
+**触发**：用户把抓取的编辑部纸感文章排版（衬线×微方格纸×卡片标题）固化为 gzh-design 新主题「衬线绿色方格纸（serif-green，#28a745）」，随后要求「参照这套版式再做一款深蓝，其它不变」→ 经三款深蓝候选出样张对比，用户选定 **衬线深蓝方格纸（serif-navy，#1E5AA8）**（明亮清晰、蓝而不闷、正文最耐读、点睛适中）。
+
+**本地 skill（/root/.hermes/skills/creative/gzh-design）是基准**，本次落地了几处，Cowrite 侧需要同步的只有 C+配置件：
+
+- **A. 主题库**：`references/theme-serif-green.md`（新建）+ `references/theme-serif-navy.md`（由 green 程序化改色生成——只换颜色族、排版参数全保留）。serif-navy 主题库用「基底主题复制改色」生成，非手写：按长度优先替换 `#28a7450F/#28a74555/#28a74599` → `#28a745` → `rgba(40,167,69,0.035)`，`#059669`→`#2563EB`（图标点睛），感谢卡 `#F0FDF4/#ECFDF5/#BBF7D0`→`#EFF6FF/#EAF2FB/#BFDBFE`；脚本校验无残留原色/无残留「绿色」字样。
+- **B. 三处登记**：`theme-index.md`（映射生效）、`assets/theme-vars.json`（accent/hue_range 按新主色族，供 retint 换色）、`theme-thanks-card.md`（第八套深蓝系感谢卡）。`component_lint.py` → 0 ERROR；`validate_gzh_html.py`（纯正文+感谢卡）→ 完全合规。
+- **C. Cowrite 版式下拉**（本次 C 端关键改动，`server/styleConfig.ts`）：`DEFAULT_STYLES.layout` 在橄榄手记后追加两项 `{ id:'serif-green', label:'衬线绿色方格纸' }` 与 `{ id:'serif-navy', label:'衬线深蓝方格纸' }`。**生产无独立 style-config.json（用代码 DEFAULT_STYLES），改代码即生效，无需生产 merge**；改后 `systemctl restart cowrite-hermes.service`（注意：**只有重启才重新加载模块常量**，冷启动才读新 DEFAULT）。改前备份 `server/styleConfig.ts.bak-*`。
+- **D. Worker 映射**（前面 gzh-layout 动作已配）：`/root/.cowrite/action-config.json` 的 `gzh-layout` prompt 主题映射表已加 `serif-green=衬线绿色方格纸/serif-navy=衬线深蓝方格纸`。Worker 领取任务后读该配置即可识别。**两端 id 必须一一对齐**：前端下拉的 id = action-config 映射表的 id = gzh-design theme-<id>.md 文件名，三者缺一 Worker 选不动。
+
+**验证**：`GET /api/style-config` 返回 8 个 layout（含 serif-green/serif-navy）；`GET /api/action-config` 的 gzh-layout prompt 含 2 处 serif-navy；生产服务 active；本地 gzh-design skill 有 theme-serif-*.md。
+
+**坑/要点**：
+- **C 端（styleConfig）已合并进 D 端（actionConfig）的 id 一致性**：新版式下拉 id 必须与 gzh-design 主题英文标识、gzh-layout 映射表完全一致，否则前端下拉选了但 Worker 找不到主题库文件。这是「编辑页版式下拉 → Worker 排版」的闭环关键。
+- 生产 `/api/style-config` 与 `/api/action-config` 是**两套独立配置**：前者管前端可选风格（layout 下拉），后者管 Worker 执行规则（gzh-layout 映射）。加主题要两边都改，只改一边前端下拉会出现但 Worker 不认，或反之。
+- 部署生产 API 用 `tsx server/index.ts` 直跑 TS，**改 server/*.ts 后 `systemctl restart cowrite-hermes.service` 即生效，无需 npm run build**（build 只影响前端 dist，本次未改前端）。改 `src/*` 才需 build。
+- 公开仓库同步：本仓库 `hermes-skills/gzh-design/` 是本地定制版的**镜像**，本次 rsync 同步了 references/scripts/assets/SKILL.md（含新主题），并在 push 前 cp 备份旧镜像到 `gzh-backups/repo-mirror-*`。
+- 前端编辑页直接在 URL 敲 `/page/<id>` 可能空白（SPA 内部导航/交互问题），验收下拉用「首页 → 点最近页面卡片」正常进编辑页，或直连 `/api/style-config` 用前端 fetch 视角断言（本会话即用后者闭环）。
+
 ## 排版后「配图运行成功但看不到图」修复（2026-09-02 落地，commit 8a29d64）
 
 **触发**：用户报"编辑页排版后无法插入配图，虽然配图任务运行成功"。需先分析后确认再执行。
