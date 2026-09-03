@@ -38,6 +38,8 @@ export const DEFAULT_STYLES: StyleConfig = {
     { id: 'zen-whitespace', label: '留白禅意', description: '墨绿大留白、沉稳安静、适合长文/深度' },
     { id: 'moyu-ticket', label: '摸鱼票据', description: '票据风、灰底卡片、适合清单/攻略类' },
     { id: 'olive-journal', label: '橄榄手记', description: '橄榄墨色+橙点缀、手记质感、适合复盘/日记类' },
+    { id: 'serif-green', label: '衬线绿色方格纸', description: '衬线editorial纸感、绿色微方格纸+绿强调+H2绿卡、适合教程/工具盘点/深度分析' },
+    { id: 'serif-navy', label: '衬线深蓝方格纸', description: '衬线editorial纸感、深蓝微方格纸+深蓝强调+H2蓝卡（衬线绿同系变体，明亮清晰蓝而不闷）' },
   ],
   image: [
     { id: 'anime-fresh', label: '日系清新', description: '清新明亮动漫感，自然光线' },
