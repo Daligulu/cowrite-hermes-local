@@ -167,7 +167,8 @@ export function createApp(
     requirements: z.string().max(20_000).optional(),
     delivery: z.string().max(200).optional(),
   }).strict().refine(
-    (value) => value.pageId || value.projectPath || value.action === 'topic-collect',
+    // wechat-sticker 与 topic-collect 一样是从首页/命令栏「无当前页」发起、Worker 自行新建《贴图草稿·主题》页，需豁免 pageId/projectPath
+    (value) => value.pageId || value.projectPath || value.action === 'topic-collect' || value.action === 'wechat-sticker',
     'pageId or projectPath is required',
   )
   app.post('/api/tasks', async (request, response) => {
