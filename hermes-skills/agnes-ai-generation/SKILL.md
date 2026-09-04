@@ -148,6 +148,29 @@ cd "$SKILL_DIR" && python3 scripts/agnes_api.py smoke-test --video-case text-to-
 - Supported by the script and smoke-test selector, but not re-run end-to-end in the latest pass: multi-image video and keyframe animation.
 - Not yet confirmed end-to-end: completed URL retrieval for every multi-image video and keyframe animation task. A previous text-to-video task returned a provider-side `division by zero` error, so keep video retries visible and report provider errors clearly.
 
+## As a Cowrite Free Illustration Fallback Source (verified 2026-09-04)
+
+Agnes 免费端点可作为 Cowrite `illustrate`/`topic-create` 的**备选 + 显式**图源。本机封装脚本 `scripts/generate_image.py` 统一处理「主源 ApiYi + 降级 Agnes」：
+
+```bash
+# auto：ApiYi 优先，失败/限流/HTTP 451 自动降级 Agnes（推荐默认）
+python3 /root/.hermes/skills/creative/agnes-ai-generation/scripts/generate_image.py \
+  --prompt "<生成prompt>" --out /tmp/out.png --source auto --aspect portrait
+
+# 显式指定 Agnes（免费源），不降级
+python3 .../generate_image.py --prompt "..." --out /tmp/out.png --source agnes --aspect portrait
+
+# 显式指定 ApiYi，不降级
+python3 .../generate_image.py --prompt "..." --out /tmp/out.png --source apiyi --aspect landscape
+```
+
+- `--source auto`：ApiYi 优先，失败自动降级 Agnes（`used_fallback=true` 表示走了 Agnes）。
+- `--source agnes`：只用 Agnes（响应 `used_fallback=false`）；`--source apiyi` 同理只走 ApiYi。
+- 环境变量读取 `~/.hermes/.env`（`AGNES_API_KEY`），下载后落本地 PNG，stdout 返回 JSON `{ok, source, path, used_fallback}`；全失败时 exit 2。
+- 该脚本要求本机同时有 `apiyi-image-generation` 与 `agnes-ai-generation` 两个 skill 目录。
+- Cowrite 侧接入：`/root/.cowrite/action-config.json` 的 `illustrate`/`topic-create` 已追加 `agnes-ai-generation` skill，requirements 含「图源：Agnes/沿用免费图源」→ 显式走 `--source agnes`，否则 `--source auto`。
+- 端到端已验证：`task_oZICQ4Ldxzva`（显式 Agnes）生成 1312×736 PNG、上传 `/assets/`、插入页面 rev1→2、图片 HEAD 200 image/png。
+
 ## Character Consistency Across Multiple Poses
 
 When generating a **series of images with the same character** (e.g., personal brand assets, mascot illustrations, sticker sets), Agnes AI does NOT have IP-Adapter or face-locking. Achieve consistency by:
