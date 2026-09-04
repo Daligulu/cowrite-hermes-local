@@ -93,6 +93,20 @@ Worker PROMPT（`deploy/scripts/cowrite-hermes-worker.py`）内嵌信息检索�
 - 生产已有旧 action-config.json 时 reset 才带新动作；重启服务用 `systemctl restart cowrite-hermes.service`
 - 验收用 browser_console 连点两个按钮会触发 React 18 批处理读到旧 state（分步点击才正常）
 
+## 微信贴图接入 baoyu-infographic（2026-09-04 落地，commit c92b8e6）
+
+**触发**：把 Cowrite 微信贴图生成从「ApiYi 文生图 + 新海诚系清新明亮」替换为 baoyu-infographic 信息图引擎，保留 3:4 竖版长宽比、中文、取消新海诚，并按内容自动路由（狗狗/生活→① bento-grid×craft-handmade；AI/科技→② dense-modules×pop-laboratory，两者都要）；前端「配图」下拉现有选项不变、只新增两个 baoyu 信息图预设；保留手动下拉 + 自动兜底，前后端都改。
+
+**实现**：
+- `server/styleConfig.ts` DEFAULT_STYLES.image 新增 `infographic-craft`（信息图·手作纸艺）= bento-grid×craft-handmade、`infographic-lab`（信息图·技术蓝图）= dense-modules×pop-laboratory；原 5 项不动（image 现 7 项）。
+- `src/CommandBar.tsx` EditorCommandBar wechat-sticker 分支：删除「未选风格必拦」(notify 请先选配图风格)，改 `styleToken = imageStyleLabel ? \`风格：${imageStyleLabel}\` : '风格：自动'`（未选交 Worker 按内容自动路由）。
+- `server/actionConfig.ts` wechat-sticker 动作 skills：`[wechat-sticker-publisher, apiyi-image-generation, humanizer-zh]` → `[wechat-sticker-publisher, baoyu-infographic, humanizer-zh]`；prompt 改为 baoyu-infographic 生成（固定竖版 3:4 1080×1440、中文、直接生成不弹确认；风格路由：指定「信息图·手作纸艺」→bento×craft /「信息图·技术蓝图」→dense×pop /「风格：自动」→ 按内容路由：狗狗/萌宠/生活→bento×craft、AI/科技/数码→dense×pop、其他→bento×craft；取消新海诚系；图像内中文须正确可读，文字错乱按 baoyu-infographic 规则重新生成而非涂改；④ 新建独立页面《贴图草稿·主题》，只建草稿不发布）。
+- **action-config.json 是独立文件（`/root/.cowrite/`），不在 git 仓库**；改后 API `GET /api/action-config → 改 → PUT` 落地（写操作带 x-cowrite-token），或直接改文件（load() 每次读盘即时生效）。
+
+**端到端验收还要确认**：wechat-sticker 从首页/无页面发起会被 `POST /api/tasks` 的 `.refine(v => v.pageId || v.projectPath || v.action === 'topic-collect')` 拦住——目前只豁免 `topic-collect`；无 pageId 时用 `projectPath` 占位绕过（如 `/root/.cowrite/projects`）。若产品层面要「从首页发起贴图」，需把 wechat-sticker 也加入 ref ine 豁免。
+
+**坑（action-config prompt 必须带 id，重要）**：`actionConfigFileSchema` 的 prompt 项 schema 为 `{id: z.string().min(1).max(80), role: z.enum(['system','user']).default('system'), text: z.string().min(1).max(20000)}` —— **必须含 `id`**。程序化改 prompt 若写成 `[{'role':'system','text':...}]` 缺 `id`，整文件被 zod 判 corrupt → `load()` 自动改名 `.corrupt-<ts>-*` 并回退内置默认（旧配置），`/api/action-config` 仍返回默认（表现为「改动不生效」）。判断：看 `/root/.cowrite/` 下有无新生成的 `action-config.json.corrupt-<ts>-*`。修复：从 `action-config.json.bak-*` 恢复 + 改写保留 `id:'main'`。
+
 ## 首页快捷卡片与「打开项目」现状（2026-08-20 调研，新需求开发前必读）
 - 首页 `src/HomeWorkspace.tsx` 快捷开始卡片（`.home-card`）：从想法创作（primary）/ 导入文章 / 打开项目 / 技能管理；`onOpenProject` 进入 ProjectWorkspace；点击「从想法创作」= onNewPage
 - `src/ProjectWorkspace.tsx` 本地项目功能完整：`chooseFolder()` → POST `/api/projects/open`（body `{directory?}`）→ LocalProject（tree + markdownFiles + warnings）→ FileTree 目录树 + ProjectEditor（Vditor，PATCH `/api/projects/:id/file` 带 expectedVersion 乐观并发保存回本地）；已有「输入绝对路径」兜底入口（manualPath）
