@@ -119,11 +119,9 @@ export function EditorCommandBar({ page, notify, imageStyleLabel }: { page: Page
       return
     }
     if (chosen === 'wechat-sticker') {
-      if (!imageStyleLabel) {
-        notify('请先在编辑页「配图」下拉选择配图风格')
-        return
-      }
-      const reqWithStyle = [req, `风格：${imageStyleLabel}`].filter(Boolean).join('；')
+      // 手动选风格则按所选；未选则交 Worker 按内容自动路由（狗狗/萌宠→手作纸艺，AI/科技→技术蓝图）
+      const styleToken = imageStyleLabel ? `风格：${imageStyleLabel}` : '风格：自动'
+      const reqWithStyle = [req, styleToken].filter(Boolean).join('；')
       await doSubmit(chosen, reqWithStyle)
       return
     }

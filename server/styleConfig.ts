@@ -47,6 +47,8 @@ export const DEFAULT_STYLES: StyleConfig = {
     { id: '3d-render', label: '3D 质感', description: '3D 渲染质感、光影立体' },
     { id: 'photoreal', label: '摄影写实', description: '写实摄影感、真实场景' },
     { id: 'guofeng-ink', label: '国风水墨', description: '水墨晕染、留白写意、东方意境' },
+    { id: 'infographic-craft', label: '信息图·手作纸艺', description: 'baoyu-infographic bento-grid×craft-handmade 友好百搭（适合狗狗/生活类贴图）' },
+    { id: 'infographic-lab', label: '信息图·技术蓝图', description: 'baoyu-infographic dense-modules×pop-laboratory 数据/科技（适合 AI 类贴图）' },
   ],
 }
 
