@@ -19,7 +19,7 @@ metadata:
 This skill adapts the Obsidian note `20-Library/Skills/Content/wewrite_skill.md` into a local Hermes workflow. It covers the WeChat article pipeline:
 
 ```text
-热点/选题 → 框架/素材 → 内容增强 → 写作 → HumanizerZH 去 AI 味 → SEO/自检 → 封面/正文配图 → professional-clean 排版 → 微信公众号草稿箱
+热点/选题 → 框架/素材 → 内容增强 → 写作 → HumanizerZH 去 AI 味 → SEO/自检 → 封面/正文配图 → WeWrite 主题排版（默认 fresh-green） → 微信公众号草稿箱
 ```
 
 It is now the shared cover-image, publisher, and formatter for dog-writing workflows. `dog-wechat-daily-writer` should call this skill for cover generation, article layout, and draft-box publishing instead of using a plain Markdown-to-HTML publisher.
@@ -124,7 +124,7 @@ Registered themes (adapted from gzh-design-skill + upstream Obsidian WeWrite v2.
 
 | Theme name | Label | Best for |
 |---|---|---|
-| `professional-clean` | 暖棕商务（默认） | Legacy default, general |
+| `professional-clean` | 暖棕商务 | Legacy default, general |
 | `moyu-green` | 摸鱼绿 | 教程/测评/清单（卡片丰富） |
 | `red-white` | 红白色系 | 深度分析/观点（经典编辑风） |
 | `graphite-minimal` | 石墨极简 | 科技/设计评论（克制留白） |
@@ -135,7 +135,7 @@ Registered themes (adapted from gzh-design-skill + upstream Obsidian WeWrite v2.
 | `warm-daily` | 暖粉日常 | 生活/情感类（暖粉主色） |
 | `dark-mode` | 深色暗夜 | 极客/夜间阅读（深底蓝字） |
 | `elegant-serif` | 优雅衬线 | 文艺/书评（衬线+玫瑰色） |
-| `fresh-green` | 清新薄荷 | 健康/自然（薄荷绿） |
+| `fresh-green` | 清新薄荷（默认） | 健康/自然（薄荷绿） |
 | `minimal-gray` | 极简灰 | 商务/专业（低调克制） |
 | `vibrant-purple` | 活力紫金 | 创意/品牌（紫金撞色） |
 | `magazine-style` | 杂志编辑 | 深度特稿（杂志红） |
@@ -152,7 +152,39 @@ Each theme maps gzh-design design variables onto this renderer's components (con
 
 Do not use a WeChat-disallowed style block or external CSS; all styling stays inline.
 
-## professional-clean Layout
+## Changing the Default Theme（切换主题的可复用流程）
+
+Use this procedure whenever the user wants a different **default** render theme (e.g. the 2026-09-05 dog-account switch from `professional-clean` to `fresh-green`). Follow it in order; do not skip verification.
+
+1. **List & pick.** `python3 scripts/wewrite_publish.py --list-themes` → confirm the target theme name exists. Show the user a live preview first (`--dry-run --html-out` + headless-chrome screenshot of the rendered HTML) and get explicit confirmation before changing anything. Default theme must be user-picked, never auto-decided.
+
+2. **Back up everything before touching config.** Copy (a) `scripts/wewrite_publish.py` and (b) `/root/.hermes/cron/jobs.json` to `.bak-<tag>-<timestamp>` files. Set `<tag>` to the change intent (e.g. `freshgreen`).
+
+3. **Change 4-5 sync points** (all must be consistent, or the docs/logs will mislead):
+   - **Script default**: `DEFAULT_THEME = "<theme>"` in `wewrite_publish.py` (also update the `--theme` help string "Default: …").
+   - **Daily cron prompt**: in `jobs.json`, the写文 task (e.g. `1127064ae418`) prompt's publish command — **explicitly** add `--theme <theme>` (don't rely on the script default; a future default change shouldn't silently alter the cron). Update the in-prompt prose line that says "必须使用 WeWrite … 排版（默认主题…）".
+   - **Skilled template**: `dog-wechat-daily-writer/templates/cron_prompt.md` step-13 command + prose (mirror the jobs.json change so regenerated crons stay consistent).
+   - **Dog skill doc**: `dog-wechat-daily-writer/SKILL.md` "Publish to WeChat Draft Box" section: heading, command (add `--theme`), prose, and the "Applies the … layout" line.
+   - **wewrite own doc**: `wewrite/SKILL.md` theme table — move the `（默认）` marker onto the new default row (only one row should carry `（默认）`).
+
+4. **Verify (non-negotiable):**
+   - `python3 -m py_compile` the script.
+   - `jobs.json` parses as JSON and the写文 prompt contains `--theme <theme>`.
+   - Run a **default** `--dry-run` (NO `--theme` flag) on a real article and grep the rendered HTML for the new theme's signature colors (e.g. fresh-green → `#d1fae5`/`#a7f3d0`/`#f8fdfb`) — proves `DEFAULT_THEME` actually drives output.
+   - For a real publish, run without `--dry-run`, then read the draft back via `draft/get` (POST) and grep the returned `news_item[0].content` for the theme signature. Verify `appid`/`draft_media_id` present.
+
+5. **Record it.** Update MEMORY (`memory` tool) with the new default ("狗狗号 wewrite 默认主题已切 <theme>：DEFAULT_THEME=…, cron 显式 --theme, SKILL 已同步"), and note the backup file names for rollback.
+
+6. **Rollback path.** If the user dislikes the change, restore the `.bak-<tag>-*` files for both `wewrite_publish.py` and `jobs.json`, then re-verify per step 4.
+
+### Pitfalls specific to theme switching
+- The script default and the cron must BOTH carry the intent — changing `DEFAULT_THEME` alone leaves the cron prompt prose (which names the old theme) stale and misleading.
+- The `--help` string hardcodes "Default: …" — it won't auto-follow `DEFAULT_THEME`, so edit it manually or it will lie.
+- Only ONE theme row in the `wewrite/SKILL.md` table should carry `（默认）`; grep `professional-clean 默认` / `（默认）` to confirm none is orphaned.
+- jobs.json is a dict, not a list — read it with `json.load` then iterate the job array; edit via Python (patch tool refuses this file per prior experience), always rebinding the prompt object before `json.dump`.
+- The dog account publishes to **draft box only** (草稿箱), never群发 — a theme switch must not change that.
+
+## Theme Layout Details（各主题渲染要点）
 
 The renderer converts Markdown into WeChat-compatible HTML:
 
@@ -217,3 +249,6 @@ Reference: `references/wechat-image-style-tuning.md` captures the current visual
 5. **Complex CSS.** WeChat strips some CSS. Use inline styles and simple tags.
 6. **Body image alt text leaks as visible caption.** Old versions of `wewrite_publish.py` rendered Markdown image alt text as a visible `<figcaption>` below the image, showing text like "正文配图：主人观察..." in the draft. The current version strips both the figcaption AND the `正文配图：` prefix from the alt attribute. Future agents should not add any caption-like prefixes to Markdown image alt text in writing workflows.
 7. **Vague ending instruction causes unrelated literary text in dog-writer.** The dog-writer skill's "结尾：温暖收束，引导收藏/转发" was too loose — the model would generate dog-themed poetic sentences unrelated to the article topic. The dog-writer skill now has a tightened ending rule (max 1 sentence, topic-only).
+8. **Checkmark marker rendered on its own line above list text (WeChat block-level quirk).** The original `flush_ul()` produced `<li><span>✓</span> text</li>`; WeChat's rich-text engine parsed the leading `<li>`/`<span>` as block-level, splitting the ✓ onto its own line above the item text. **Critical lesson (2026-09-06): a local headless-Chrome render showing the marker inline does NOT prove WeChat renders it inline** — WeChat's HTML engine differs from a standard browser. The only authoritative verification is a REAL draft publish read in the WeChat mobile app. Current fixed structure: each list item is a `<p>` row whose checkmark is a **colored inline `<span>✓</span>` followed by a NORMAL space (never `&nbsp;`) then the text** — e.g. `<p ...><span style="color:#10b981;">✓</span> 文字</p>`. Avoid `<ul>`/`<li>`, avoid `&nbsp;`, and when generating any WeChat list, confirm by opening the published draft on a phone; do not rely on local screenshots alone.
+9. **Markdown task-list `- [ ] text` rendered as `✓ [ ] text` (checkmark floating outside empty brackets).** The list detector `re.match(r"^[-*]\s+(.+)$")` captured `[ ] 文字` as the item text while `flush_ul` prepended a `✓`, producing `✓ [ ] 文字` with the checkmark outside the brackets. Fixed (2026-09-07): task-list marker `[ ]` / `[x]` / `[X]` is detected and the item is stored as a `task` kind, rendered as `[✓] 文字` (checkmark INSIDE the brackets) using the theme `check_color`; plain `- text` items keep the `✓ 文字` form. The leading literal `[` before the checkmark span also avoids the WeChat leading-`<span>` block-level quirk. When generating a "今日清单/小清单" to-do list, `- [ ]` items now read cleanly as `[✓] 文字` on one line.
+10. **`draft/update` requires `articles` as a single OBJECT, not an array.** `wewrite_publish.py --update-media-id <media_id>` updates a draft in place (no duplicate). But `cgi-bin/draft/update`'s `articles` field is a **single article object** (e.g. `{"article_type":"news","title":...,"content":...}`), NOT an array like `draft/add`'s `articles`. Sending `articles: [{...}]` returns `errcode 47001 data format error`. Always POST `draft/update` with `articles` as an object plus top-level `media_id` and `index` (article position, 0-based). Verify the update by reading the draft back via `draft/get` (POST — GET returns 43002) and grepping the content.

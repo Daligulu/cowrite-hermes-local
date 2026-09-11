@@ -130,6 +130,8 @@ Prompt skeleton:
 Clean anime explainer presenter, Feng anime boy, short black hair, slightly slim heroic eyebrows, gentle focused eyes, white hoodie, dark outer jacket, clean young-anime look, warm and serious but not stiff. Pose: <pointing / thinking / nodding / explaining / summary>. Full-body or 3/4 body, simple clean background, no text, no labels, no cafe background, no photorealism, no front-facing avatar portrait crop. Designed as a small bottom-right guide in a 9:16 Chinese explainer video.
 ```
 
+For the Cowrite `gzh-video` pipeline specifically (Pillow + ffmpeg, `/root/.hermes/scripts/cowrite-video.py`), read `references/cowrite-video-feng-presenter.md` — it documents the `--feng` / `--feng-mode full|half` flags, the flood-fill cutout (rembg network pitfall), full / half sizing, and the confirmed user rule to **always confirm the presenter scale (full vs half) before rendering**.
+
 ## Voiceover: Edge TTS Male Narration
 
 Default voiceover uses Edge TTS male Mandarin.
@@ -420,6 +422,7 @@ Completion criterion: the report is filled with actual results, not template pla
 4. **Presenter is too large.** Keep it about 8–12% visual attention.
 5. **UI is unreadable on mobile.** Increase type, reduce text density, and inspect 9:16 snapshots.
 6. **Video feels like slides.** Add motion handoffs and vary layout/transition rhythm.
+7. **libass clips space-less Chinese subtitles.** When burning SRT via `ass=`/`subtitles=` in ffmpeg, libass treats a CJK run as one unbreakable "word" (no spaces), so a long sentence stays on one line, overflows the margins, and gets clipped at BOTH screen edges (leading/trailing characters cut off). Symptom on a 9:16 frame: the subtitle looks like "还在长安读书…踏进了匈奴的大" instead of "别人还在长安读书…匈奴的大漠。". **Fix:** pre-wrap every subtitle line into ≤ `MAXX` CJK chars (`MAXX ≈ usable_width / glyph_width`, e.g. 13 at FontSize 64 in a 1080-px-wide 960px safe area) and join with `\N` breaks, preferring to break after CJK punctuation (，。、；：！？—…) so phrasing stays natural. Build the `.ass` yourself with `PlayResX/Y` = video size so `FontSize` maps 1:1 to pixels; `force_style` FontSize is relative to the ASS playres, so always set it explicitly.
 
 ## Verification Checklist
 

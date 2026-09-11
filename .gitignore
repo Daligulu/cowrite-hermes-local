@@ -7,3 +7,6 @@ skills/image-studio/.labnana.env
 .codex/
 deploy/scripts/__pycache__/
 *.pyc
+*.bak-*
+*.corrupt-*
+__pycache__/

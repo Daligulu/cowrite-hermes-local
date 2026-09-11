@@ -17,6 +17,20 @@ triggers:
 工作流模式；具体账号（狗狗生活小百科 / 峰AI路）的发布脚本走 `wewrite` 或
 `wechat-sticker-publisher`，本 skill 不替代它们，只提供它们共用的规则与验收方法。
 
+## Direct-submit of pre-rendered component HTML
+
+当文章已用 gzh-design 组件库排好版（水印编号 / STEP 卡 / 指令框 / 点评卡等完整版式）时，
+把这段 **`<section>` 正文章节** 作为 `content` 直接提交草稿箱（`article_type=news`）。
+**不要**经 wewrite 的 Markdown 主题重渲——`wewrite_publish.py --theme graphite-minimal`
+是融合版（只有颜色/字号变量），`render_article()` 从 Markdown 重排会丢光组件版式。
+完整复现配方（含发布前抽取纯片段、`draft/get` POST 读回验收、2026-08-26 实机记录）见
+**`references/gzh-direct-publish-e2e.md`** — 本节的落地细节。
+
+来源是 **Cowrite 页面**（content 已是组件 HTML、正文图是 `/assets/` 相对路径）时，
+还要补「正文图 → `media/uploadimg` → 替换 src」这一步（`publish_gzh_html.py` 只处理封面），
+并注意 uploadimg 的 1MB 上限与页面内 Cowrite 状态备注不能进草稿：
+见 **`references/cowrite-page-to-wechat-draft.md`**。
+
 ## When to Use
 
 - 用户要把 Markdown 排成公众号可粘贴 HTML（任何工具链）
@@ -36,6 +50,8 @@ Verified against gzh-design component libraries + local wewrite publishing. Hard
 - Do NOT put `font-size`/`border-bottom` on `<strong>`; do NOT mix multiple font sizes in one `<p>` — the editor "auto-corrects" and rewrites styles. Split into multiple `<p>`, one font size each; put highlights on an outer `<span>`.
 - Body images need WeChat-hosted URLs (`media/uploadimg`); a publisher must upload local images and rewrite `src` before draft creation.
 - Cover → permanent thumb material (`material/add_material` type=thumb); draft → `cgi-bin/draft/add` with `thumb_media_id` + inline-styled `content`.
+- Read-back verification: `cgi-bin/draft/get` is **POST** (GET → `errcode 43002 require POST method`). A returned `draft_media_id` from `draft/add` only proves the API accepted it — the ONLY reliable "styles survived" evidence is a POST read-back of `news_item[0].content` and checking the component markers still render.
+- Direct-submit a pre-rendered component article as `content` (`article_type=news`) — do NOT re-render via wewrite's Markdown themes, which keep only color variables and drop component-level layout (watermark numbering / STEP tags / copy blocks / verdict cards). See `references/gzh-direct-publish-e2e.md`.
 
 ## Theme Library Fusion（外部主题库反哺本地渲染器）
 

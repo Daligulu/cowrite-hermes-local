@@ -57,6 +57,7 @@ def main() -> int:
     parser.add_argument("--prompt-file")
     parser.add_argument("--reference-image", action="append", default=[])
     parser.add_argument("--aspect-ratio", choices=("landscape", "square", "portrait"), default="landscape")
+    parser.add_argument("--size", default=None, help="Explicit WxH pixel size for OpenAI-family models (e.g. 1536x2048 for 3:4). Overrides config/image_gen.apiyi.size when set.")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
 
@@ -86,6 +87,7 @@ def main() -> int:
         image_url=primary,
         reference_image_urls=extra,
         model=args.model,
+        size=args.size,
     )
     if not result.get("success"):
         print(json.dumps(result, ensure_ascii=False), file=sys.stderr)

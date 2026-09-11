@@ -22,6 +22,7 @@ TOKEN_URL = "https://api.weixin.qq.com/cgi-bin/token"
 UPLOAD_URL = "https://api.weixin.qq.com/cgi-bin/material/add_material"
 UPLOADIMG_URL = "https://api.weixin.qq.com/cgi-bin/media/uploadimg"
 DRAFT_URL = "https://api.weixin.qq.com/cgi-bin/draft/add"
+DRAFT_UPDATE_URL = "https://api.weixin.qq.com/cgi-bin/draft/update"
 DEFAULT_ENV = "/root/.hermes/.env"
 
 FORBIDDEN = ["本文由", "分钟阅读", "素材来源", "编辑锚点", "峰峰，可以", "这里可以加", "TODO", "PLACEHOLDER"]
@@ -36,7 +37,7 @@ FORBIDDEN = ["本文由", "分钟阅读", "素材来源", "编辑锚点", "峰�
 THEMES = {
     # Default legacy look — warm professional clean (unchanged colors).
     "professional-clean": {
-        "label": "暖棕商务（默认）",
+        "label": "暖棕商务",
         "container_bg": "#ffffff",
         "title_card_bg": "linear-gradient(135deg,#fff7ec,#ffffff)",
         "title_card_border": "#f1dfc8",
@@ -306,7 +307,7 @@ THEMES = {
     },
     # Fresh Green — emerald accent, light mint background, card images.
     "fresh-green": {
-        "label": "清新薄荷（上游 Fresh Green）",
+        "label": "清新薄荷（默认）",
         "container_bg": "#f8fdfb",
         "title_card_bg": "linear-gradient(135deg,#d1fae5,#f8fdfb)",
         "title_card_border": "#a7f3d0",
@@ -451,7 +452,7 @@ THEMES = {
     },
 }
 
-DEFAULT_THEME = "professional-clean"
+DEFAULT_THEME = "fresh-green"
 
 ACCOUNTS = {
     "dog": {
@@ -621,16 +622,31 @@ def render_article(md: str, image_url_map: dict[str, str] | None = None, theme_n
     def flush_ul() -> None:
         nonlocal pending_ul
         if pending_ul:
-            items = "".join(
-                f"<li style=\"margin:8px 0;color:{theme['list_item_color']};font-size:15px;line-height:1.75;\">"
-                f"<span style=\"color:{theme['check_color']};font-weight:700;\">✓</span> "
-                + inline(item, theme)
-                + "</li>"
-                for item in pending_ul
-            )
+            # WeChat's rich-text engine parses a leading block/inline element (<li>, or
+            # a <span> at the start of a <p>) as block-level in some cases, splitting the
+            # ✓ marker onto its own line above the text. Use a <p> row whose checkmark is
+            # a colored inline <span> immediately followed by a NORMAL space (not &nbsp;)
+            # then the text — WeChat keeps this marker inline on the same line.
+            def row(kind: str, text: str) -> str:
+                if kind == "task":
+                    # Markdown task-list `- [ ] text` / `- [x] text`. Previously the raw
+                    # `[ ]` was kept as text AND a ✓ was prepended, rendering `✓ [ ] text`
+                    # with the checkmark floating outside empty brackets. Put the checkmark
+                    # INSIDE the brackets so the marker reads `[✓] text` on one line.
+                    marker = f"[<span style=\"color:{theme['check_color']};\">✓</span>]"
+                else:
+                    marker = f"<span style=\"color:{theme['check_color']};\">✓</span>"
+                return (
+                    f"<p style=\"margin:8px 0;color:{theme['list_item_color']};font-size:15px;line-height:1.75;\">"
+                    f"{marker} "
+                    + inline(text, theme)
+                    + "</p>"
+                )
+
+            items = "".join(row(kind, text) for kind, text in pending_ul)
             body.append(
                 f"<section style=\"margin:18px 0;padding:12px 16px;background:{theme['list_bg']};border-radius:12px;border:1px solid {theme['list_border']};\">"
-                f"<ul style=\"padding-left:0;list-style:none;margin:0;\">{items}</ul></section>"
+                f"{items}</section>"
             )
             pending_ul = []
 
@@ -685,7 +701,14 @@ def render_article(md: str, image_url_map: dict[str, str] | None = None, theme_n
         m = re.match(r"^[-*]\s+(.+)$", line)
         if m:
             flush_para()
-            pending_ul.append(m.group(1).strip())
+            raw_item = m.group(1).strip()
+            task = re.match(r"^\[[ xX]\]\s*(.+)$", raw_item)
+            if task:
+                # Markdown task-list marker `[ ]`/`[x]`: keep the checkmark INSIDE the
+                # brackets (handled in flush_ul), store the content text only.
+                pending_ul.append(("task", task.group(1).strip()))
+            else:
+                pending_ul.append(("plain", raw_item))
             continue
         para.append(line)
     flush_para(); flush_ul()
@@ -719,6 +742,28 @@ def add_draft(token: str, *, title: str, author: str, digest: str, content_html:
     return request_json(f"{DRAFT_URL}?{qs}", method="POST", data=json.dumps(payload, ensure_ascii=False).encode("utf-8"), headers={"Content-Type": "application/json; charset=utf-8"})
 
 
+def update_draft(token: str, media_id: str, *, title: str, author: str, digest: str, content_html: str, thumb_media_id: str, source_url: str = "", index: int = 0) -> dict:
+    """Update an existing draft in place (cgi-bin/draft/update) so no duplicate is created."""
+    # NOTE: draft/update's `articles` is a single OBJECT (unlike draft/add, which arrays it).
+    payload = {
+        "media_id": media_id,
+        "index": index,
+        "articles": {
+            "article_type": "news",
+            "title": title[:64],
+            "author": author[:8] if author else "",
+            "digest": digest[:120] if digest else "",
+            "content": content_html,
+            "content_source_url": source_url,
+            "thumb_media_id": thumb_media_id,
+            "need_open_comment": 0,
+            "only_fans_can_comment": 0,
+        },
+    }
+    qs = urllib.parse.urlencode({"access_token": token})
+    return request_json(f"{DRAFT_UPDATE_URL}?{qs}", method="POST", data=json.dumps(payload, ensure_ascii=False).encode("utf-8"), headers={"Content-Type": "application/json; charset=utf-8"})
+
+
 def main() -> int:
     load_default_env()
     ap = argparse.ArgumentParser(description="WeWrite professional-clean WeChat draft publisher")
@@ -730,7 +775,8 @@ def main() -> int:
     ap.add_argument("--author", default="狗狗生活小百科")
     ap.add_argument("--digest", default="给铲屎官的一份实用提醒")
     ap.add_argument("--source-url", default="")
-    ap.add_argument("--theme", default=DEFAULT_THEME, help="Render theme. Use --list-themes to see available themes. Default: professional-clean")
+    ap.add_argument("--update-media-id", default=None, help="Update an existing draft with this media_id instead of creating a new draft")
+    ap.add_argument("--theme", default=DEFAULT_THEME, help="Render theme. Use --list-themes to see available themes. Default: fresh-green")
     ap.add_argument("--list-themes", action="store_true", help="List available render themes and exit")
     ap.add_argument("--html-out", type=Path, default=None, help="Write rendered HTML to this file")
     ap.add_argument("--dry-run", action="store_true", help="Render and validate token/account, but do not upload cover or create draft")
@@ -793,7 +839,10 @@ def main() -> int:
         return 0
 
     thumb_media_id = upload_thumb(token, args.cover)
-    draft_resp = add_draft(token, title=title, author=args.author, digest=args.digest, content_html=content_html, thumb_media_id=thumb_media_id, source_url=args.source_url)
+    if args.update_media_id:
+        draft_resp = update_draft(token, args.update_media_id, title=title, author=args.author, digest=args.digest, content_html=content_html, thumb_media_id=thumb_media_id, source_url=args.source_url)
+    else:
+        draft_resp = add_draft(token, title=title, author=args.author, digest=args.digest, content_html=content_html, thumb_media_id=thumb_media_id, source_url=args.source_url)
     print(json.dumps({
         "ok": True,
         "renderer": f"wewrite/{args.theme}",
@@ -805,7 +854,8 @@ def main() -> int:
         "html_out": str(args.html_out) if args.html_out else None,
         "article_images": image_url_map,
         "thumb_media_id": thumb_media_id,
-        "draft_media_id": draft_resp.get("media_id"),
+        "mode": "updated" if args.update_media_id else "created",
+        "draft_media_id": args.update_media_id or draft_resp.get("media_id"),
         "draft_response": draft_resp,
     }, ensure_ascii=False, indent=2))
     return 0

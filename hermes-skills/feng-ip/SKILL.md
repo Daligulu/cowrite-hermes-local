@@ -285,6 +285,7 @@ $HOME/.hermes/workspace/generated/feng-ip/<article-slug>/
 11. **透明贴纸“程序通过但肉眼失败”**：不要只检查 RGBA 或一个透明像素。先从无标签九宫格切图，再按棋盘格视觉验收；白衣触边时用边框背景色 + 轮廓/GrabCut 的自适应分割，不能靠降低亮度阈值硬抠。
 12. **系统 python3（3.9）下脚本 TypeError「unsupported operand type(s) for |: 'type' and 'type'」**：`hermes_constants.py` 的 `ContextVar[str | object]` 在 Python 3.9 模块级求值失败，导致 apiyi 插件链路（apiyi_image.py / feng_ip_batch.py / check_character_consistency.py）全部报错。必须用 Hermes venv 解释器运行：`export PATH=/root/.hermes/hermes-agent/venv/bin:$PATH`（Python 3.11+）后再执行脚本；feng_ip_batch.py 内部 subprocess 调用裸 `python3`，同样依赖该 PATH 前缀。
 13. **gpt-image-2-vip 场景被 HTTP 451 内容安全策略拦截**：供应商对某些人物交互场景（如“递文件夹给同事”）返回 `Your prompt was blocked by the content safety policy`，重试同 prompt 不会恢复。feng_ip_batch.py 固定模型/身份块，无法自行改措辞；如实 fail_task 上报，或由用户在 requirements 侧调整场景描述后重新排队。
+14. **Cowrite worker 上传 `cowrite_upload_asset` 报「Asset file was not found」**（2026-08-27 实证，task_JjpHqJkNhbST）：根因是 `cowrite-hermes.service` systemd 单元带 `PrivateTmp=true` + `ProtectSystem=strict` + `ReadOnlyPaths=/root/.hermes`——服务器进程看不到 shell 会话的 `/tmp`（私有临时目录），但可只读访问 `/root/.hermes`。因此 feng_ip_batch.py 输出若放在 `/tmp/...`，上传必报 not found；须把生成产物复制到服务器可读路径（如 `/root/.hermes/workspace/generated/<task>/out/`）再调用 upload_asset。用 `curl -X POST http://127.0.0.1:4320/api/assets`（带 session token）可复现定位（无 token 返回 403 说明仅鉴权问题；带 token 仍 404 说明是文件系统可见性问题）。
 
 ## 验证清单
 
