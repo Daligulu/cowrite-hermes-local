@@ -27,6 +27,16 @@ git add -A && git commit -m 'chore(hermes-skills): 镜像同步 <skill>' && git 
 - push 前扫描密钥：`git diff --cached | grep -nE '^\+.*(sk-[A-Za-z0-9]{16,}|ghp_[A-Za-z0-9]{20,}|AIza[A-Za-z0-9_-]{30,}|BEGIN [A-Z ]*PRIVATE KEY)'`（仓库是 **public**）
 - push 后核对远端：`gh api repos/Daligulu/cowrite-hermes-local/commits/hermes-local-impl --jq .sha`（比 `git log origin/...` 更可靠，后者依赖本地 fetch 缓存）
 
+**镜像瘦身（定期做，镜像里不要留构建产物）**：镜像目录不会被 gitignore 的“体积”挡住——被忽略的文件仍占磁盘。清理：
+```bash
+cd /root/.hermes/workspace/cowrite-hermes-local
+git clean -ndX hermes-skills/     # 干跑，先看清单
+git clean -fX hermes-skills/      # 只删 gitignore 的（-X），不碰未跟踪但有用的文件
+```
+2026-09-11 实测：清出 `dashiai-ppt/project/{node_modules,dist,output}` 等约 98MB（169M→71M）。
+`git clean -X` 只作用于被忽略文件，**不会伤到已跟踪的 skill 内容**；清完务必复查 `git status` 干净 + 关键文件（如 `dashiai-ppt/project/packages/`、`SKILL.md`）仍在。
+注意：本地真实 skill（`/root/.hermes/skills/dashiai-ppt/project/node_modules`，69M）是运行所需的，**绝对不删**。
+
 **完整性自检（每次同步后跑，两个维度都要查）**：
 1. **内容一致**：逐 skill `diff -rq --exclude=__pycache__ --exclude=.git --exclude='*.bak-*' <本地> hermes-skills/<n>` → 无输出即一致
 2. **依赖覆盖**：`GET /api/action-config` 取所有 action 的 `skills` 去重，逐个确认镜像内有同名目录
