@@ -9,7 +9,7 @@ description: 使用当开发/调试/验收本地 Cowrite 内容工作台（SPA+W
 
 ## 项目地图
 - 代码：`/root/.hermes/workspace/cowrite-hermes-local`（分支 hermes-local-impl；上游固定 commit `1f571c347a77de75a6db79451399792f6a9e2f28`，不跟 main）
-- **GitHub 私有仓库**：`Daligulu/cowrite-hermes-local`（origin 可推，默认分支 hermes-local-impl，含 main=上游基线 / hermes-adaptation）
+- **GitHub 仓库**：`Daligulu/cowrite-hermes-local`（origin 可推，默认分支 hermes-local-impl，含 main=上游基线 / hermes-adaptation）。**实测 visibility=public（用户 2026-09-11 决定保持公开）**——仓库内含 `hermes-skills/` 全套 skill 归档，push 前必须做密钥扫描
 - **项目是 git worktree**：`.git` 是 gitfile（内容 `gitdir: /root/.hermes/workspace/cowrite-hermes/.git/worktrees/cowrite-hermes-local`），主仓库在 `cowrite-hermes`——影响 gh 仓库操作，见 Pitfalls
 - 生产：`/opt/cowrite-hermes`（从 workspace fetch + reset 部署）
 - 数据：`/root/.cowrite`（tasks.json 队列、assets/ 资产 0700）；环境变量 `/etc/cowrite-hermes.env`（需 sudo）
@@ -445,6 +445,9 @@ find /root /home /srv /mnt /data /media -maxdepth 6 -name ".obsidian" -type d 2>
 **验收**：133/133、tsc 0、build 成功；生产 HEAD=`3a6d90f` 健康 `{"ok":true}`；JS bundle 无黄底元素；CDP 390×844 实测 `.prompt-banner` 不存在、无「等待 Agent 创作」文本、无黄点。完整自包含记录见 Obsidian `20-Projects/Cowrite-for-Hermes/移除黄底横幅等待Agent创作-20260901.md`。
 
 **坑**：黄底横幅是「新建页一键让 Hermes 写初稿」入口，删除后需改用编辑页命令栏「交给 Hermes」触发，不再有横幅一键按钮。
+
+## 镜像同步（hermes-skills 归档 / 本 skill 自身同步）
+仓库内 `hermes-skills/` 是本地 skills 的手动镜像（29 个 skill，非自动同步），另有本 skill 的 Obsidian 归档副本。**用 `rsync -a -c` + 完整性自检**（含「action-config 引用的 skill 是否都在镜像内」覆盖检查），命令、排除项、自检脚本与历史教训见 `references/self-sync-convention.md`。教训：2026-09-11 发现 `baoyu-infographic`（wechat-sticker 配图引擎）从未入镜像——重建会缺能力，只看「文件是否改动」查不出这类缺失。
 
 ## Pitfalls
 - **Cowrite asset 上传的源文件必须放在服务进程可达的路径（2026-08-31 实操踩坑）**：`cowrite_upload_asset` 报 `Asset file was not found at '/tmp/...'`，但文件明明存在——根因是生产服务（`/opt/cowrite-hermes`，systemd）开启了 **PrivateTmp**，其 `/tmp` 与宿主 `/tmp` 是**不同 mount namespace**，服务进程看不到 `/tmp` 下任何文件（`ls /proc/<pid>/root/tmp/...` 报不存在即证实）。解法：把待上传的源文件放到服务进程共享的路径，如 `/root/.cowrite/worker-assets/`（归属 `HOME=/root`，namespace 内可见），再调 `cowrite_upload_asset`。用 `ls -la /proc/<pid>/root/<path>` 先验证可见性再上传。
