@@ -30,8 +30,10 @@ print(json.dumps({'schema':1,'created_at':datetime.datetime.now(datetime.timezon
 PY
 python3 -m json.tool "$STAGE/manifest.json" >/dev/null
 tar -C "$STAGE/payload" -czf "$STAGE/cowrite-hermes.tar.gz" root
-sha256sum "$STAGE/cowrite-hermes.tar.gz" > "$STAGE/SHA256SUMS"
-(cd "$STAGE" && sha256sum -c SHA256SUMS)
+# Relative path on purpose: recording the absolute staging path made every
+# completed snapshot unverifiable (`sha256sum -c SHA256SUMS` failed with
+# "No such file or directory" once .staging-$STAMP-$$ was moved to $DEST).
+(cd "$STAGE" && sha256sum cowrite-hermes.tar.gz > SHA256SUMS && sha256sum -c SHA256SUMS)
 tar -xzf "$STAGE/cowrite-hermes.tar.gz" -C "$RESTORE"
 
 python3 - "$RESTORE/root" "$STAGE/manifest.json" <<'PY'
@@ -60,12 +62,17 @@ print(f'isolation_restore=passed files={len(manifest["files"])} json=passed hash
 PY
 
 chmod 700 "$STAGE"; chmod 600 "$STAGE"/*
+# Layout: cowrite-hermes.tar.gz (authoritative, covered by SHA256SUMS and by the
+# isolation restore above) + manifest.json + SHA256SUMS. The extracted payload/
+# tree used to be kept as well — it was a byte-identical duplicate that doubled
+# the footprint of every snapshot, so it is staging-only now.
+rm -rf "$STAGE/payload"
 mv "$STAGE" "$DEST"
-# Keep the newest seven completed backups; staging directories are handled by the trap.
+# Keep the newest four completed backups; staging directories are handled by the trap.
 python3 - "$BACKUP_ROOT" <<'PY'
 import pathlib,shutil,sys
 root=pathlib.Path(sys.argv[1]); backups=sorted((p for p in root.iterdir() if p.is_dir() and not p.name.startswith('.staging-')),key=lambda p:p.name,reverse=True)
-for old in backups[7:]: shutil.rmtree(old)
+for old in backups[4:]: shutil.rmtree(old)
 PY
 trap - EXIT
 rm -rf "$RESTORE"
